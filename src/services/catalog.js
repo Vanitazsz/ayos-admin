@@ -38,17 +38,9 @@ export async function loadCatalog() {
 }
 
 export async function loadMostBookedService() {
-  const { data, error } = await supabase
-    .from('bookings')
-    .select('service_requests!inner(service_categories!inner(name))');
+  const { data, error } = await supabase.rpc('admin_most_booked_service');
   if (error) throw error;
-  const counts = new Map();
-  for (const row of data ?? []) {
-    const name = row.service_requests?.service_categories?.name;
-    if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
-  }
-  if (!counts.size) return null;
-  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  return data;
 }
 
 export async function saveService(value, categories) {

@@ -2,51 +2,29 @@ import { supabase } from './adminShared';
 
 export async function loadAnalytics() {
   const [
-    { data: payments, error: paymentError },
-    { data: requests, error: requestError },
-    { data: accounts, error: accountError },
-    { data: bookings, error: bookingError },
+    { data: summary, error: summaryError },
+    { data: topServices, error: topServicesError },
+    { data: revenueSeries, error: revenueSeriesError },
   ] = await Promise.all([
-    supabase
-      .from('payments')
-      .select('service_amount,successful_at')
-      .eq('status', 'SUCCESSFUL')
-      .not('successful_at', 'is', null),
-    supabase.from('service_requests').select('category_id,service_categories(name)'),
-    supabase.from('accounts').select('id,created_at').eq('role', 'USER'),
-    supabase.from('bookings').select('user_account_id,status,agreed_service_amount'),
+    supabase.rpc('admin_analytics_summary'),
+    supabase.rpc('admin_top_services'),
+    supabase.rpc('admin_revenue_series'),
   ]);
-  if (paymentError) throw paymentError;
-  if (requestError) throw requestError;
-  if (accountError) throw accountError;
-  if (bookingError) throw bookingError;
+  if (summaryError) throw summaryError;
+  if (topServicesError) throw topServicesError;
+  if (revenueSeriesError) throw revenueSeriesError;
   return {
-    payments: payments ?? [],
-    requests: requests ?? [],
-    accounts: accounts ?? [],
-    bookings: bookings ?? [],
+    summary: summary?.[0] ?? null,
+    topServices: topServices ?? [],
+    revenueSeries: revenueSeries ?? [],
   };
 }
 
 export async function loadWorkerEarnings() {
-  const { data, error } = await supabase
-    .from('payments')
-    .select('worker_net_amount,bookings(worker_account_id)')
-    .eq('status', 'SUCCESSFUL')
-    .not('worker_net_amount', 'is', null);
+  const { data, error } = await supabase.rpc('admin_analytics_summary');
   if (error) throw error;
-  const earningsByWorker = new Map();
-  for (const row of data ?? []) {
-    const workerId = row.bookings?.worker_account_id;
-    if (workerId) {
-      earningsByWorker.set(
-        workerId,
-        (earningsByWorker.get(workerId) ?? 0) + Number(row.worker_net_amount),
-      );
-    }
-  }
   return {
-    totalEarnings: [...earningsByWorker.values()].reduce((s, v) => s + v, 0),
-    workerCount: earningsByWorker.size,
+    totalEarnings: Number(data?.[0]?.worker_earnings_total ?? 0),
+    workerCount: Number(data?.[0]?.workers_with_earnings ?? 0),
   };
 }

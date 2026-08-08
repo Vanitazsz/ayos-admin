@@ -4,7 +4,7 @@ export async function loadWorkers() {
   const { data, error } = await supabase
     .from('worker_profiles')
     .select(
-      'account_id,display_name,bio,experience,service_area,service_origin,service_radius_meters,approval_status,is_available,created_at,accounts!worker_profiles_account_id_fkey!inner(email,mobile,status,role,deleted_at),worker_skills!worker_skills_worker_id_fkey(years,service_categories!worker_skills_category_id_fkey(name)),worker_verifications!worker_verifications_worker_id_fkey(id,status),bookings!bookings_worker_account_id_fkey(count),reviews!reviews_worker_account_id_fkey(stars)',
+      'account_id,display_name,bio,experience,service_area,service_origin,service_radius_meters,approval_status,is_available,created_at,accounts!worker_profiles_account_id_fkey!inner(email,mobile,status,role,deleted_at),worker_skills!worker_skills_worker_id_fkey(years,service_categories!worker_skills_category_id_fkey(name)),worker_verifications!worker_verifications_worker_id_fkey(id,status),bookings!bookings_worker_account_id_fkey(count)',
     )
     .eq('accounts.role', 'WORKER')
     .is('accounts.deleted_at', null)
@@ -12,15 +12,25 @@ export async function loadWorkers() {
   if (error) throw error;
   const rows = data ?? [];
   const workerIds = rows.map((row) => row.account_id);
-  const { data: walletBalances, error: walletBalancesError } = workerIds.length
-    ? await supabase.rpc('get_worker_wallet_balances', { p_worker_ids: workerIds })
-    : { data: [], error: null };
+  const [
+    { data: walletBalances, error: walletBalancesError },
+    { data: ratings, error: ratingsError },
+  ] = workerIds.length
+    ? await Promise.all([
+        supabase.rpc('get_worker_wallet_balances', { p_worker_ids: workerIds }),
+        supabase.rpc('get_worker_rating_stats', { p_worker_ids: workerIds }),
+      ])
+    : [{ data: [], error: null }, { data: [], error: null }];
   if (walletBalancesError) throw walletBalancesError;
+  if (ratingsError) throw ratingsError;
   const walletByWorker = new Map(
     (walletBalances ?? []).map((wallet) => [
       wallet.worker_id,
       Number(wallet.available_amount ?? 0),
     ]),
+  );
+  const ratingByWorker = new Map(
+    (ratings ?? []).map((rating) => [rating.worker_id, Number(rating.avg_rating ?? 0)]),
   );
 
   return rows.map((row) => {
@@ -47,9 +57,7 @@ export async function loadWorkers() {
       email: row.accounts?.email ?? '',
       phone: row.accounts?.mobile ?? '',
       category: row.worker_skills?.[0]?.service_categories?.name ?? '',
-      rating: row.reviews?.length
-        ? (row.reviews.reduce((sum, item) => sum + item.stars, 0) / row.reviews.length).toFixed(1)
-        : '0.0',
+      rating: ratingByWorker.get(row.account_id)?.toFixed(1) ?? '0.0',
       jobsCompleted: row.bookings?.[0]?.count ?? 0,
       experience: Math.max(...(row.worker_skills ?? []).map((item) => item.years), 0),
       status: status(row.accounts?.status),
