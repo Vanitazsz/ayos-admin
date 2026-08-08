@@ -17,13 +17,10 @@ import {
   ClipboardList,
   Trash2,
   Settings,
-  UserCircle,
-  LogOut,
   ChevronDown,
   Menu,
   X,
-  PanelLeftClose,
-  PanelLeftOpen,
+  PanelLeftDashed,
   PieChart,
   MessageSquare,
   Activity,
@@ -31,15 +28,24 @@ import {
   MapPinned,
   Crown,
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { cn } from '../lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/DropdownMenu';
+
+const ICON_SIZE = 16;
+const ICON_STROKE_WIDTH = 1.5;
+
+const SIDEBAR_BEHAVIOR_KEY = 'ayos-sidebar-behavior';
 
 const navigationGroups = [
-  {
-    title: 'Dashboard',
-    isLink: true,
-    to: '/admin/dashboard',
-    icon: LayoutDashboard,
-  },
+  { title: 'Dashboard', isLink: true, to: '/admin/dashboard', icon: LayoutDashboard },
   {
     title: 'User Management',
     icon: Users,
@@ -91,12 +97,18 @@ const navigationGroups = [
   },
 ];
 
+const itemBase = cn(
+  'flex w-full items-center gap-2 overflow-hidden rounded-md py-2 px-1.5 text-left text-sm transition-colors focus-ring',
+  'text-foreground-lighter hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+  'data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground'
+);
+
 const NavGroup = ({ group, effectiveCollapsed, setIsMobileOpen }) => {
   const [isExpanded, setIsExpanded] = useState(() => {
     try {
       const saved = localStorage.getItem(`sidebar_group_${group.title}`);
       return saved !== null ? JSON.parse(saved) : true;
-    } catch (e) {
+    } catch {
       return true;
     }
   });
@@ -112,27 +124,29 @@ const NavGroup = ({ group, effectiveCollapsed, setIsMobileOpen }) => {
     if (isActiveGroup && !isExpanded) {
       setIsExpanded(true);
     }
-  }, [isActiveGroup]);
+  }, [isActiveGroup, isExpanded]);
 
   if (group.isLink) {
     const isActive = location.pathname.startsWith(group.to);
     const GroupIcon = group.icon;
     return (
-      <div className="mb-4 px-3">
+      <div className="px-1.5">
         <NavLink
           to={group.to}
           onClick={() => setIsMobileOpen(false)}
-          className={`flex items-center px-3 py-2.5 text-sm font-semibold rounded-xl transition-colors group ${
-            effectiveCollapsed ? 'justify-center' : ''
-          } ${isActive ? 'bg-primary/20 text-white' : 'text-gray-300 hover:text-white'}`}
+          data-active={isActive}
+          className={cn(itemBase, effectiveCollapsed ? 'justify-center' : '')}
           title={effectiveCollapsed ? group.title : undefined}
         >
           <GroupIcon
-            className={`shrink-0 ${effectiveCollapsed ? 'h-5 w-5' : 'h-5 w-5 mr-3'} ${
-              isActive ? 'text-primary' : 'text-gray-400 group-hover:text-gray-200'
-            }`}
+            size={ICON_SIZE}
+            strokeWidth={ICON_STROKE_WIDTH}
+            className={cn(
+              'shrink-0',
+              isActive ? 'text-foreground' : 'text-foreground-muted'
+            )}
           />
-          {!effectiveCollapsed && <span>{group.title}</span>}
+          {!effectiveCollapsed && <span className="truncate">{group.title}</span>}
         </NavLink>
       </div>
     );
@@ -141,37 +155,46 @@ const NavGroup = ({ group, effectiveCollapsed, setIsMobileOpen }) => {
   const GroupIcon = group.icon;
 
   return (
-    <div className="mb-4 px-3">
+    <div className="px-1.5">
       <button
         onClick={() => !effectiveCollapsed && setIsExpanded(!isExpanded)}
-        className={`w-full flex items-center py-2 text-sm font-semibold rounded-xl transition-colors group ${
-          effectiveCollapsed ? 'justify-center px-3' : 'justify-between px-3'
-        } ${isActiveGroup && effectiveCollapsed ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white'}`}
+        className={cn(
+          'flex w-full items-center gap-2 rounded-md py-2 px-1.5 text-sm transition-colors focus-ring',
+          'hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+          isActiveGroup ? 'font-medium text-foreground' : 'text-foreground-lighter',
+          effectiveCollapsed ? 'justify-center' : 'justify-between'
+        )}
         title={effectiveCollapsed ? group.title : undefined}
       >
-        <div className="flex items-center">
+        <div className="flex min-w-0 items-center gap-2">
           <GroupIcon
-            className={`shrink-0 ${effectiveCollapsed ? 'h-5 w-5' : 'h-5 w-5 mr-3'} ${
-              isActiveGroup ? 'text-primary' : 'text-gray-400 group-hover:text-gray-200'
-            }`}
+            size={ICON_SIZE}
+            strokeWidth={ICON_STROKE_WIDTH}
+            className={cn(
+              'shrink-0',
+              isActiveGroup ? 'text-foreground' : 'text-foreground-muted'
+            )}
           />
-          {!effectiveCollapsed && <span>{group.title}</span>}
+          {!effectiveCollapsed && <span className="truncate">{group.title}</span>}
         </div>
         {!effectiveCollapsed && (
-          <span
-            className={`transition-transform duration-200 ${isExpanded ? 'rotate-180 text-gray-800' : 'text-gray-400'}`}
-          >
-            <ChevronDown size={16} />
-          </span>
+          <ChevronDown
+            size={16}
+            className={cn(
+              'shrink-0 transition-transform duration-200',
+              isExpanded ? 'rotate-180 text-foreground-lighter' : 'text-foreground-muted'
+            )}
+          />
         )}
       </button>
 
       <div
-        className={`overflow-hidden transition-all duration-250 ease-in-out ${
-          isExpanded && !effectiveCollapsed ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'
-        }`}
+        className={cn(
+          'overflow-hidden transition-all duration-200 ease-in-out',
+          isExpanded && !effectiveCollapsed ? 'mt-1 max-h-96 opacity-100' : 'max-h-0 opacity-0'
+        )}
       >
-        <div className="pl-11 pr-2 space-y-1.5 pt-1">
+        <div className="space-y-0.5 pb-1 pl-4 pr-2">
           {(group.items || []).map((item) => {
             const isItemActive = location.pathname.startsWith(item.to);
             const ItemIcon = item.icon;
@@ -180,16 +203,22 @@ const NavGroup = ({ group, effectiveCollapsed, setIsMobileOpen }) => {
                 key={item.name}
                 to={item.to}
                 onClick={() => setIsMobileOpen(false)}
-                className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  isItemActive
-                    ? 'bg-primary/20 text-white font-semibold'
-                    : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
-                }`}
+                data-active={isItemActive}
+                className={cn(
+                  itemBase,
+                  'py-1.5',
+                  isItemActive ? 'font-medium' : ''
+                )}
               >
                 <ItemIcon
-                  className={`h-4 w-4 mr-3 shrink-0 transition-colors ${isItemActive ? 'text-primary' : 'text-gray-500'}`}
+                  size={16}
+                  strokeWidth={ICON_STROKE_WIDTH}
+                  className={cn(
+                    'shrink-0',
+                    isItemActive ? 'text-foreground' : 'text-foreground-muted'
+                  )}
                 />
-                {item.name}
+                <span className="truncate">{item.name}</span>
               </NavLink>
             );
           })}
@@ -199,120 +228,130 @@ const NavGroup = ({ group, effectiveCollapsed, setIsMobileOpen }) => {
   );
 };
 
-const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
+const Sidebar = () => {
+  const [behavior, setBehavior] = useState(() => {
+    try {
+      return localStorage.getItem(SIDEBAR_BEHAVIOR_KEY) || 'expandable';
+    } catch {
+      return 'expandable';
+    }
+  });
   const [isHovered, setIsHovered] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const { logout } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
     setIsMobileOpen(false);
   }, [location.pathname]);
 
-  const effectiveCollapsed = isCollapsed && !isHovered;
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_BEHAVIOR_KEY, behavior);
+  }, [behavior]);
+
+  const effectiveCollapsed =
+    behavior === 'closed' || (behavior === 'expandable' && !isHovered);
 
   return (
     <>
-      <div className="md:hidden fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-6 z-50 md:hidden">
         <button
           aria-label="Open navigation"
           onClick={() => setIsMobileOpen(true)}
-          className={`p-3.5 bg-primary text-white rounded-full shadow-lg transition-transform ${isMobileOpen ? 'scale-0' : 'scale-100'}`}
+          className={cn(
+            'rounded-full bg-primary p-3.5 text-primary-foreground shadow-lg transition-transform focus-ring',
+            isMobileOpen ? 'scale-0' : 'scale-100'
+          )}
         >
-          <Menu className="h-6 w-6" />
+          <Menu className="size-6" />
         </button>
       </div>
 
       {isMobileOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-40 transition-opacity"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
+      <div
+        aria-hidden="true"
+        className={cn(
+          'hidden shrink-0 transition-[width] duration-100 ease-linear md:block',
+          behavior === 'open' ? 'md:w-52' : 'md:w-12'
+        )}
+      />
+
       <aside
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`bg-navy border-r border-navy-800 flex flex-col transition-all duration-300 ease-in-out fixed md:relative z-50 h-screen shadow-[4px_0_24px_rgba(0,0,0,0.2)] ${
-          isMobileOpen ? 'translate-x-0 w-72' : '-translate-x-full md:translate-x-0'
-        } ${effectiveCollapsed && !isMobileOpen ? 'md:w-20' : 'md:w-72'}`}
+        className={cn(
+          'absolute inset-y-0 left-0 z-50 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-100 ease-linear md:z-10',
+          isMobileOpen ? 'w-72 translate-x-0' : '-translate-x-full md:translate-x-0',
+          effectiveCollapsed && !isMobileOpen ? 'md:w-12' : 'md:w-52'
+        )}
       >
-        <div className="flex items-center justify-between h-16 px-4 shrink-0">
-          <div
-            className={`flex items-center ${effectiveCollapsed && !isMobileOpen ? 'mx-auto' : ''}`}
-          >
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center font-display font-bold text-white shadow-md shrink-0">
-              A
-            </div>
-            {(!effectiveCollapsed || isMobileOpen) && (
-              <span className="ml-3 font-display font-bold text-xl text-white tracking-tight whitespace-nowrap">
-                A-yos Admin
-              </span>
-            )}
-          </div>
-
-          {isMobileOpen && (
+        {isMobileOpen && (
+          <div className="flex h-12 shrink-0 items-center justify-end px-2">
             <button
               aria-label="Close navigation"
               onClick={() => setIsMobileOpen(false)}
-              className="md:hidden p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="rounded-md p-2 text-foreground-lighter hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground focus-ring"
             >
-              <X className="h-5 w-5" />
+              <X className="size-5" />
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         <nav
           aria-label="Administrator navigation"
-          className="flex-1 overflow-y-auto overflow-x-hidden pt-6 pb-4 custom-scrollbar"
+          className="flex-1 overflow-y-auto overflow-x-hidden pb-2 pt-1 custom-scrollbar"
         >
-          {navigationGroups.map((group) => (
-            <NavGroup
-              key={group.title}
-              group={group}
-              effectiveCollapsed={effectiveCollapsed && !isMobileOpen}
-              setIsMobileOpen={setIsMobileOpen}
-            />
+          {navigationGroups.map((group, index) => (
+            <React.Fragment key={group.title}>
+              {index > 0 && (
+                <div className="mx-auto my-1 h-px w-[calc(100%-1rem)] bg-sidebar-border" />
+              )}
+              <NavGroup
+                group={group}
+                effectiveCollapsed={effectiveCollapsed && !isMobileOpen}
+                setIsMobileOpen={setIsMobileOpen}
+              />
+            </React.Fragment>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/10 space-y-2 shrink-0">
-          <NavLink
-            to="/admin/profile"
-            onClick={() => setIsMobileOpen(false)}
-            className={({ isActive }) => `
-              flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-colors group
-              ${isActive ? 'bg-primary/20 text-white' : 'text-gray-300 hover:bg-white/10 hover:text-white'}
-              ${effectiveCollapsed && !isMobileOpen ? 'justify-center' : ''}
-            `}
-            title={effectiveCollapsed && !isMobileOpen ? 'Profile' : undefined}
-          >
-            {({ isActive }) => (
-              <>
-                <UserCircle
-                  className={`shrink-0 ${effectiveCollapsed && !isMobileOpen ? 'h-5 w-5' : 'h-5 w-5 mr-3'} ${
-                    isActive ? 'text-primary' : 'text-gray-400 group-hover:text-gray-200'
-                  }`}
+        <div className="shrink-0 space-y-0.5 border-t border-sidebar-border p-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label="Sidebar control"
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-md py-2 px-1.5 text-left text-sm text-foreground-lighter transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground focus-ring',
+                  effectiveCollapsed && !isMobileOpen ? 'justify-center' : ''
+                )}
+                title={effectiveCollapsed && !isMobileOpen ? 'Sidebar control' : undefined}
+              >
+                <PanelLeftDashed
+                  size={ICON_SIZE}
+                  strokeWidth={ICON_STROKE_WIDTH}
+                  className="shrink-0 text-foreground-muted"
                 />
-                {(!effectiveCollapsed || isMobileOpen) && <span>Profile</span>}
-              </>
-            )}
-          </NavLink>
-
-          <button
-            onClick={logout}
-            className={`
-              w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-colors
-              text-red-400 hover:bg-red-500/10 hover:text-red-300 group
-              ${effectiveCollapsed && !isMobileOpen ? 'justify-center' : ''}
-            `}
-            title={effectiveCollapsed && !isMobileOpen ? 'Log Out' : undefined}
-          >
-            <LogOut
-              className={`shrink-0 ${effectiveCollapsed && !isMobileOpen ? 'h-5 w-5' : 'h-5 w-5 mr-3'}`}
-            />
-            {(!effectiveCollapsed || isMobileOpen) && <span>Log Out</span>}
-          </button>
+                {(!effectiveCollapsed || isMobileOpen) && <span>Sidebar</span>}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-40">
+              <DropdownMenuLabel>Sidebar control</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup
+                value={behavior}
+                onValueChange={(value) => setBehavior(value)}
+              >
+                <DropdownMenuRadioItem value="open">Expanded</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="closed">Collapsed</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="expandable">Expand on hover</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
     </>
