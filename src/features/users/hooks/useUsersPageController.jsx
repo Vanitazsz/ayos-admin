@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Badge from '../../../components/ui/Badge';
 import { useToast } from '../../../context/ToastContext';
 import { usePagination } from '../../../hooks/usePagination';
+import { useDebouncedRefresh } from '../../../hooks/useDebouncedRefresh';
 
 export function useUsersPageController() {
   const [isLoading, setIsLoading] = useState(true);
@@ -40,6 +41,7 @@ export function useUsersPageController() {
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const toast = useToast();
+  const { schedule, mark } = useDebouncedRefresh();
 
   const refresh = useCallback(async () => {
     setLoadError('');
@@ -66,22 +68,20 @@ export function useUsersPageController() {
       );
     } finally {
       setIsLoading(false);
+      mark();
     }
-  }, []);
+  }, [mark]);
 
   useEffect(() => {
     void refresh();
     const stops = [
-      subscribe('accounts', refresh),
-      subscribe('user_profiles', refresh),
-      subscribe('customer_verifications', refresh),
+      subscribe('accounts', () => schedule(refresh)),
+      subscribe('customer_verifications', () => schedule(refresh)),
     ];
-    const fallbackRefresh = window.setInterval(() => void refresh(), 30_000);
     return () => {
-      window.clearInterval(fallbackRefresh);
       stops.forEach((stop) => stop());
     };
-  }, [refresh]);
+  }, [refresh, schedule]);
 
   const decide = useCallback(
     (decision) => {

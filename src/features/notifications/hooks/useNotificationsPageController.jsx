@@ -37,32 +37,32 @@ export function useNotificationsPageController() {
     {
       label: 'Sent',
       value: safeNotifs.filter((n) => n.status === 'Sent').length,
-      icon: <Send className="text-blue-500" />,
-      bg: 'bg-blue-50',
+      icon: <Send className="text-brand-500" />,
+      bg: 'bg-brand-500/10',
     },
     {
       label: 'Scheduled',
       value: safeNotifs.filter((n) => n.status === 'Scheduled').length,
-      icon: <Clock className="text-yellow-500" />,
-      bg: 'bg-yellow-50',
+      icon: <Clock className="text-warning" />,
+      bg: 'bg-warning/10',
     },
     {
       label: 'Drafts',
       value: safeNotifs.filter((n) => n.status === 'Draft').length,
-      icon: <MessageSquare className="text-gray-500" />,
-      bg: 'bg-gray-50',
+      icon: <MessageSquare className="text-foreground-lighter" />,
+      bg: 'bg-surface-200',
     },
     {
       label: 'Failed',
       value: safeNotifs.filter((n) => n.status === 'Failed').length,
-      icon: <XCircle className="text-red-500" />,
-      bg: 'bg-red-50',
+      icon: <XCircle className="text-destructive" />,
+      bg: 'bg-destructive/10',
     },
   ];
   const getTypeIcon = (type) => {
-    if (type === 'Email') return <Mail size={16} className="text-gray-500" />;
-    if (type === 'SMS') return <MessageSquare size={16} className="text-gray-500" />;
-    return <Smartphone size={16} className="text-gray-500" />;
+    if (type === 'Email') return <Mail size={16} className="text-foreground-lighter" />;
+    if (type === 'SMS') return <MessageSquare size={16} className="text-foreground-lighter" />;
+    return <Smartphone size={16} className="text-foreground-lighter" />;
   };
   const getStatusColor = (status) => badgeFor(NOTIFICATION_STATUS_BADGE, status);
   const handleDelete = async (id) => {

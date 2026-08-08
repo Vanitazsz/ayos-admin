@@ -17,7 +17,7 @@ export function usePaymentsPageController() {
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [activeTab, setActiveTab] = useState('transactions');
 
-  const filteredTxns = transactions.filter((t) => {
+  const filteredTxns = (transactions ?? []).filter((t) => {
     const matchesSearch =
       t.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -40,39 +40,45 @@ export function usePaymentsPageController() {
     {
       label: 'Total Revenue',
       value: money(
-        transactions.filter((t) => t.status === 'Completed').reduce((sum, t) => sum + t.amount, 0),
+        (transactions ?? [])
+          .filter((t) => t.status === 'Completed')
+          .reduce((sum, t) => sum + t.amount, 0),
       ),
       trend: 'Live',
-      icon: <DollarSign className="text-green-500" />,
-      bg: 'bg-green-50',
+      icon: <DollarSign className="text-success" />,
+      bg: 'bg-success/10',
       positive: true,
     },
     {
       label: 'Platform Commission',
       value: money(
-        transactions.filter((t) => t.status === 'Completed').reduce((sum, t) => sum + t.fee, 0),
+        (transactions ?? [])
+          .filter((t) => t.status === 'Completed')
+          .reduce((sum, t) => sum + t.fee, 0),
       ),
       trend: 'Live',
-      icon: <TrendingUp className="text-blue-500" />,
-      bg: 'bg-blue-50',
+      icon: <TrendingUp className="text-brand-500" />,
+      bg: 'bg-brand-500/10',
       positive: true,
     },
     {
       label: 'Pending Payments',
       value: money(
-        transactions.filter((t) => t.status === 'Pending').reduce((sum, t) => sum + t.amount, 0),
+        (transactions ?? [])
+          .filter((t) => t.status === 'Pending')
+          .reduce((sum, t) => sum + t.amount, 0),
       ),
       trend: 'Live',
-      icon: <CreditCard className="text-yellow-500" />,
-      bg: 'bg-yellow-50',
+      icon: <CreditCard className="text-warning" />,
+      bg: 'bg-warning/10',
       positive: false,
     },
     {
       label: 'Failed Payments',
-      value: transactions.filter((t) => t.status === 'Failed').length,
+      value: (transactions ?? []).filter((t) => t.status === 'Failed').length,
       trend: 'Live',
-      icon: <ArrowDownRight className="text-red-500" />,
-      bg: 'bg-red-50',
+      icon: <ArrowDownRight className="text-destructive" />,
+      bg: 'bg-destructive/10',
       positive: false,
     },
   ];

@@ -96,16 +96,7 @@ export function useProfilePageController() {
       toast.error('Password update failed', error.message);
     }
   };
-  if (!profile)
-    return (
-      <div className="p-6 max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-        <p className={`mt-4 ${loadError ? 'text-red-600' : 'text-gray-500'}`}>
-          {loadError || 'Loading profile…'}
-        </p>
-      </div>
-    );
-  const currentEvent = profile.authenticationEvents[0] ?? null;
+  const currentEvent = profile?.authenticationEvents?.[0] ?? null;
   const currentAgent = describeUserAgent(currentEvent?.user_agent ?? window.navigator.userAgent);
   const deviceLabel = (agent) =>
     [agent.device, agent.browser].filter(Boolean).join(' - ');
@@ -114,6 +105,7 @@ export function useProfilePageController() {
     setIsEditing,
     fileInputRef,
     profile,
+    loadError,
     setProfile,
     passwordModal,
     setPasswordModal,

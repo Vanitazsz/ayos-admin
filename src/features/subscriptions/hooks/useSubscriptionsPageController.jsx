@@ -14,6 +14,10 @@ export function useSubscriptionsPageController() {
   const { data: raw, isLoading, error, refresh } = useDataFetch(loadSubscriptions, []);
   useRealtime(['worker_recommendation_plans', 'worker_recommendation_subscriptions'], refresh);
   const data = raw ?? { plans: [], subscriptions: [], workers: [] };
+  const unavailable = Boolean(error && /could not find the table/i.test(error));
+  const notice = unavailable
+    ? 'This module is not available: the worker recommendation subscription tables do not exist in this database yet.'
+    : error || null;
   const [plan, setPlan] = useState(null);
   const [activation, setActivation] = useState(null);
   const [confirm, setConfirm] = useState({
@@ -87,7 +91,8 @@ export function useSubscriptionsPageController() {
   };
   return {
     isLoading,
-    error,
+    error: notice,
+    unavailable,
     data,
     plan,
     setPlan,

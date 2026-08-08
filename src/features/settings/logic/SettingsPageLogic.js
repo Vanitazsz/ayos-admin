@@ -1,6 +1,16 @@
 export { subscribe } from '../../../services/realtime';
 export { loadSettings, saveSetting } from '../../../services/settings';
 
+export const WEIGHT_KEYS = [
+  'distance',
+  'availability',
+  'rating',
+  'completedJobs',
+  'responseHistory',
+  'cancellationHistory',
+  'recommendationPriority',
+];
+
 export const titleCase = (value) =>
   value
     .replace(/([A-Z])/g, ' $1')

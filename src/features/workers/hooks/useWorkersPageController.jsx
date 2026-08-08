@@ -9,6 +9,7 @@ import { UserCheck, UserX, AlertCircle, Briefcase } from 'lucide-react';
 import { useRealtime } from '../../../hooks/useRealtime';
 import { useToast } from '../../../context/ToastContext';
 import { usePagination } from '../../../hooks/usePagination';
+import { useDebouncedRefresh } from '../../../hooks/useDebouncedRefresh';
 
 export function useWorkersPageController() {
   const toast = useToast();
@@ -25,6 +26,7 @@ export function useWorkersPageController() {
   const [workerToReview, setWorkerToReview] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const { schedule, mark } = useDebouncedRefresh();
 
   const refresh = useCallback(async () => {
     try {
@@ -36,17 +38,17 @@ export function useWorkersPageController() {
       );
     } finally {
       setIsLoading(false);
+      mark();
     }
-  }, []);
+  }, [mark]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  useRealtime(
-    ['worker_profiles', 'worker_verifications', 'worker_skills', 'accounts'],
-    refresh,
-  );
+  const handleRealtime = useCallback(() => schedule(refresh), [schedule, refresh]);
+
+  useRealtime(['worker_profiles', 'worker_verifications'], handleRealtime);
 
   const needsReview = useCallback(
     (worker) =>
@@ -84,26 +86,22 @@ export function useWorkersPageController() {
       {
         label: 'Total Workers',
         value: workers.length,
-        icon: <Briefcase className="text-blue-500" />,
-        bg: 'bg-blue-50',
+        icon: Briefcase,
       },
       {
         label: 'Active Workers',
         value: workers.filter((w) => w.status === 'Active').length,
-        icon: <UserCheck className="text-green-500" />,
-        bg: 'bg-green-50',
+        icon: UserCheck,
       },
       {
         label: 'Pending Verification',
         value: workers.filter(needsReview).length,
-        icon: <AlertCircle className="text-yellow-500" />,
-        bg: 'bg-yellow-50',
+        icon: AlertCircle,
       },
       {
         label: 'Suspended',
         value: workers.filter((w) => w.status === 'Suspended').length,
-        icon: <UserX className="text-red-500" />,
-        bg: 'bg-red-50',
+        icon: UserX,
       },
     ],
     [workers, needsReview],

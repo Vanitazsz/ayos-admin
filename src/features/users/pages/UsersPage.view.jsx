@@ -20,10 +20,27 @@ import {
   TableCell,
 } from '../../../components/ui/Table';
 import Button from '../../../components/ui/Button';
+import Input from '../../../components/ui/Input';
+import Checkbox from '../../../components/ui/Checkbox';
+import Textarea from '../../../components/ui/Textarea';
+import Pagination from '../../../components/ui/Pagination';
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from '../../../components/ui/Tabs';
 import Skeleton from '../../../components/ui/Skeleton';
 import Modal from '../../../components/ui/Modal';
 import AccountDeleteModal from '../../../components/admin/AccountDeleteModal';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '../../../components/ui/DropdownMenu';
 
 export function UsersView({ model }) {
   const {
@@ -32,7 +49,6 @@ export function UsersView({ model }) {
     setSearchQuery,
     currentPage,
     setCurrentPage,
-    actionMenuOpenId,
     activeTab,
     setActiveTab,
     verifications,
@@ -59,7 +75,6 @@ export function UsersView({ model }) {
     itemsPerPage,
     refresh,
     decide,
-    toggleActionMenu,
     handleViewProfile,
     handleEditUser,
     handleSaveUser,
@@ -74,63 +89,53 @@ export function UsersView({ model }) {
     <div className="space-y-6 p-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Users Management</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Users Management</h1>
+          <p className="text-foreground-lighter mt-1">
             Manage customer accounts, view details, and handle suspensions.
           </p>
         </div>
       </div>
 
-      <div className="flex gap-2 border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab('customers')}
-          className={`px-4 py-2 text-sm font-medium ${activeTab === 'customers' ? 'border-b-2 border-primary text-primary' : 'text-gray-500'}`}
-        >
-          Customers
-        </button>
-        <button
-          onClick={() => setActiveTab('verifications')}
-          className={`px-4 py-2 text-sm font-medium ${activeTab === 'verifications' ? 'border-b-2 border-primary text-primary' : 'text-gray-500'}`}
-        >
-          Pending Verification ({verifications.length})
-        </button>
-      </div>
-      {loadError ? (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
-          {loadError}
-        </div>
-      ) : null}
-      <div className={activeTab === 'customers' ? 'block' : 'hidden'}>
-        <Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="customers">Customers</TabsTrigger>
+          <TabsTrigger value="verifications">
+            Pending Verification ({verifications.length})
+          </TabsTrigger>
+        </TabsList>
+        {loadError ? (
+          <div
+            role="alert"
+            className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          >
+            {loadError}
+          </div>
+        ) : null}
+        <TabsContent value="customers">
+          <Card>
           <CardHeader className="py-4 border-b border-border flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="w-full sm:w-96 relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
+            <div className="w-full sm:w-96">
+              <Input
+                icon={Search}
                 aria-label="Search by name, email, or ID..."
                 placeholder="Search by name, email, or ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
             </div>
-            <div className="text-sm text-gray-500 font-medium whitespace-nowrap">
+            <div className="text-sm text-foreground-lighter font-medium whitespace-nowrap">
               Showing {currentUsers.length} of {filteredUsers.length} users
             </div>
           </CardHeader>
 
-          <div className="overflow-x-auto min-h-[400px]">
+          <div className="min-h-[400px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead scope="col" className="w-12 text-center">
-                    <input
-                      type="checkbox"
-                      className="rounded border-gray-300 text-primary focus:ring-primary"
-                    />
+                    <div className="flex justify-center">
+                      <Checkbox aria-label="Select all users" />
+                    </div>
                   </TableHead>
                   <TableHead scope="col">User Details</TableHead>
                   <TableHead scope="col">Contact</TableHead>
@@ -186,9 +191,9 @@ export function UsersView({ model }) {
                 ) : currentUsers.length === 0 ? (
                   <TableRow hover={false}>
                     <TableCell colSpan={8} className="h-64 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-500">
-                        <Search className="h-12 w-12 text-gray-300 mb-4" />
-                        <p className="text-lg font-medium text-navy">
+                      <div className="flex flex-col items-center justify-center text-foreground-lighter">
+                        <Search className="h-12 w-12 text-foreground-muted mb-4" />
+                        <p className="text-lg font-medium text-foreground">
                           {loadError ? 'Unable to load users' : 'No users found'}
                         </p>
                         <p className="text-sm">
@@ -203,35 +208,34 @@ export function UsersView({ model }) {
                   currentUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="text-center">
-                        <input
-                          type="checkbox"
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
-                        />
+                        <div className="flex justify-center">
+                          <Checkbox aria-label={`Select ${user.name}`} />
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 mr-3">
+                          <div className="w-10 h-10 rounded-full bg-brand-500/10 text-brand-600 flex items-center justify-center font-bold text-sm shrink-0 mr-3">
                             {user.name.charAt(0)}
                           </div>
                           <div>
-                            <div className="font-medium text-navy">{user.name}</div>
-                            <div className="text-xs text-gray-500">{user.id}</div>
+                            <div className="font-medium text-foreground">{user.name}</div>
+                            <div className="text-xs text-foreground-lighter">{user.id}</div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col space-y-1">
-                          <span className="flex items-center text-sm text-gray-600">
-                            <Mail className="h-3.5 w-3.5 mr-1.5 text-gray-400" /> {user.email}
+                          <span className="flex items-center text-sm text-foreground-light">
+                            <Mail className="h-3.5 w-3.5 mr-1.5 text-foreground-muted" /> {user.email}
                           </span>
-                          <span className="flex items-center text-sm text-gray-600">
-                            <Phone className="h-3.5 w-3.5 mr-1.5 text-gray-400" /> {user.phone}
+                          <span className="flex items-center text-sm text-foreground-light">
+                            <Phone className="h-3.5 w-3.5 mr-1.5 text-foreground-muted" /> {user.phone}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-gray-500">{user.registeredAt}</TableCell>
+                      <TableCell className="text-foreground-lighter">{user.registeredAt}</TableCell>
                       <TableCell>
-                        <span className="font-medium text-navy bg-gray-100 px-2 py-1 rounded-md">
+                        <span className="font-medium text-foreground bg-surface-200 px-2 py-1 rounded-md">
                           {user.bookings}
                         </span>
                       </TableCell>
@@ -241,61 +245,53 @@ export function UsersView({ model }) {
                             <ShieldCheck size={14} className="mr-1" /> Verified
                           </span>
                         ) : (
-                          <span className="inline-flex items-center text-xs font-medium text-gray-500">
+                          <span className="inline-flex items-center text-xs font-medium text-foreground-lighter">
                             Unverified
                           </span>
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(user.status)}</TableCell>
-                      <TableCell className="text-right relative">
-                        <button
-                          onClick={() => toggleActionMenu(user.id)}
-                          aria-haspopup="true"
-                          aria-expanded={actionMenuOpenId === user.id}
-                          aria-label={`Open actions for ${user.name}`}
-                          className="text-gray-400 hover:text-navy p-1 rounded-full hover:bg-gray-100 transition-colors"
-                        >
-                          <MoreVertical size={20} />
-                        </button>
-
-                        {actionMenuOpenId === user.id && (
-                          <div
-                            className="absolute right-8 top-10 w-48 bg-white rounded-md shadow-lg border border-border z-10 py-1 text-left"
-                            role="menu"
-                          >
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
                             <button
-                              onClick={() => handleViewProfile(user)}
-                              role="menuitem"
-                              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              aria-label={`Open actions for ${user.name}`}
+                              className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
                             >
-                              <Eye size={16} className="mr-2 text-gray-400" /> View Profile
+                              <MoreVertical size={20} />
                             </button>
-                            <button
-                              onClick={() => handleEditUser(user)}
-                              role="menuitem"
-                              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onSelect={() => handleViewProfile(user)}
+                              className="cursor-pointer"
                             >
-                              <Edit size={16} className="mr-2 text-gray-400" /> Edit User
-                            </button>
-                            <button
-                              onClick={() => void handleToggleStatus(user)}
+                              <Eye className="mr-2" /> View Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => handleEditUser(user)}
+                              className="cursor-pointer"
+                            >
+                              <Edit className="mr-2" /> Edit User
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => void handleToggleStatus(user)}
                               disabled={actionLoadingId === `${user.id}:status`}
-                              role="menuitem"
-                              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                              className="cursor-pointer"
                             >
-                              <Ban size={16} className="mr-2 text-gray-400" />{' '}
+                              <Ban className="mr-2" />
                               {user.status === 'Active' ? 'Suspend' : 'Reactivate'}
-                            </button>
-                            <button
-                              onClick={() => void handleDelete(user)}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onSelect={() => void handleDelete(user)}
                               disabled={actionLoadingId === `${user.id}:delete`}
-                              role="menuitem"
-                              className="flex items-center w-full px-4 py-2 text-sm text-danger hover:bg-danger/5 disabled:opacity-50"
+                              className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
                             >
-                              <Trash2 size={16} className="mr-2 text-danger" /> Delete Account
-                            </button>
-                          </div>
-                        )}
+                              <Trash2 className="mr-2" /> Delete Account
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
@@ -305,70 +301,21 @@ export function UsersView({ model }) {
           </div>
 
           {/* Pagination Footer */}
-          <div className="px-6 py-4 border-t border-border flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              Showing{' '}
-              <span className="font-medium text-navy">
-                {filteredUsers.length ? (currentPage - 1) * itemsPerPage + 1 : 0}
-              </span>{' '}
-              to{' '}
-              <span className="font-medium text-navy">
-                {Math.min(currentPage * itemsPerPage, filteredUsers.length)}
-              </span>{' '}
-              of <span className="font-medium text-navy">{filteredUsers.length}</span> results
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => p - 1)}
-              >
-                Previous
-              </Button>
-              <div className="flex space-x-1">
-                {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                  // Logic to show pages around current page
-                  let pageNum = i + 1;
-                  if (totalPages > 5 && currentPage > 3) {
-                    pageNum = currentPage - 2 + i;
-                    if (pageNum > totalPages) return null;
-                  }
-
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
-                        currentPage === pageNum
-                          ? 'bg-primary text-white'
-                          : 'text-gray-500 hover:bg-gray-100 hover:text-navy'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={currentPage === totalPages || totalPages === 0}
-                onClick={() => setCurrentPage((p) => p + 1)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalCount={filteredUsers.length}
+            pageSize={itemsPerPage}
+          />
         </Card>
-      </div>
-      {activeTab === 'verifications' ? (
+        </TabsContent>
+        <TabsContent value="verifications">
         <Card>
           <CardHeader>
             <CardTitle>Customer Verifications</CardTitle>
           </CardHeader>
-          <div className="overflow-x-auto">
-            <Table>
+          <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead scope="col">Customer</TableHead>
@@ -381,8 +328,8 @@ export function UsersView({ model }) {
                 {verifications.map((verification) => (
                   <TableRow key={verification.id}>
                     <TableCell>
-                      <div className="font-medium text-navy">{verification.customerName}</div>
-                      <div className="text-xs text-gray-500">{verification.email}</div>
+                      <div className="font-medium text-foreground">{verification.customerName}</div>
+                      <div className="text-xs text-foreground-lighter">{verification.email}</div>
                     </TableCell>
                     <TableCell>{verification.id_type.replaceAll('_', ' ')}</TableCell>
                     <TableCell>{formatDateTime(verification.created_at)}</TableCell>
@@ -401,16 +348,16 @@ export function UsersView({ model }) {
                 ))}
                 {!verifications.length ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="py-12 text-center text-gray-500">
+                    <TableCell colSpan={4} className="py-12 text-center text-foreground-lighter">
                       No pending customer verifications.
                     </TableCell>
                   </TableRow>
                 ) : null}
               </TableBody>
             </Table>
-          </div>
-        </Card>
-      ) : null}
+          </Card>
+        </TabsContent>
+      </Tabs>
       <Modal
         isOpen={Boolean(selectedVerification)}
         onClose={() => setSelectedVerification(null)}
@@ -437,17 +384,17 @@ export function UsersView({ model }) {
                     className="max-h-80 w-full rounded-lg border object-contain"
                   />
                 ) : (
-                  <p className="text-sm text-gray-500">No back image</p>
+                  <p className="text-sm text-foreground-lighter">No back image</p>
                 )}
               </div>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">Review notes</label>
-              <textarea
+              <Textarea
+                label="Review notes"
                 value={reviewNotes}
                 onChange={(event) => setReviewNotes(event.target.value)}
                 maxLength={2000}
-                className="min-h-24 w-full rounded-lg border border-gray-300 p-3"
+                className="min-h-24"
               />
             </div>
             <div className="flex justify-end gap-3">
@@ -469,34 +416,34 @@ export function UsersView({ model }) {
         {selectedUser ? (
           <div className="space-y-4 text-sm">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-500/10 text-lg font-bold text-brand-600">
                 {selectedUser.name.charAt(0)}
               </div>
               <div>
-                <h3 className="font-semibold text-navy">{selectedUser.name}</h3>
-                <p className="text-gray-500">{selectedUser.status}</p>
+                <h3 className="font-semibold text-foreground">{selectedUser.name}</h3>
+                <p className="text-foreground-lighter">{selectedUser.status}</p>
               </div>
             </div>
-            <dl className="grid gap-3 rounded-lg bg-gray-50 p-4">
+            <dl className="grid gap-3 rounded-lg bg-surface-200 p-4">
               <div>
-                <dt className="text-gray-500">Email</dt>
-                <dd className="font-medium text-navy">{selectedUser.email}</dd>
+                <dt className="text-foreground-lighter">Email</dt>
+                <dd className="font-medium text-foreground">{selectedUser.email}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Phone</dt>
-                <dd className="font-medium text-navy">{selectedUser.phone || 'Not provided'}</dd>
+                <dt className="text-foreground-lighter">Phone</dt>
+                <dd className="font-medium text-foreground">{selectedUser.phone || 'Not provided'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Address</dt>
-                <dd className="font-medium text-navy">{selectedUser.address || 'Not provided'}</dd>
+                <dt className="text-foreground-lighter">Address</dt>
+                <dd className="font-medium text-foreground">{selectedUser.address || 'Not provided'}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Registered</dt>
-                <dd className="font-medium text-navy">{selectedUser.registeredAt}</dd>
+                <dt className="text-foreground-lighter">Registered</dt>
+                <dd className="font-medium text-foreground">{selectedUser.registeredAt}</dd>
               </div>
               <div>
-                <dt className="text-gray-500">Bookings</dt>
-                <dd className="font-medium text-navy">{selectedUser.bookings}</dd>
+                <dt className="text-foreground-lighter">Bookings</dt>
+                <dd className="font-medium text-foreground">{selectedUser.bookings}</dd>
               </div>
             </dl>
           </div>
@@ -505,34 +452,26 @@ export function UsersView({ model }) {
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User">
         {editUser ? (
           <form onSubmit={handleSaveUser} className="space-y-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Name
-              <input
-                required
-                minLength={2}
-                maxLength={120}
-                value={editUser.name}
-                onChange={(event) => setEditUser({ ...editUser, name: event.target.value })}
-                className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </label>
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-              <input
-                value={editUser.email}
-                readOnly
-                className="mt-1 w-full rounded-lg border border-border bg-gray-50 px-3 py-2 text-sm text-gray-500"
-              />
-            </label>
-            <label className="block text-sm font-medium text-gray-700">
-              Phone
-              <input
-                value={editUser.phone}
-                onChange={(event) => setEditUser({ ...editUser, phone: event.target.value })}
-                placeholder="+639XXXXXXXXX"
-                className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </label>
+            <Input
+              label="Name"
+              required
+              minLength={2}
+              maxLength={120}
+              value={editUser.name}
+              onChange={(event) => setEditUser({ ...editUser, name: event.target.value })}
+            />
+            <Input
+              label="Email"
+              value={editUser.email}
+              readOnly
+              inputClassName="bg-surface-200 text-foreground-lighter"
+            />
+            <Input
+              label="Phone"
+              value={editUser.phone}
+              onChange={(event) => setEditUser({ ...editUser, phone: event.target.value })}
+              placeholder="+639XXXXXXXXX"
+            />
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="secondary" onClick={() => setIsEditModalOpen(false)}>
                 Cancel

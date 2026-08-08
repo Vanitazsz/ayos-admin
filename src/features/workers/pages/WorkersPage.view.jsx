@@ -18,8 +18,27 @@ import {
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
 import Pagination from '../../../components/ui/Pagination';
+import Input from '../../../components/ui/Input';
+import Select from '../../../components/ui/Select';
+import Textarea from '../../../components/ui/Textarea';
+import Button from '../../../components/ui/Button';
+import StatCard from '../../../components/ui/StatCard';
+import { Badge } from '../../../components/ui/Badge';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from '../../../components/ui/Tabs';
 import { money } from '../../../services/adminShared';
 import AccountDeleteModal from '../../../components/admin/AccountDeleteModal';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '../../../components/ui/DropdownMenu';
 
 export function WorkersView({ model }) {
   const {
@@ -35,7 +54,6 @@ export function WorkersView({ model }) {
     setIsDrawerOpen,
     workerToDelete,
     setWorkerToDelete,
-    actionMenuOpenId,
     activeTab,
     setActiveTab,
     isRemarksModalOpen,
@@ -51,7 +69,6 @@ export function WorkersView({ model }) {
     totalPages,
     paginatedWorkers,
     stats,
-    toggleActionMenu,
     handleViewDetails,
     handleDeleteClick,
     toggleStatus,
@@ -64,77 +81,53 @@ export function WorkersView({ model }) {
     <div className="p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Workers Management</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Workers Management</h1>
+          <p className="text-foreground-lighter mt-1">
             Manage platform service providers and their verification
           </p>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat, index) => (
-          <div
-            key={index}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center"
-          >
-            <div className={`p-4 rounded-lg ${stat.bg} mr-4`}>{stat.icon}</div>
-            <div>
-              <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
-              <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
-            </div>
-          </div>
+          <StatCard key={index} title={stat.label} value={stat.value} icon={stat.icon} />
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-4 mb-4 border-b border-gray-200">
-        <button
-          className={`py-2 px-4 font-medium text-sm border-b-2 ${activeTab === 'all' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-          onClick={() => {
-            setActiveTab('all');
-            setCurrentPage(1);
-          }}
-        >
-          All Workers
-        </button>
-        <button
-          className={`py-2 px-4 font-medium text-sm border-b-2 flex items-center ${activeTab === 'review' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-          onClick={() => {
-            setActiveTab('review');
-            setCurrentPage(1);
-          }}
-        >
-          Review Queue
-          {workers.filter(needsReview).length > 0 && (
-            <span
-              className={`ml-2 py-0.5 px-2 rounded-full text-xs ${activeTab === 'review' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}
-            >
-              {workers.filter(needsReview).length}
-            </span>
-          )}
-        </button>
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
+        <TabsList>
+          <TabsTrigger value="all" onClick={() => setCurrentPage(1)}>
+            All Workers
+          </TabsTrigger>
+          <TabsTrigger value="review" onClick={() => setCurrentPage(1)}>
+            Review Queue
+            {workers.filter(needsReview).length > 0 && (
+              <span
+                className={`ml-2 py-0.5 px-2 rounded-full text-xs ${activeTab === 'review' ? 'bg-brand-500/10 text-brand-700 dark:text-brand-300' : 'bg-surface-200 text-foreground'}`}
+              >
+                {workers.filter(needsReview).length}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-t-xl shadow-sm border-x border-t border-gray-100 p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="relative w-full sm:w-96">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
-          </div>
-          <input
-            type="text"
+      <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="w-full sm:w-96">
+          <Input
+            icon={Search}
             aria-label="Search workers by name, ID, or category..."
             placeholder="Search workers by name, ID, or category..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
           />
         </div>
-        <div className="flex w-full sm:w-auto items-center gap-2">
-          <Filter size={18} className="text-gray-500" />
-          <select
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+        <div className="w-full sm:w-48">
+          <Select
+            icon={Filter}
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -142,244 +135,208 @@ export function WorkersView({ model }) {
             <option value="Active">Active</option>
             <option value="Suspended">Suspended</option>
             <option value="Pending">Pending</option>
-          </select>
+          </Select>
         </div>
       </div>
 
       {loadError ? (
         <div
           role="alert"
-          className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
           {loadError}
         </div>
       ) : null}
 
       {/* Table */}
-      <div className="bg-white shadow-sm border border-gray-100 overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+      <div className="bg-card shadow-sm border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">
                 Worker
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              </TableHead>
+              <TableHead scope="col">
                 Category
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              </TableHead>
+              <TableHead scope="col">
                 Rating
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              </TableHead>
+              <TableHead scope="col">
                 Verification
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              </TableHead>
+              <TableHead scope="col">
                 Matching
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              </TableHead>
+              <TableHead scope="col">
                 Status
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              </TableHead>
+              <TableHead scope="col" className="text-right">
                 Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {isLoading ? (
-              <tr>
-                <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+              <TableRow hover={false}>
+                <TableCell colSpan="7" className="text-center text-foreground-lighter">
                   Loading workers…
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : paginatedWorkers.length > 0 ? (
               paginatedWorkers.map((worker) => (
-                <tr key={worker.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <TableRow key={worker.id}>
+                  <TableCell className="whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 flex-shrink-0">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                        <div className="h-10 w-10 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-600 font-bold">
                           {worker.name.charAt(0)}
                         </div>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{worker.name}</div>
-                        <div className="text-sm text-gray-500">{worker.id}</div>
+                        <div className="text-sm font-medium text-foreground">{worker.name}</div>
+                        <div className="text-sm text-foreground-lighter">{worker.id}</div>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{worker.category}</div>
-                    <div className="text-sm text-gray-500">{worker.experience} yrs exp</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-900">
-                      <Star size={16} className="text-yellow-400 mr-1 fill-current" />
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="text-sm text-foreground">{worker.category}</div>
+                    <div className="text-sm text-foreground-lighter">{worker.experience} yrs exp</div>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="flex items-center text-sm text-foreground">
+                      <Star size={16} className="text-warning mr-1 fill-current" />
                       {worker.rating}
                     </div>
-                    <div className="text-xs text-gray-500">{worker.jobsCompleted} jobs</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-xs text-foreground-lighter">{worker.jobsCompleted} jobs</div>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
                     {worker.verified ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <CheckCircle size={12} className="mr-1" /> Verified
-                      </span>
+                      <Badge variant="success">
+                        <CheckCircle size={12} /> Verified
+                      </Badge>
                     ) : worker.verificationId ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        <AlertCircle size={12} className="mr-1" />{' '}
+                      <Badge variant="warning">
+                        <AlertCircle size={12} />{' '}
                         {worker.verificationStatus.replaceAll('_', ' ')}
-                      </span>
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                        Not submitted
-                      </span>
+                      <Badge>Not submitted</Badge>
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
                     {worker.matchingReady ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <CheckCircle size={12} className="mr-1" /> Ready
-                      </span>
+                      <Badge variant="success">
+                        <CheckCircle size={12} /> Ready
+                      </Badge>
                     ) : (
                       <div>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                          <AlertCircle size={12} className="mr-1" /> Incomplete
-                        </span>
-                        <div className="mt-1 text-xs text-gray-500">
+                        <Badge variant="warning">
+                          <AlertCircle size={12} /> Incomplete
+                        </Badge>
+                        <div className="mt-1 text-xs text-foreground-lighter">
                           {worker.matchingMissing.join(', ')}
                         </div>
                       </div>
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <Badge
+                      variant={
                         worker.status === 'Active'
-                          ? 'bg-green-100 text-green-800'
+                          ? 'success'
                           : worker.status === 'Suspended'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-800'
-                      }`}
+                            ? 'danger'
+                            : 'default'
+                      }
                     >
                       {worker.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium relative">
-                    <button
-                      onClick={() => toggleActionMenu(worker.id)}
-                      aria-haspopup="true"
-                      aria-expanded={actionMenuOpenId === worker.id}
-                      aria-label={`Open actions for ${worker.name}`}
-                      className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
-                    >
-                      <MoreVertical size={20} />
-                    </button>
-
-                    {/* Action Dropdown */}
-                    {actionMenuOpenId === worker.id && (
-                      <div
-                        className="absolute right-8 top-10 w-48 bg-white rounded-md shadow-lg border border-gray-100 z-10 py-1"
-                        role="menu"
-                      >
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right font-medium">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
                         <button
-                          onClick={() => handleViewDetails(worker)}
-                          role="menuitem"
-                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                          aria-label={`Open actions for ${worker.name}`}
+                          className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
                         >
-                          <Eye size={16} className="mr-2 text-gray-400" /> View Details
+                          <MoreVertical size={20} />
                         </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuItem
+                          onSelect={() => handleViewDetails(worker)}
+                          className="cursor-pointer"
+                        >
+                          <Eye className="mr-2" /> View Details
+                        </DropdownMenuItem>
 
                         {activeTab === 'review' && needsReview(worker) && (
                           <>
-                            <button
-                              onClick={() => approveWorker(worker)}
-                              role="menuitem"
-                              className="flex items-center w-full px-4 py-2 text-sm text-green-700 hover:bg-green-50 text-left"
+                            <DropdownMenuItem
+                              onSelect={() => approveWorker(worker)}
+                              className="cursor-pointer text-success-600 dark:text-success-400 focus:text-success-600 dark:focus:text-success-400 focus:bg-success/10 [&_svg]:text-success"
                             >
-                              <CheckCircle size={16} className="mr-2 text-green-500" /> Approve
-                              Worker
-                            </button>
-                            <button
-                              onClick={() => openRemarksModal(worker)}
-                              role="menuitem"
-                              className="flex items-center w-full px-4 py-2 text-sm text-yellow-700 hover:bg-yellow-50 text-left"
+                              <CheckCircle className="mr-2" /> Approve Worker
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => openRemarksModal(worker)}
+                              className="cursor-pointer text-warning-600 dark:text-warning-400 focus:text-warning-600 dark:focus:text-warning-400 focus:bg-warning/10 [&_svg]:text-warning"
                             >
-                              <AlertCircle size={16} className="mr-2 text-yellow-500" /> Request
-                              Docs
-                            </button>
+                              <AlertCircle className="mr-2" /> Request Docs
+                            </DropdownMenuItem>
                           </>
                         )}
 
-                        <button
-                          onClick={() => toggleAvailability(worker)}
-                          role="menuitem"
-                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                        <DropdownMenuItem
+                          onSelect={() => toggleAvailability(worker)}
+                          className="cursor-pointer"
                         >
-                          <Clock size={16} className="mr-2 text-gray-400" />
+                          <Clock className="mr-2" />
                           Set:{' '}
                           {worker.availability === 'Online'
                             ? 'Busy'
                             : worker.availability === 'Busy'
                               ? 'Offline'
                               : 'Online'}
-                        </button>
+                        </DropdownMenuItem>
 
-                        <button
-                          onClick={() => toggleStatus(worker)}
-                          role="menuitem"
-                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                        <DropdownMenuItem
+                          onSelect={() => toggleStatus(worker)}
+                          className="cursor-pointer"
                         >
                           {worker.status === 'Active' ? (
-                            <UserX size={16} className="mr-2 text-gray-400" />
+                            <UserX className="mr-2" />
                           ) : (
-                            <UserCheck size={16} className="mr-2 text-gray-400" />
+                            <UserCheck className="mr-2" />
                           )}
                           {worker.status === 'Active' ? 'Suspend' : 'Reactivate'}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(worker)}
-                          role="menuitem"
-                          className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left"
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onSelect={() => handleDeleteClick(worker)}
+                          className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
                         >
-                          <Trash2 size={16} className="mr-2 text-red-500" /> Delete Worker
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
+                          <Trash2 className="mr-2" /> Delete Worker
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
               ))
             ) : (
-              <tr>
-                <td colSpan="7" className="px-6 py-12 text-center">
+              <TableRow hover={false}>
+                <TableCell colSpan="7" className="text-center">
                   <div className="flex flex-col items-center justify-center">
-                    <UserX size={48} className="text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900">No workers found</h3>
-                    <p className="text-gray-500 mt-1">Try adjusting your search or filters.</p>
+                    <UserX size={48} className="text-foreground-muted mb-4" />
+                    <h3 className="text-lg font-medium text-foreground">No workers found</h3>
+                    <p className="text-foreground-lighter mt-1">Try adjusting your search or filters.</p>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {filteredWorkers.length > 0 && (
@@ -387,6 +344,7 @@ export function WorkersView({ model }) {
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
+          totalCount={filteredWorkers.length}
         />
       )}
 
@@ -395,85 +353,80 @@ export function WorkersView({ model }) {
         {selectedWorker && (
           <div className="space-y-6">
             <div className="flex items-center">
-              <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-2xl">
+              <div className="h-16 w-16 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-600 font-bold text-2xl">
                 {selectedWorker.name.charAt(0)}
               </div>
               <div className="ml-4">
-                <h3 className="text-xl font-bold text-gray-900">{selectedWorker.name}</h3>
-                <p className="text-gray-500">{selectedWorker.id}</p>
+                <h3 className="text-xl font-bold text-foreground">{selectedWorker.name}</h3>
+                <p className="text-foreground-lighter">{selectedWorker.id}</p>
                 <div className="mt-1 flex gap-2">
-                  <span
-                    className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                      selectedWorker.status === 'Active'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}
+                  <Badge
+                    variant={
+                      selectedWorker.status === 'Active' ? 'success' : 'danger'
+                    }
                   >
                     {selectedWorker.status}
-                  </span>
+                  </Badge>
                   {selectedWorker.verified && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                      <CheckCircle size={10} className="mr-1" /> Verified
-                    </span>
+                    <Badge variant="primary">
+                      <CheckCircle size={10} /> Verified
+                    </Badge>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
                 Contact Information
               </h4>
               <div className="space-y-3">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Mail size={16} className="mr-3 text-gray-400" /> {selectedWorker.email}
+                <div className="flex items-center text-sm text-foreground-light">
+                  <Mail size={16} className="mr-3 text-foreground-muted" /> {selectedWorker.email}
                 </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Phone size={16} className="mr-3 text-gray-400" /> {selectedWorker.phone}
+                <div className="flex items-center text-sm text-foreground-light">
+                  <Phone size={16} className="mr-3 text-foreground-muted" /> {selectedWorker.phone}
                 </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <MapPin size={16} className="mr-3 text-gray-400" /> {selectedWorker.location}
+                <div className="flex items-center text-sm text-foreground-light">
+                  <MapPin size={16} className="mr-3 text-foreground-muted" /> {selectedWorker.location}
                 </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Calendar size={16} className="mr-3 text-gray-400" /> Registered{' '}
+                <div className="flex items-center text-sm text-foreground-light">
+                  <Calendar size={16} className="mr-3 text-foreground-muted" /> Registered{' '}
                   {selectedWorker.registeredDate}
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
                 Professional Profile
               </h4>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Category</p>
-                  <p className="font-semibold text-gray-900">{selectedWorker.category}</p>
+                <div className="bg-surface-200 p-4 rounded-lg">
+                  <p className="text-xs text-foreground-lighter mb-1">Category</p>
+                  <p className="font-semibold text-foreground">{selectedWorker.category}</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Experience</p>
-                  <p className="font-semibold text-gray-900">{selectedWorker.experience} Years</p>
+                <div className="bg-surface-200 p-4 rounded-lg">
+                  <p className="text-xs text-foreground-lighter mb-1">Experience</p>
+                  <p className="font-semibold text-foreground">{selectedWorker.experience} Years</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Jobs Completed</p>
-                  <p className="font-semibold text-gray-900">{selectedWorker.jobsCompleted}</p>
+                <div className="bg-surface-200 p-4 rounded-lg">
+                  <p className="text-xs text-foreground-lighter mb-1">Jobs Completed</p>
+                  <p className="font-semibold text-foreground">{selectedWorker.jobsCompleted}</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Earnings</p>
-                  <p className="font-semibold text-gray-900">
+                <div className="bg-surface-200 p-4 rounded-lg">
+                  <p className="text-xs text-foreground-lighter mb-1">Earnings</p>
+                  <p className="font-semibold text-foreground">
                     {money(selectedWorker.earnings)}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-gray-200 pt-6 flex justify-end space-x-3">
-              <button
-                onClick={() => setIsDrawerOpen(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
+            <div className="border-t border-border pt-6 flex justify-end space-x-3">
+              <Button variant="secondary" onClick={() => setIsDrawerOpen(false)}>
                 Close
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -494,31 +447,33 @@ export function WorkersView({ model }) {
         title="Request Additional Documents"
       >
         <div className="pb-4">
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-foreground-light mb-4">
             Provide remarks on what documents{' '}
-            <span className="font-semibold text-gray-900">{workerToReview?.name}</span> needs to
+            <span className="font-semibold text-foreground">{workerToReview?.name}</span> needs to
             submit for verification.
           </p>
-          <textarea
+          <Textarea
             value={remarks}
             onChange={(e) => setRemarks(e.target.value)}
             placeholder="e.g. Please upload a clearer copy of your Valid ID..."
-            className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-blue-500 focus:border-blue-500 min-h-[120px]"
+            className="min-h-[120px]"
           />
           <div className="flex w-full space-x-3 mt-6">
-            <button
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-1"
               onClick={() => setIsRemarksModalOpen(false)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              className="flex-1"
               onClick={submitRemarks}
               disabled={!remarks.trim()}
-              className="flex-1 px-4 py-2 bg-blue-600 rounded-lg text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
               Send Request
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

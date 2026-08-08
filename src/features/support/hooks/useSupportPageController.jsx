@@ -50,32 +50,32 @@ export function useSupportPageController() {
     {
       label: 'Open Tickets',
       value: tickets.filter((t) => t.status === 'Open').length,
-      icon: <MessageSquare className="text-blue-500" />,
-      bg: 'bg-blue-50',
+      icon: <MessageSquare className="text-brand-500" />,
+      bg: 'bg-brand-500/10',
     },
     {
       label: 'High Priority',
       value: tickets.filter((t) => t.priority === 'High' && t.status !== 'Resolved').length,
-      icon: <AlertCircle className="text-red-500" />,
-      bg: 'bg-red-50',
+      icon: <AlertCircle className="text-destructive" />,
+      bg: 'bg-destructive/10',
     },
     {
       label: 'Pending User',
       value: tickets.filter((t) => t.status === 'Pending').length,
-      icon: <Clock className="text-yellow-500" />,
-      bg: 'bg-yellow-50',
+      icon: <Clock className="text-warning" />,
+      bg: 'bg-warning/10',
     },
     {
       label: 'Resolved',
       value: tickets.filter((t) => t.status === 'Resolved').length,
-      icon: <CheckCircle className="text-green-500" />,
-      bg: 'bg-green-50',
+      icon: <CheckCircle className="text-success" />,
+      bg: 'bg-success/10',
     },
   ];
   const getPriorityColor = (priority) => {
-    if (priority === 'High') return 'bg-red-100 text-red-800';
-    if (priority === 'Medium') return 'bg-yellow-100 text-yellow-800';
-    return 'bg-blue-100 text-blue-800';
+    if (priority === 'High') return 'bg-destructive/10 text-destructive-600 dark:text-destructive-400';
+    if (priority === 'Medium') return 'bg-warning/10 text-warning-600 dark:text-warning-400';
+    return 'bg-brand-500/10 text-brand-700 dark:text-brand-300';
   };
   const getStatusColor = (status) => badgeFor(SUPPORT_STATUS_BADGE, status);
   const openTicket = (ticket) => {

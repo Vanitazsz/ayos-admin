@@ -13,6 +13,7 @@ const emptyForm = {
 };
 export function useSubdivisionsPageController() {
   const { data: rows, isLoading, error, refresh } = useDataFetch(loadSubdivisions, []);
+  const safeRows = rows ?? [];
   useRealtime('subdivisions', refresh);
   const [form, setForm] = useState(emptyForm);
   const [open, setOpen] = useState(false);
@@ -60,7 +61,7 @@ export function useSubdivisionsPageController() {
     });
   };
   return {
-    rows,
+    rows: safeRows,
     isLoading,
     error,
     form,

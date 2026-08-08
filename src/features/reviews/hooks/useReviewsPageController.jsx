@@ -44,26 +44,26 @@ export function useReviewsPageController() {
     {
       label: 'Average Rating',
       value: avgRating,
-      icon: <Star className="text-yellow-500 fill-current" />,
-      bg: 'bg-yellow-50',
+      icon: <Star className="text-warning fill-current" />,
+      bg: 'bg-warning/10',
     },
     {
       label: 'Positive Reviews',
       value: reviews.filter((r) => r.rating >= 4).length,
-      icon: <ThumbsUp className="text-green-500" />,
-      bg: 'bg-green-50',
+      icon: <ThumbsUp className="text-success" />,
+      bg: 'bg-success/10',
     },
     {
       label: 'Negative Reviews',
       value: reviews.filter((r) => r.rating <= 2).length,
-      icon: <ThumbsDown className="text-red-500" />,
-      bg: 'bg-red-50',
+      icon: <ThumbsDown className="text-destructive" />,
+      bg: 'bg-destructive/10',
     },
     {
       label: 'Flagged / Reported',
       value: reviews.filter((r) => r.status === 'Flagged').length,
-      icon: <AlertTriangle className="text-orange-500" />,
-      bg: 'bg-orange-50',
+      icon: <AlertTriangle className="text-warning" />,
+      bg: 'bg-warning/10',
     },
   ];
   const toggleStatus = async (id, newStatus) => {
@@ -93,7 +93,7 @@ export function useReviewsPageController() {
           <Star
             key={star}
             size={16}
-            className={`${star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+            className={`${star <= rating ? 'text-warning fill-current' : 'text-foreground-muted'}`}
           />
         ))}
       </div>

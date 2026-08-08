@@ -2,6 +2,7 @@ import { Trash2, Search, RotateCcw, ShieldAlert, AlertCircle } from 'lucide-reac
 import Pagination from '../../../components/ui/Pagination';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import { TRASH_TABS } from '../logic/TrashPageLogic';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 const tabs = TRASH_TABS;
 export function TrashView({ model }) {
   const {
@@ -28,8 +29,8 @@ export function TrashView({ model }) {
     <div className="p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Trash & Recovery</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Trash & Recovery</h1>
+          <p className="text-foreground-lighter mt-1">
             Manage soft-deleted items before permanent removal (30 days)
           </p>
         </div>
@@ -37,13 +38,13 @@ export function TrashView({ model }) {
           <div className="mt-4 sm:mt-0 flex gap-2">
             <button
               onClick={handleRestoreAll}
-              className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center"
+              className="bg-card border border-border-strong hover:bg-surface-200 text-foreground-light px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center"
             >
               <RotateCcw size={18} className="mr-2" /> Restore All
             </button>
             <button
               onClick={handleEmptyTrash}
-              className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center"
+              className="bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/10 px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center"
             >
               <Trash2 size={18} className="mr-2" /> Empty Trash
             </button>
@@ -51,22 +52,22 @@ export function TrashView({ model }) {
         )}
       </div>
       {isLoading && (
-        <div className="flex justify-center py-8 text-gray-500">
-          <div className="animate-spin h-6 w-6 border-2 border-gray-300 border-t-blue-600 rounded-full mr-2" />{' '}
+        <div className="flex justify-center py-8 text-foreground-lighter">
+          <div className="animate-spin h-6 w-6 border-2 border-border-strong border-t-brand-600 rounded-full mr-2" />{' '}
           Loading...
         </div>
       )}
       {error && (
         <div
           role="alert"
-          className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
           {error}
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto mb-6">
-        <div className="flex border-b border-gray-200 overflow-x-auto">
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-x-auto mb-6">
+        <div className="flex border-b border-border overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab}
@@ -77,22 +78,22 @@ export function TrashView({ model }) {
               }}
               className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${
                 activeTab === tab
-                  ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50/50'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'border-b-2 border-foreground text-foreground bg-brand-500/10'
+                  : 'text-foreground-lighter hover:text-foreground-light hover:bg-surface-200'
               }`}
             >
               {tab}{' '}
-              <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">
+              <span className="ml-2 bg-surface-200 text-foreground-light py-0.5 px-2 rounded-full text-xs">
                 {items[tab].length}
               </span>
             </button>
           ))}
         </div>
 
-        <div className="p-4 bg-gray-50/50 border-b border-gray-100">
+        <div className="p-4 bg-surface-100 border-b border-border">
           <div className="relative w-full sm:w-96">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-gray-400" />
+              <Search size={18} className="text-foreground-muted" />
             </div>
             <input
               type="text"
@@ -100,97 +101,82 @@ export function TrashView({ model }) {
               placeholder={`Search deleted ${activeTab.toLowerCase()}...`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus:ring-ring focus:border-brand-500 text-sm"
             />
           </div>
         </div>
 
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">
                 Deleted Item
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              </TableHead>
+              <TableHead scope="col">
                 Deleted By
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              </TableHead>
+              <TableHead scope="col">
                 Date Deleted
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              </TableHead>
+              <TableHead scope="col">
                 Restore Deadline
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              </TableHead>
+              <TableHead scope="col" className="text-right">
                 Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {paginatedItems.length > 0 ? (
               paginatedItems.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{item.item}</div>
-                    <div className="text-xs text-gray-500">{item.id}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                <TableRow key={item.id}>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="text-sm font-medium text-foreground">{item.item}</div>
+                    <div className="text-xs text-foreground-lighter">{item.id}</div>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-foreground-light">
                     {item.deletedBy}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-foreground-lighter">
                     {item.deletedDate}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700">
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-destructive/10 text-destructive">
                       <AlertCircle size={12} className="mr-1" /> {item.restoreDeadline}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right font-medium">
                     <div className="flex justify-end space-x-2">
                       <button
                         onClick={() => handleRestore(item.id)}
-                        className="text-gray-500 hover:text-green-600 p-1 rounded hover:bg-green-50 transition-colors flex items-center border border-transparent hover:border-green-200"
+                        className="text-foreground-lighter hover:text-success p-1 rounded hover:bg-success/10 transition-colors flex items-center border border-transparent hover:border-success/30"
                         title="Restore"
                       >
                         <RotateCcw size={16} className="mr-1" /> Restore
                       </button>
                       <button
                         onClick={() => handlePermanentDelete(item.id)}
-                        className="text-gray-500 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors flex items-center border border-transparent hover:border-red-200"
+                        className="text-foreground-lighter hover:text-destructive p-1 rounded hover:bg-destructive/10 transition-colors flex items-center border border-transparent hover:border-destructive/30"
                         title="Delete Permanently"
                       >
                         <ShieldAlert size={16} className="mr-1" /> Delete
                       </button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             ) : (
-              <tr>
-                <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+              <TableRow hover={false}>
+                <TableCell colSpan="5" className="text-center text-foreground-lighter">
                   Trash is empty for {activeTab}.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
 
         {filteredItems.length > 0 && (
-          <div className="border-t border-gray-200">
+          <div className="border-t border-border">
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
