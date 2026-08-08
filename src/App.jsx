@@ -5,6 +5,7 @@ import AdminLayout from './layouts/AdminLayout';
 import Skeleton from './components/ui/Skeleton';
 
 const Login = React.lazy(() => import('./pages/auth/Login'));
+const ForgotPassword = React.lazy(() => import('./pages/auth/ForgotPassword'));
 const Dashboard = React.lazy(() => import('./pages/admin/Dashboard'));
 const Users = React.lazy(() => import('./pages/admin/Users'));
 const Workers = React.lazy(() => import('./pages/admin/Workers'));
@@ -22,6 +23,7 @@ const Settings = React.lazy(() => import('./pages/admin/Settings'));
 const Profile = React.lazy(() => import('./pages/admin/Profile'));
 const Subdivisions = React.lazy(() => import('./pages/admin/Subdivisions'));
 const Subscriptions = React.lazy(() => import('./pages/admin/Subscriptions'));
+const NotFound = React.lazy(() => import('./pages/admin/NotFound'));
 
 function PageSpinner() {
   return (
@@ -38,10 +40,14 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Redirect Root to Dashboard */}
           <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
+
+          {/* Unknown paths resolve to the 404 page inside the admin shell */}
+          <Route path="*" element={<Navigate to="/admin/not-found" replace />} />
 
           {/* Protected Admin Routes */}
           <Route
@@ -72,6 +78,8 @@ function App() {
             <Route path="subdivisions" element={<Subdivisions />} />
             <Route path="subscriptions" element={<Subscriptions />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="not-found" element={<NotFound />} />
+            <Route path="*" element={<Navigate to="/admin/not-found" replace />} />
           </Route>
         </Routes>
       </Suspense>
