@@ -1,38 +1,41 @@
 import React, { forwardRef, useId } from 'react';
+import { cn } from '../../lib/utils';
 
-const Input = forwardRef(({ label, error, icon: Icon, className = '', ...props }, ref) => {
+const Input = forwardRef(({ label, error, hint, icon: Icon, inputClassName = '', id, ...props }, ref) => {
   const generatedId = useId();
-  const inputId = props.id || generatedId;
+  const inputId = id || generatedId;
 
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-navy mb-1.5">
+        <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium text-foreground">
           {label}
         </label>
       )}
       <div className="relative">
         {Icon && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Icon className="h-5 w-5 text-gray-400" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <Icon className="size-4 text-foreground-lighter" />
           </div>
         )}
         <input
           id={inputId}
           ref={ref}
-          className={`
-            block w-full rounded-lg border 
-            ${error ? 'border-danger focus:ring-danger' : 'border-border focus:border-primary focus:ring-primary'}
-            ${Icon ? 'pl-10' : 'pl-3'}
-            pr-3 py-2 text-sm text-navy placeholder-gray-400
-            transition-colors focus:outline-none focus:ring-1
-            shadow-sm bg-white
-            ${className}
-          `}
+          className={cn(
+            'flex h-9 w-full rounded-lg border bg-card px-3 py-2 text-sm text-foreground shadow-sm transition-colors',
+            'placeholder:text-foreground-muted',
+            'focus-ring',
+            Icon ? 'pl-9' : 'pl-3',
+            error ? 'border-destructive' : 'border-border',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            inputClassName,
+          )}
+          aria-invalid={error ? true : undefined}
           {...props}
         />
       </div>
-      {error && <p className="mt-1.5 text-sm text-danger">{error}</p>}
+      {error && <p className="mt-1.5 text-sm text-destructive">{error}</p>}
+      {!error && hint && <p className="mt-1.5 text-sm text-foreground-muted">{hint}</p>}
     </div>
   );
 });

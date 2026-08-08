@@ -1,49 +1,52 @@
 import React from 'react';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
-import { Card, CardContent } from './Card';
+import { cn } from '../../lib/utils';
 import Skeleton from './Skeleton';
 
 const StatCard = ({ title, value, icon: Icon, trend, trendValue, subtitle, isLoading }) => (
-  <Card className="animate-fade-in-up">
-    <CardContent className="p-6">
-      <div className="flex items-center justify-between space-y-0 pb-2">
-        <h3 className="tracking-tight text-sm font-medium text-gray-500">{title}</h3>
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <Icon className="h-4 w-4 text-primary" />
-        </div>
+  <div className="overflow-hidden rounded-lg border border-border bg-surface-100 shadow-sm">
+    <div className="flex flex-col gap-1 p-3.5">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="heading-meta truncate">{title}</h3>
+        <Icon className="size-4 shrink-0 text-foreground-muted" strokeWidth={1.5} />
       </div>
-      <div className="flex flex-col mt-2">
-        {isLoading ? (
-          <>
-            <Skeleton className="h-8 w-24 mb-2" />
-            <Skeleton className="h-4 w-32" />
-          </>
-        ) : (
-          <>
-            <div
-              className="text-3xl font-display font-bold text-navy"
-              data-testid="stat-card-value"
-            >
-              {value}
-            </div>
-            <p className="text-xs text-gray-500 mt-1 flex items-center">
+      {isLoading ? (
+        <div className="flex flex-col gap-1.5">
+          <Skeleton className="h-7 w-24" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+      ) : (
+        <>
+          <div
+            className="text-xl font-normal leading-tight text-foreground"
+            data-testid="stat-card-value"
+          >
+            {value}
+          </div>
+          {trendValue ? (
+            <p className="flex items-center text-xs text-foreground-lighter">
               <span
-                className={`flex items-center font-medium mr-2 ${trend === 'up' ? 'text-success' : 'text-danger'}`}
+                className={cn(
+                  'flex items-center font-medium mr-2',
+                  trend === 'up' ? 'text-success' : 'text-destructive',
+                )}
               >
                 {trend === 'up' ? (
-                  <ArrowUpRight className="h-3 w-3 mr-0.5" />
+                  <ArrowUpRight className="mr-0.5 size-3" />
                 ) : (
-                  <ArrowDownRight className="h-3 w-3 mr-0.5" />
+                  <ArrowDownRight className="mr-0.5 size-3" />
                 )}
                 {trendValue}
               </span>
               {subtitle}
             </p>
-          </>
-        )}
-      </div>
-    </CardContent>
-  </Card>
+          ) : subtitle ? (
+            <p className="text-xs text-foreground-lighter">{subtitle}</p>
+          ) : null}
+        </>
+      )}
+    </div>
+  </div>
 );
 
 export default StatCard;

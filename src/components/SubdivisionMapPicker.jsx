@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { useTheme } from '../hooks/useTheme';
 
 const style = {
   version: 8,
@@ -20,6 +21,7 @@ export default function SubdivisionMapPicker({ latitude, longitude, onChange }) 
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const onChangeRef = useRef(onChange);
+  const { resolvedTheme } = useTheme();
   const initialCenterRef = useRef([Number(longitude) || 121.0244, Number(latitude) || 14.5547]);
   onChangeRef.current = onChange;
 
@@ -61,7 +63,7 @@ export default function SubdivisionMapPicker({ latitude, longitude, onChange }) 
   return (
     <div
       ref={containerRef}
-      className="h-72 w-full overflow-hidden rounded-xl border border-gray-200"
+      className={`map-canvas h-72 w-full overflow-hidden rounded-xl border border-border ${resolvedTheme === 'dark' ? 'map-dark' : ''}`}
     />
   );
 }
