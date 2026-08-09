@@ -276,8 +276,8 @@ const Sidebar = () => {
       <div
         aria-hidden="true"
         className={cn(
-          'hidden shrink-0 transition-[width] duration-100 ease-linear md:block',
-          behavior === 'open' ? 'md:w-52' : 'md:w-12'
+          'hidden shrink-0 transition-[width] duration-100 md:block',
+          behavior === 'open' ? 'md:w-52 ease-out' : 'md:w-12 ease-in'
         )}
       />
 
@@ -285,10 +285,10 @@ const Sidebar = () => {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={cn(
-          'absolute inset-y-0 z-50 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[left,right,width] duration-100 ease-linear md:z-10',
-          isMobileOpen ? 'left-0' : '-left-72 md:left-0',
+          'absolute inset-y-0 z-50 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[left,right,width] duration-100 md:z-10',
+          isMobileOpen ? 'left-0 max-md:ease-out' : 'max-md:-left-72 max-md:ease-in md:left-0',
           'w-72',
-          effectiveCollapsed && !isMobileOpen ? 'md:w-12' : 'md:w-52'
+          effectiveCollapsed && !isMobileOpen ? 'md:w-12 md:ease-in' : 'md:w-52 md:ease-out'
         )}
       >
         {isMobileOpen && (
