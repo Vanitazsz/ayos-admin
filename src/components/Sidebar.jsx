@@ -99,7 +99,7 @@ const navigationGroups = [
 ];
 
 const itemBase = cn(
-  'flex w-full items-center gap-2 overflow-hidden rounded-md py-2 px-1.5 text-left text-sm transition-colors focus-ring',
+  'flex w-full items-center gap-2 overflow-hidden rounded-md py-2 px-2.5 text-left text-sm transition-colors focus-ring',
   'text-foreground-lighter hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
   'data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground'
 );
@@ -160,7 +160,7 @@ const NavGroup = ({ group, effectiveCollapsed, setIsMobileOpen }) => {
       <button
         onClick={() => !effectiveCollapsed && setIsExpanded(!isExpanded)}
         className={cn(
-          'flex w-full items-center gap-2 rounded-md py-2 px-1.5 text-sm transition-colors focus-ring',
+          'flex w-full items-center gap-2 rounded-md py-2 px-2.5 text-sm transition-colors focus-ring',
           'hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
           isActiveGroup ? 'font-medium text-foreground' : 'text-foreground-lighter',
           effectiveCollapsed ? 'justify-center' : 'justify-between'
