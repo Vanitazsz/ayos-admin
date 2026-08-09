@@ -1,7 +1,7 @@
 export {
   loadCatalog,
   loadMostBookedService,
-  saveCategory,
-  saveService,
+  saveIndustry,
+  saveSkill,
 } from '../../../services/catalog';
 export { subscribe } from '../../../services/realtime';

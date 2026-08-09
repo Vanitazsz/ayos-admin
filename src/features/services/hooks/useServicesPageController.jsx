@@ -1,27 +1,26 @@
 import {
   loadCatalog,
   loadMostBookedService,
-  saveCategory,
-  saveService,
+  saveIndustry,
+  saveSkill,
   subscribe,
 } from '../logic/ServicesPageLogic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Layers, ArrowUpRight, CheckCircle, XCircle } from 'lucide-react';
+import { Layers, ArrowUpRight, CheckCircle, Grid } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { usePagination } from '../../../hooks/usePagination';
 
 export function useServicesPageController() {
-  const [services, setServices] = useState([]);
+  const [skills, setSkills] = useState([]);
+  const [industriesData, setIndustriesData] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('All');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [filterIndustry, setFilterIndustry] = useState('All');
+  const [activeTab, setActiveTab] = useState('skills');
+  const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
+  const [isIndustryModalOpen, setIsIndustryModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add');
-  const [currentService, setCurrentService] = useState(null);
-  const [activeTab, setActiveTab] = useState('services');
-  const [categoriesData, setCategoriesData] = useState([]);
-  const toast = useToast();
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [currentCategory, setCurrentCategory] = useState(null);
+  const [currentSkill, setCurrentSkill] = useState(null);
+  const [currentIndustry, setCurrentIndustry] = useState(null);
   const [confirm, setConfirm] = useState({
     isOpen: false,
     title: '',
@@ -33,146 +32,109 @@ export function useServicesPageController() {
     [],
   );
   const [mostBooked, setMostBooked] = useState(null);
+  const toast = useToast();
 
   const refresh = useCallback(async () => {
     const [value, booked] = await Promise.all([
       loadCatalog(),
       loadMostBookedService(),
     ]);
-    setServices(value.services);
-    setCategoriesData(value.categories);
+    setSkills(value.skills);
+    setIndustriesData(value.industries);
     setMostBooked(booked);
   }, []);
 
   useEffect(() => {
     void refresh();
-    const stopServices = subscribe('services', refresh);
-    const stopCategories = subscribe('service_categories', refresh);
+    const stopSkills = subscribe('service_categories', refresh);
+    const stopIndustries = subscribe('industries', refresh);
     return () => {
-      stopServices();
-      stopCategories();
+      stopSkills();
+      stopIndustries();
     };
   }, [refresh]);
 
-  const categories = useMemo(
-    () => ['All', ...new Set(services.map((s) => s.category))],
-    [services],
+  const industries = useMemo(
+    () => ['All', ...industriesData.map((item) => item.name)],
+    [industriesData],
   );
 
-  const filteredServices = useMemo(
+  const filteredSkills = useMemo(
     () =>
-      services.filter((s) => {
+      skills.filter((skill) => {
         const matchesSearch =
-          s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          s.id.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory =
-          filterCategory === 'All' || s.category === filterCategory;
-        return matchesSearch && matchesCategory;
+          skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          skill.id.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesIndustry =
+          filterIndustry === 'All' || skill.industry === filterIndustry;
+        return matchesSearch && matchesIndustry;
       }),
-    [services, searchTerm, filterCategory],
+    [skills, searchTerm, filterIndustry],
   );
 
   const {
     currentPage,
     setCurrentPage,
     totalPages,
-    pageData: paginatedServices,
-  } = usePagination(filteredServices, 8);
+    pageData: paginatedSkills,
+  } = usePagination(filteredSkills, 8);
 
   const stats = useMemo(
     () => [
       {
-        label: 'Total Services',
-        value: services.length,
-        icon: <Layers className="text-brand-500" />,
-        bg: 'bg-brand-500/10',
+        label: 'Total Skills',
+        value: skills.length,
+        icon: Layers,
       },
       {
-        label: 'Active Services',
-        value: services.filter((s) => s.status === 'Active').length,
-        icon: <CheckCircle className="text-success" />,
-        bg: 'bg-success/10',
+        label: 'Active Skills',
+        value: skills.filter((skill) => skill.status === 'Active').length,
+        icon: CheckCircle,
+      },
+      {
+        label: 'Industries',
+        value: industriesData.length,
+        icon: Grid,
       },
       {
         label: 'Most Booked',
         value: mostBooked ?? '—',
-        icon: <ArrowUpRight className="text-info" />,
-        bg: 'bg-info/10',
-      },
-      {
-        label: 'Hidden/Inactive',
-        value: services.filter((s) => s.status === 'Inactive').length,
-        icon: <XCircle className="text-foreground-lighter" />,
-        bg: 'bg-surface-200',
+        icon: ArrowUpRight,
       },
     ],
-    [services, mostBooked],
+    [skills, industriesData, mostBooked],
   );
 
-  const handleOpenAddModal = useCallback(() => {
+  const handleOpenAddSkillModal = useCallback(() => {
     setModalMode('add');
-    setCurrentService({
+    setCurrentSkill({
       name: '',
-      category: '',
-      price: '',
-      duration: '',
+      industry: '',
+      minimumPriceMinor: null,
+      maximumPriceMinor: null,
+      isSafetyCritical: false,
       status: 'Active',
     });
-    setIsModalOpen(true);
+    setIsSkillModalOpen(true);
   }, []);
 
-  const handleOpenEditModal = useCallback((service) => {
+  const handleOpenEditSkillModal = useCallback((skill) => {
     setModalMode('edit');
-    setCurrentService({ ...service });
-    setIsModalOpen(true);
+    setCurrentSkill({ ...skill });
+    setIsSkillModalOpen(true);
   }, []);
 
-  const handleDelete = useCallback(
+  const handleDeleteSkill = useCallback(
     (id) => {
       setConfirm({
         isOpen: true,
-        title: 'Delete Service',
-        message: 'Are you sure you want to delete this service?',
-        onConfirm: async () => {
-          const service = services.find((item) => item.id === id);
-          try {
-            await saveService(
-              { ...service, status: 'Inactive' },
-              categoriesData,
-            );
-            await refresh();
-          } catch (error) {
-            toast.error('Operation failed', error.message);
-          }
-        },
-      });
-    },
-    [services, categoriesData, refresh, toast],
-  );
-
-  const handleOpenAddCategoryModal = useCallback(() => {
-    setModalMode('add');
-    setCurrentCategory({ name: '', status: 'Enabled' });
-    setIsCategoryModalOpen(true);
-  }, []);
-
-  const handleOpenEditCategoryModal = useCallback((cat) => {
-    setModalMode('edit');
-    setCurrentCategory({ ...cat });
-    setIsCategoryModalOpen(true);
-  }, []);
-
-  const handleDeleteCategory = useCallback(
-    (id) => {
-      setConfirm({
-        isOpen: true,
-        title: 'Delete Category',
+        title: 'Delete Skill',
         message:
-          'Are you sure you want to delete this category? Note: This action may affect services.',
+          'Are you sure you want to delete this skill? It will be disabled and hidden from the platform.',
         onConfirm: async () => {
-          const category = categoriesData.find((item) => item.id === id);
+          const skill = skills.find((item) => item.id === id);
           try {
-            await saveCategory({ ...category, status: 'Disabled' });
+            await saveSkill({ ...skill, status: 'Inactive' }, industriesData);
             await refresh();
           } catch (error) {
             toast.error('Operation failed', error.message);
@@ -180,143 +142,175 @@ export function useServicesPageController() {
         },
       });
     },
-    [categoriesData, refresh, toast],
+    [skills, industriesData, refresh, toast],
   );
 
-  const toggleCategoryStatus = useCallback(
-    async (id) => {
-      const category = categoriesData.find((item) => item.id === id);
+  const handleDuplicateSkill = useCallback(
+    async (skill) => {
       try {
-        await saveCategory({
-          ...category,
-          status: category.status === 'Enabled' ? 'Disabled' : 'Enabled',
-        });
-        await refresh();
-      } catch (error) {
-        toast.error('Operation failed', error.message);
-      }
-    },
-    [categoriesData, refresh, toast],
-  );
-
-  const handleDuplicate = useCallback(
-    async (service) => {
-      try {
-        await saveService(
-          { ...service, id: null, name: `${service.name} Copy` },
-          categoriesData,
+        await saveSkill(
+          { ...skill, id: null, name: `${skill.name} Copy` },
+          industriesData,
         );
         await refresh();
       } catch (error) {
         toast.error('Operation failed', error.message);
       }
     },
-    [categoriesData, refresh, toast],
+    [industriesData, refresh, toast],
   );
 
-  const handleSave = useCallback(
+  const handleSaveSkill = useCallback(
     async (e) => {
       e.preventDefault();
       try {
-        await saveService(currentService, categoriesData);
+        await saveSkill(currentSkill, industriesData);
         await refresh();
-        setIsModalOpen(false);
+        setIsSkillModalOpen(false);
       } catch (error) {
         toast.error('Operation failed', error.message);
       }
     },
-    [currentService, categoriesData, refresh, toast],
+    [currentSkill, industriesData, refresh, toast],
   );
 
-  const handleSaveCategory = useCallback(
-    async (e) => {
-      e.preventDefault();
+  const handleOpenAddIndustryModal = useCallback(() => {
+    setModalMode('add');
+    setCurrentIndustry({ name: '', description: '', status: 'Enabled' });
+    setIsIndustryModalOpen(true);
+  }, []);
+
+  const handleOpenEditIndustryModal = useCallback((industry) => {
+    setModalMode('edit');
+    setCurrentIndustry({ ...industry });
+    setIsIndustryModalOpen(true);
+  }, []);
+
+  const handleDeleteIndustry = useCallback(
+    (id) => {
+      setConfirm({
+        isOpen: true,
+        title: 'Delete Industry',
+        message:
+          'Are you sure you want to delete this industry? It will be disabled and hidden from the platform.',
+        onConfirm: async () => {
+          const industry = industriesData.find((item) => item.id === id);
+          try {
+            await saveIndustry({ ...industry, status: 'Disabled' });
+            await refresh();
+          } catch (error) {
+            toast.error('Operation failed', error.message);
+          }
+        },
+      });
+    },
+    [industriesData, refresh, toast],
+  );
+
+  const toggleIndustryStatus = useCallback(
+    async (id) => {
+      const industry = industriesData.find((item) => item.id === id);
       try {
-        await saveCategory(currentCategory);
+        await saveIndustry({
+          ...industry,
+          status: industry.status === 'Enabled' ? 'Disabled' : 'Enabled',
+        });
         await refresh();
-        setIsCategoryModalOpen(false);
       } catch (error) {
         toast.error('Operation failed', error.message);
       }
     },
-    [currentCategory, refresh, toast],
+    [industriesData, refresh, toast],
+  );
+
+  const handleSaveIndustry = useCallback(
+    async (e) => {
+      e.preventDefault();
+      try {
+        await saveIndustry(currentIndustry);
+        await refresh();
+        setIsIndustryModalOpen(false);
+      } catch (error) {
+        toast.error('Operation failed', error.message);
+      }
+    },
+    [currentIndustry, refresh, toast],
   );
 
   return useMemo(
     () => ({
       searchTerm,
       setSearchTerm,
-      filterCategory,
-      setFilterCategory,
-      currentPage,
-      setCurrentPage,
-      isModalOpen,
-      setIsModalOpen,
-      modalMode,
-      currentService,
-      setCurrentService,
+      filterIndustry,
+      setFilterIndustry,
       activeTab,
       setActiveTab,
-      categoriesData,
-      isCategoryModalOpen,
-      setIsCategoryModalOpen,
-      currentCategory,
-      setCurrentCategory,
+      currentPage,
+      setCurrentPage,
+      isSkillModalOpen,
+      setIsSkillModalOpen,
+      isIndustryModalOpen,
+      setIsIndustryModalOpen,
+      modalMode,
+      currentSkill,
+      setCurrentSkill,
+      currentIndustry,
+      setCurrentIndustry,
       confirm,
       closeConfirm,
-      categories,
-      filteredServices,
+      industries,
+      industriesData,
+      filteredSkills,
       totalPages,
-      paginatedServices,
+      paginatedSkills,
       stats,
-      handleOpenAddModal,
-      handleOpenEditModal,
-      handleDelete,
-      handleOpenAddCategoryModal,
-      handleOpenEditCategoryModal,
-      handleDeleteCategory,
-      toggleCategoryStatus,
-      handleDuplicate,
-      handleSave,
-      handleSaveCategory,
+      handleOpenAddSkillModal,
+      handleOpenEditSkillModal,
+      handleDeleteSkill,
+      handleDuplicateSkill,
+      handleSaveSkill,
+      handleOpenAddIndustryModal,
+      handleOpenEditIndustryModal,
+      handleDeleteIndustry,
+      toggleIndustryStatus,
+      handleSaveIndustry,
     }),
     [
       searchTerm,
-      filterCategory,
-      currentPage,
-      isModalOpen,
-      modalMode,
-      currentService,
+      filterIndustry,
       activeTab,
-      categoriesData,
-      isCategoryModalOpen,
-      currentCategory,
+      currentPage,
+      isSkillModalOpen,
+      isIndustryModalOpen,
+      modalMode,
+      currentSkill,
+      currentIndustry,
       confirm,
-      categories,
-      filteredServices,
+      industries,
+      industriesData,
+      filteredSkills,
       totalPages,
-      paginatedServices,
+      paginatedSkills,
       stats,
-      handleOpenAddModal,
-      handleOpenEditModal,
-      handleDelete,
-      handleOpenAddCategoryModal,
-      handleOpenEditCategoryModal,
-      handleDeleteCategory,
-      toggleCategoryStatus,
-      handleDuplicate,
-      handleSave,
-      handleSaveCategory,
+      handleOpenAddSkillModal,
+      handleOpenEditSkillModal,
+      handleDeleteSkill,
+      handleDuplicateSkill,
+      handleSaveSkill,
+      handleOpenAddIndustryModal,
+      handleOpenEditIndustryModal,
+      handleDeleteIndustry,
+      toggleIndustryStatus,
+      handleSaveIndustry,
       closeConfirm,
       setSearchTerm,
-      setFilterCategory,
-      setCurrentPage,
-      setIsModalOpen,
-      setCurrentService,
+      setFilterIndustry,
       setActiveTab,
-      setIsCategoryModalOpen,
-      setCurrentCategory,
-      toast,
+      setCurrentPage,
+      setIsSkillModalOpen,
+      setIsIndustryModalOpen,
+      setCurrentSkill,
+      setCurrentIndustry,
     ],
   );
 }
