@@ -129,7 +129,7 @@ export function DashboardView({ model }) {
     axisLabel: spansMultipleYears ? point.yearLabel : point.period,
   }));
   const maxRevenue = Math.max(0, ...revenueChart.map((point) => point.revenue));
-  const yAxisWidth = Math.max(40, Math.min(80, formatMoneyTick(maxRevenue).length * 8));
+  const yAxisWidth = Math.max(48, Math.min(80, Math.ceil(formatMoneyTick(maxRevenue).length * 8 + 12)));
   const chartScrollRef = useRef(null);
   useEffect(() => {
     chartScrollRef.current?.scrollTo({ left: chartScrollRef.current.scrollWidth });
@@ -294,59 +294,71 @@ export function DashboardView({ model }) {
                 <p className="px-3 pt-1 text-xs text-foreground-lighter">
                   vs previous {revenueWindowLabel} period
                 </p>
-                <div className="h-48 w-full overflow-x-auto px-3 py-2" ref={chartScrollRef}>
-                  <div
-                    className="h-full"
-                    style={{
-                      width: `${Math.max(revenueChart.length * 36, 100)}%`,
-                      minWidth: '100%',
-                    }}
-                  >
+                <div className="flex h-48 w-full px-3 py-2">
+                  <div className="h-full shrink-0" style={{ width: yAxisWidth + 8 }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={revenueChart} margin={{ top: 4, right: 4, left: 4, bottom: 0 }} barCategoryGap={2}>
-                        <CartesianGrid vertical={false} stroke={chartGridStroke} />
-                        <XAxis
-                          dataKey="axisLabel"
-                          axisLine={false}
-                          tickLine={false}
-                          tickMargin={8}
-                          interval="preserveStartEnd"
-                          minTickGap={12}
-                          tick={chartTick}
-                        />
+                      <BarChart data={revenueChart} margin={{ top: 4, right: 0, left: 4, bottom: 30 }}>
                         <YAxis
+                          domain={[0, maxRevenue]}
                           axisLine={false}
                           tickLine={false}
                           width={yAxisWidth}
                           tickMargin={8}
                           tick={chartTick}
                           tickFormatter={formatMoneyTick}
+                          includeHidden
                         />
-                        <Tooltip
-                          cursor={chartCursor}
-                          defaultIndex={revenueChart.length - 1}
-                          content={<RevenueTooltip granularity={revenueGranularity} />}
-                        />
-                        <Bar
-                          dataKey="workerPayout"
-                          name="Worker payout"
-                          stackId="rev"
-                          fill="var(--chart-1)"
-                          radius={[2, 2, 1, 1]}
-                          maxBarSize={48}
-                          animationDuration={300}
-                        />
-                        <Bar
-                          dataKey="commission"
-                          name="Platform commission"
-                          stackId="rev"
-                          fill="hsl(var(--chart-2))"
-                          radius={[0, 0, 1, 1]}
-                          maxBarSize={48}
-                          animationDuration={300}
-                        />
+                        <Bar dataKey="commission" hide />
                       </BarChart>
                     </ResponsiveContainer>
+                  </div>
+                  <div className="h-full min-w-0 flex-1 overflow-x-auto" ref={chartScrollRef}>
+                    <div
+                      className="h-full"
+                      style={{
+                        width: `${Math.max(revenueChart.length * 28, 100)}px`,
+                        minWidth: '100%',
+                      }}
+                    >
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={revenueChart} margin={{ top: 4, right: 4, left: 4, bottom: 0 }} barCategoryGap={2}>
+                          <CartesianGrid vertical={false} stroke={chartGridStroke} />
+                          <XAxis
+                            dataKey="axisLabel"
+                            axisLine={false}
+                            tickLine={false}
+                            tickMargin={8}
+                            interval="preserveStartEnd"
+                            minTickGap={12}
+                            tick={chartTick}
+                          />
+                          <YAxis hide domain={[0, maxRevenue]} />
+                          <Tooltip
+                            cursor={chartCursor}
+                            defaultIndex={revenueChart.length - 1}
+                            content={<RevenueTooltip granularity={revenueGranularity} />}
+                          />
+                          <Bar
+                            dataKey="workerPayout"
+                            name="Worker payout"
+                            stackId="rev"
+                            fill="var(--chart-1)"
+                            radius={[2, 2, 1, 1]}
+                            maxBarSize={48}
+                            animationDuration={300}
+                          />
+                          <Bar
+                            dataKey="commission"
+                            name="Platform commission"
+                            stackId="rev"
+                            fill="hsl(var(--chart-2))"
+                            radius={[0, 0, 1, 1]}
+                            maxBarSize={48}
+                            animationDuration={300}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 </div>
               </>
