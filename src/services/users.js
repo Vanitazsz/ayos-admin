@@ -20,7 +20,12 @@ const USER_PAGE_SELECT =
 
 const USER_KEY_SELECT = 'id,email,status,created_at,user_profiles(display_name)';
 
-export async function loadUsersPage({ search = '', page = 1, pageSize = 10 } = {}) {
+export async function loadUsersPage({
+  search = '',
+  status = 'All',
+  page = 1,
+  pageSize = 10,
+} = {}) {
   const { data: keys, error: keyError } = await supabase
     .from('accounts')
     .select(USER_KEY_SELECT)
@@ -29,17 +34,26 @@ export async function loadUsersPage({ search = '', page = 1, pageSize = 10 } = {
     .order('created_at', { ascending: false });
   if (keyError) throw keyError;
 
+  const allKeys = keys ?? [];
+  const stats = {
+    total: allKeys.length,
+    active: allKeys.filter((row) => row.status === 'ACTIVE').length,
+    suspended: allKeys.filter((row) => row.status === 'SUSPENDED').length,
+  };
+
   const term = search.trim().toLowerCase();
-  const matched = term
-    ? (keys ?? []).filter((row) => {
-        const name = row.user_profiles?.display_name ?? '';
-        return (
-          name.toLowerCase().includes(term) ||
-          row.email.toLowerCase().includes(term) ||
-          row.id.toLowerCase().includes(term)
-        );
-      })
-    : (keys ?? []);
+  const matchesSearch = (row) => {
+    const name = row.user_profiles?.display_name ?? '';
+    return (
+      name.toLowerCase().includes(term) ||
+      row.email.toLowerCase().includes(term) ||
+      row.id.toLowerCase().includes(term)
+    );
+  };
+  const matchesStatus = (row) => status === 'All' || row.status === status;
+  const matched = allKeys.filter(
+    (row) => (!term || matchesSearch(row)) && matchesStatus(row),
+  );
   const count = matched.length;
   const pageIds = matched
     .slice((page - 1) * pageSize, page * pageSize)
@@ -59,6 +73,7 @@ export async function loadUsersPage({ search = '', page = 1, pageSize = 10 } = {
   return {
     rows: pageIds.map((id) => mapUser(byId.get(id))).filter(Boolean),
     count,
+    stats,
   };
 }
 

@@ -1,5 +1,6 @@
 import {
   Search,
+  Filter,
   MoreVertical,
   Edit,
   Trash2,
@@ -11,6 +12,8 @@ import {
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { formatDateTime } from '../../../services/adminShared';
+import StatCard from '../../../components/ui/StatCard';
+import Select from '../../../components/ui/Select';
 import {
   Table,
   TableHeader,
@@ -47,6 +50,8 @@ export function UsersView({ model }) {
     isLoading,
     searchQuery,
     setSearchQuery,
+    filterStatus,
+    setFilterStatus,
     currentPage,
     setCurrentPage,
     activeTab,
@@ -84,6 +89,7 @@ export function UsersView({ model }) {
     totalPages,
     currentUsers,
     getStatusBadge,
+    stats,
   } = model;
   return (
     <div className="space-y-6 p-6 animate-fade-in">
@@ -94,6 +100,13 @@ export function UsersView({ model }) {
             Manage customer accounts, view details, and handle suspensions.
           </p>
         </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, index) => (
+          <StatCard key={index} title={stat.label} value={stat.value} icon={stat.icon} />
+        ))}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -123,8 +136,19 @@ export function UsersView({ model }) {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="text-sm text-foreground-lighter font-medium whitespace-nowrap">
-              Showing {currentUsers.length} of {count} users
+            <div className="flex w-full sm:w-auto items-center">
+              <div className="w-full sm:w-44">
+                <Select
+                  icon={Filter}
+                  aria-label="Filter by status"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="SUSPENDED">Suspended</option>
+                </Select>
+              </div>
             </div>
           </CardHeader>
 

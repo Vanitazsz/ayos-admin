@@ -8,11 +8,13 @@ import {
 } from '../logic/UsersPageLogic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Badge from '../../../components/ui/Badge';
+import { Users, UserCheck, UserX, AlertCircle } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { useServerPagination } from '../../../hooks/useServerPagination';
 
 export function useUsersPageController() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('All');
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [activeTab, setActiveTab] = useState('customers');
   const [verifications, setVerifications] = useState([]);
@@ -39,14 +41,16 @@ export function useUsersPageController() {
   const toast = useToast();
 
   const fetchUsers = useCallback(
-    ({ page, pageSize }) => loadUsersPage({ search: searchQuery, page, pageSize }),
-    [searchQuery],
+    ({ page, pageSize }) =>
+      loadUsersPage({ search: searchQuery, status: filterStatus, page, pageSize }),
+    [searchQuery, filterStatus],
   );
 
   const {
     rows: users,
     count,
     error,
+    meta,
     isInitialLoading: isLoading,
     refresh: refreshUsers,
     currentPage,
@@ -66,6 +70,32 @@ export function useUsersPageController() {
     await refreshUsers();
     await loadVerifications();
   }, [refreshUsers, loadVerifications]);
+
+  const stats = useMemo(
+    () => [
+      {
+        label: 'Total Users',
+        value: meta?.stats?.total ?? 0,
+        icon: Users,
+      },
+      {
+        label: 'Active Users',
+        value: meta?.stats?.active ?? 0,
+        icon: UserCheck,
+      },
+      {
+        label: 'Pending Verification',
+        value: verifications.length,
+        icon: AlertCircle,
+      },
+      {
+        label: 'Suspended Users',
+        value: meta?.stats?.suspended ?? 0,
+        icon: UserX,
+      },
+    ],
+    [meta, verifications],
+  );
 
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
@@ -207,6 +237,8 @@ export function useUsersPageController() {
       isLoading,
       searchQuery,
       setSearchQuery,
+      filterStatus,
+      setFilterStatus,
       currentPage,
       setCurrentPage,
       actionMenuOpenId,
@@ -246,10 +278,12 @@ export function useUsersPageController() {
       totalPages,
       currentUsers: users,
       getStatusBadge,
+      stats,
     }),
     [
       isLoading,
       searchQuery,
+      filterStatus,
       currentPage,
       actionMenuOpenId,
       activeTab,
@@ -278,8 +312,10 @@ export function useUsersPageController() {
       totalPages,
       users,
       getStatusBadge,
+      stats,
       closeConfirm,
       setCurrentPage,
+      setFilterStatus,
       setSelectedVerification,
       setReviewNotes,
       setIsProfileModalOpen,
