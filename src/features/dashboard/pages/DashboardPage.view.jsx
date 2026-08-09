@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   DollarSign,
   Calendar,
@@ -130,6 +130,10 @@ export function DashboardView({ model }) {
   }));
   const maxRevenue = Math.max(0, ...revenueChart.map((point) => point.revenue));
   const yAxisWidth = Math.max(40, Math.min(80, formatMoneyTick(maxRevenue).length * 8));
+  const chartScrollRef = useRef(null);
+  useEffect(() => {
+    chartScrollRef.current?.scrollTo({ left: chartScrollRef.current.scrollWidth });
+  }, [revenueChart.length, revenueGranularity]);
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -290,7 +294,7 @@ export function DashboardView({ model }) {
                 <p className="px-3 pt-1 text-xs text-foreground-lighter">
                   vs previous {revenueWindowLabel} period
                 </p>
-                <div className="h-48 w-full overflow-x-auto px-3 py-2">
+                <div className="h-48 w-full overflow-x-auto px-3 py-2" ref={chartScrollRef}>
                   <div
                     className="h-full"
                     style={{
@@ -299,7 +303,7 @@ export function DashboardView({ model }) {
                     }}
                   >
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={revenueChart} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+                      <BarChart data={revenueChart} margin={{ top: 4, right: 4, left: 4, bottom: 0 }} barCategoryGap={2}>
                         <CartesianGrid vertical={false} stroke={chartGridStroke} />
                         <XAxis
                           dataKey="axisLabel"
@@ -318,7 +322,11 @@ export function DashboardView({ model }) {
                           tick={chartTick}
                           tickFormatter={formatMoneyTick}
                         />
-                        <Tooltip cursor={chartCursor} content={<RevenueTooltip granularity={revenueGranularity} />} />
+                        <Tooltip
+                          cursor={chartCursor}
+                          defaultIndex={revenueChart.length - 1}
+                          content={<RevenueTooltip granularity={revenueGranularity} />}
+                        />
                         <Bar
                           dataKey="workerPayout"
                           name="Worker payout"
