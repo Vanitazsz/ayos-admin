@@ -2,7 +2,8 @@ import {
   loadWorkers,
   reviewWorker,
   setAccountStatus,
-  setWorkerAvailability,
+  updateWorker,
+  loadCatalog,
 } from '../logic/WorkersPageLogic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { UserCheck, UserX, AlertCircle, Briefcase } from 'lucide-react';
@@ -24,6 +25,11 @@ export function useWorkersPageController() {
   const [isRemarksModalOpen, setIsRemarksModalOpen] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [workerToReview, setWorkerToReview] = useState(null);
+  const [editWorker, setEditWorker] = useState(null);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [isSavingWorker, setIsSavingWorker] = useState(false);
+  const [industries, setIndustries] = useState([]);
+  const [skills, setSkills] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const { schedule, mark } = useDebouncedRefresh();
@@ -45,6 +51,26 @@ export function useWorkersPageController() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadCatalog()
+      .then(({ industries: loadedIndustries, skills: loadedSkills }) => {
+        if (!cancelled) {
+          setIndustries(loadedIndustries ?? []);
+          setSkills(loadedSkills ?? []);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setIndustries([]);
+          setSkills([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleRealtime = useCallback(() => schedule(refresh), [schedule, refresh]);
 
@@ -117,6 +143,94 @@ export function useWorkersPageController() {
     setActionMenuOpenId(null);
   }, []);
 
+  const handleEditWorker = useCallback((worker) => {
+    setEditWorker({
+      id: worker.id,
+      name: worker.name,
+      email: worker.email,
+      phone: worker.phone,
+      bio: worker.bio ?? '',
+      serviceArea: worker.location ?? '',
+      skillIds: Array.isArray(worker.skillIds) ? [...worker.skillIds] : [],
+      experience: worker.experience ?? '',
+    });
+    setIsEditDrawerOpen(true);
+    setActionMenuOpenId(null);
+  }, []);
+
+  const toggleSkill = useCallback((skillId) => {
+    setEditWorker((current) => {
+      if (!current) return current;
+      const selected = new Set(current.skillIds);
+      if (selected.has(skillId)) selected.delete(skillId);
+      else selected.add(skillId);
+      return { ...current, skillIds: [...selected] };
+    });
+  }, []);
+
+  const toggleIndustry = useCallback((industryName) => {
+    setEditWorker((current) => {
+      if (!current) return current;
+      const groupSkills = skills.filter((skill) => skill.industry === industryName);
+      const groupSkillIds = groupSkills.map((skill) => skill.id);
+      if (groupSkillIds.length === 0) return current;
+      const selected = new Set(current.skillIds);
+      const allSelected = groupSkillIds.every((id) => selected.has(id));
+      groupSkillIds.forEach((id) => {
+        if (allSelected) selected.delete(id);
+        else selected.add(id);
+      });
+      return { ...current, skillIds: [...selected] };
+    });
+  }, [skills]);
+
+  const industryGroups = useMemo(() => {
+    const orderByName = new Map(
+      [...industries]
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
+        .map((industry) => [industry.name, industry.sortOrder]),
+    );
+    const grouped = new Map();
+    skills.forEach((skill) => {
+      const key = skill.industry || 'Uncategorized';
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key).push(skill);
+    });
+    return [...grouped.entries()]
+      .map(([name, groupSkills]) => ({
+        name,
+        sortOrder: orderByName.get(name) ?? Number.MAX_SAFE_INTEGER,
+        skills: [...groupSkills].sort((a, b) => a.name.localeCompare(b.name)),
+      }))
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+  }, [industries, skills]);
+
+  const handleSaveWorker = useCallback(
+    async (event) => {
+      event.preventDefault();
+      if (!editWorker) return;
+      if (!Array.isArray(editWorker.skillIds) || editWorker.skillIds.length === 0) {
+        toast.error('Skills required', 'Select at least one skill.');
+        return;
+      }
+      setIsSavingWorker(true);
+      try {
+        await updateWorker(editWorker.id, editWorker);
+        await refresh();
+        setIsEditDrawerOpen(false);
+        toast.success('Worker updated', `${editWorker.name}'s profile was saved.`);
+      } catch (error) {
+        toast.error(
+          'Update failed',
+          error instanceof Error ? error.message : 'Unable to update worker.',
+        );
+      } finally {
+        setIsSavingWorker(false);
+      }
+    },
+    [editWorker, refresh, toast],
+  );
+
   const handleDeleteClick = useCallback((worker) => {
     setWorkerToDelete(worker);
     setActionMenuOpenId(null);
@@ -178,20 +292,6 @@ export function useWorkersPageController() {
     }
   }, [workerToReview, remarks, refresh, toast]);
 
-  const toggleAvailability = useCallback(
-    async (worker) => {
-      try {
-        await setWorkerAvailability(worker.id, worker.availability !== 'Online');
-        await refresh();
-      } catch (error) {
-        toast.error('Availability update failed', error.message);
-      } finally {
-        setActionMenuOpenId(null);
-      }
-    },
-    [refresh, toast],
-  );
-
   return useMemo(
     () => ({
       workers,
@@ -214,6 +314,16 @@ export function useWorkersPageController() {
       remarks,
       setRemarks,
       workerToReview,
+      editWorker,
+      setEditWorker,
+      isEditDrawerOpen,
+      setIsEditDrawerOpen,
+      isSavingWorker,
+      industries,
+      skills,
+      industryGroups,
+      toggleSkill,
+      toggleIndustry,
       isLoading,
       loadError,
       refresh,
@@ -224,12 +334,13 @@ export function useWorkersPageController() {
       stats,
       toggleActionMenu,
       handleViewDetails,
+      handleEditWorker,
+      handleSaveWorker,
       handleDeleteClick,
       toggleStatus,
       approveWorker,
       openRemarksModal,
       submitRemarks,
-      toggleAvailability,
     }),
     [
       workers,
@@ -244,6 +355,14 @@ export function useWorkersPageController() {
       isRemarksModalOpen,
       remarks,
       workerToReview,
+      editWorker,
+      isEditDrawerOpen,
+      isSavingWorker,
+      industries,
+      skills,
+      industryGroups,
+      toggleSkill,
+      toggleIndustry,
       isLoading,
       loadError,
       refresh,
@@ -254,12 +373,13 @@ export function useWorkersPageController() {
       stats,
       toggleActionMenu,
       handleViewDetails,
+      handleEditWorker,
+      handleSaveWorker,
       handleDeleteClick,
       toggleStatus,
       approveWorker,
       openRemarksModal,
       submitRemarks,
-      toggleAvailability,
       setFilterStatus,
       setCurrentPage,
       setIsDrawerOpen,
@@ -267,6 +387,8 @@ export function useWorkersPageController() {
       setActiveTab,
       setIsRemarksModalOpen,
       setRemarks,
+      setEditWorker,
+      setIsEditDrawerOpen,
       toast,
     ],
   );

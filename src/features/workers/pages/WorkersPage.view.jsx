@@ -4,6 +4,7 @@ import {
   MoreVertical,
   CheckCircle,
   Eye,
+  Edit,
   Trash2,
   UserCheck,
   UserX,
@@ -13,7 +14,6 @@ import {
   Phone,
   Mail,
   Calendar,
-  Clock,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
@@ -22,6 +22,7 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Textarea from '../../../components/ui/Textarea';
 import Button from '../../../components/ui/Button';
+import Checkbox from '../../../components/ui/Checkbox';
 import StatCard from '../../../components/ui/StatCard';
 import { Badge } from '../../../components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
@@ -61,6 +62,14 @@ export function WorkersView({ model }) {
     remarks,
     setRemarks,
     workerToReview,
+    editWorker,
+    setEditWorker,
+    isEditDrawerOpen,
+    setIsEditDrawerOpen,
+    isSavingWorker,
+    industryGroups,
+    toggleSkill,
+    toggleIndustry,
     isLoading,
     loadError,
     refresh,
@@ -70,15 +79,16 @@ export function WorkersView({ model }) {
     paginatedWorkers,
     stats,
     handleViewDetails,
+    handleEditWorker,
+    handleSaveWorker,
     handleDeleteClick,
     toggleStatus,
     approveWorker,
     openRemarksModal,
     submitRemarks,
-    toggleAvailability,
   } = model;
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Workers Management</h1>
@@ -162,10 +172,10 @@ export function WorkersView({ model }) {
               <TableHead scope="col">
                 Rating
               </TableHead>
-              <TableHead scope="col">
+              <TableHead scope="col" className="hidden xl:table-cell">
                 Verification
               </TableHead>
-              <TableHead scope="col">
+              <TableHead scope="col" className="hidden lg:table-cell">
                 Matching
               </TableHead>
               <TableHead scope="col">
@@ -185,7 +195,11 @@ export function WorkersView({ model }) {
               </TableRow>
             ) : paginatedWorkers.length > 0 ? (
               paginatedWorkers.map((worker) => (
-                <TableRow key={worker.id}>
+                <TableRow
+                  key={worker.id}
+                  onClick={() => handleViewDetails(worker)}
+                  className="cursor-pointer"
+                >
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 flex-shrink-0">
@@ -210,7 +224,7 @@ export function WorkersView({ model }) {
                     </div>
                     <div className="text-xs text-foreground-lighter">{worker.jobsCompleted} jobs</div>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell className="hidden xl:table-cell whitespace-nowrap">
                     {worker.verified ? (
                       <Badge variant="success">
                         <CheckCircle size={12} /> Verified
@@ -224,7 +238,7 @@ export function WorkersView({ model }) {
                       <Badge>Not submitted</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell className="hidden lg:table-cell whitespace-nowrap">
                     {worker.matchingReady ? (
                       <Badge variant="success">
                         <CheckCircle size={12} /> Ready
@@ -253,7 +267,7 @@ export function WorkersView({ model }) {
                       {worker.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-right font-medium">
+                  <TableCell className="whitespace-nowrap text-right font-medium" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
@@ -269,6 +283,13 @@ export function WorkersView({ model }) {
                           className="cursor-pointer"
                         >
                           <Eye className="mr-2" /> View Details
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          onSelect={() => handleEditWorker(worker)}
+                          className="cursor-pointer"
+                        >
+                          <Edit className="mr-2" /> Edit Worker
                         </DropdownMenuItem>
 
                         {activeTab === 'review' && needsReview(worker) && (
@@ -287,19 +308,6 @@ export function WorkersView({ model }) {
                             </DropdownMenuItem>
                           </>
                         )}
-
-                        <DropdownMenuItem
-                          onSelect={() => toggleAvailability(worker)}
-                          className="cursor-pointer"
-                        >
-                          <Clock className="mr-2" />
-                          Set:{' '}
-                          {worker.availability === 'Online'
-                            ? 'Busy'
-                            : worker.availability === 'Busy'
-                              ? 'Offline'
-                              : 'Online'}
-                        </DropdownMenuItem>
 
                         <DropdownMenuItem
                           onSelect={() => toggleStatus(worker)}
@@ -422,13 +430,121 @@ export function WorkersView({ model }) {
                 </div>
               </div>
             </div>
-
-            <div className="border-t border-border pt-6 flex justify-end space-x-3">
-              <Button variant="secondary" onClick={() => setIsDrawerOpen(false)}>
-                Close
-              </Button>
-            </div>
           </div>
+        )}
+      </Drawer>
+
+      {/* Edit Worker Drawer */}
+      <Drawer
+        isOpen={isEditDrawerOpen}
+        onClose={() => setIsEditDrawerOpen(false)}
+        title="Edit Worker"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsEditDrawerOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form="edit-worker-form" isLoading={isSavingWorker}>
+              Save Changes
+            </Button>
+          </>
+        }
+      >
+        {editWorker && (
+          <form id="edit-worker-form" onSubmit={handleSaveWorker} className="space-y-4">
+            <Input
+              label="Name"
+              required
+              minLength={2}
+              maxLength={120}
+              value={editWorker.name}
+              onChange={(e) => setEditWorker({ ...editWorker, name: e.target.value })}
+            />
+            <Input
+              label="Email"
+              value={editWorker.email}
+              readOnly
+              inputClassName="bg-surface-200 text-foreground-lighter"
+            />
+            <Input
+              label="Phone"
+              value={editWorker.phone}
+              onChange={(e) => setEditWorker({ ...editWorker, phone: e.target.value })}
+              placeholder="+639XXXXXXXXX"
+            />
+            <div>
+              <p className="mb-1 text-sm font-medium text-foreground">Skills</p>
+              {industryGroups.length === 0 ? (
+                <p className="text-sm text-foreground-lighter">
+                  No skills available. Add skills in the Services page first.
+                </p>
+              ) : (
+                <div className="max-h-64 overflow-y-auto space-y-3 rounded-lg border border-border bg-surface-100 p-3">
+                  {industryGroups.map((group) => {
+                    const selectedCount = group.skills.filter((skill) =>
+                      editWorker.skillIds.includes(skill.id),
+                    ).length;
+                    const allSelected = selectedCount === group.skills.length;
+                    return (
+                      <div key={group.name}>
+                        <div className="flex items-center justify-between gap-2 border-b border-border pb-1.5">
+                          <Checkbox
+                            label={group.name}
+                            checked={allSelected}
+                            onCheckedChange={() => toggleIndustry(group.name)}
+                          />
+                          <span className="text-xs text-foreground-lighter">
+                            {selectedCount}/{group.skills.length}
+                          </span>
+                        </div>
+                        <div className="space-y-1.5 pt-1.5">
+                          {group.skills.map((skill) => (
+                            <Checkbox
+                              key={skill.id}
+                              label={skill.name}
+                              className="pl-5"
+                              checked={editWorker.skillIds.includes(skill.id)}
+                              onCheckedChange={() => toggleSkill(skill.id)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="mt-1 text-xs text-foreground-lighter">
+                {editWorker.skillIds.length} selected
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Experience (years)"
+                type="number"
+                min={0}
+                max={100}
+                value={editWorker.experience}
+                onChange={(e) => setEditWorker({ ...editWorker, experience: e.target.value })}
+              />
+              <Input
+                label="Service Area"
+                value={editWorker.serviceArea}
+                onChange={(e) => setEditWorker({ ...editWorker, serviceArea: e.target.value })}
+                placeholder="e.g. Makati, Metro Manila"
+              />
+            </div>
+            <Textarea
+              label="Bio"
+              rows={4}
+              value={editWorker.bio}
+              onChange={(e) => setEditWorker({ ...editWorker, bio: e.target.value })}
+              placeholder="Short professional summary"
+            />
+          </form>
         )}
       </Drawer>
 

@@ -4,7 +4,7 @@ export async function loadWorkers() {
   const { data, error } = await supabase
     .from('worker_profiles')
     .select(
-      'account_id,display_name,bio,experience,service_area,service_origin,service_radius_meters,approval_status,is_available,created_at,accounts!worker_profiles_account_id_fkey!inner(email,mobile,status,role,deleted_at),worker_skills!worker_skills_worker_id_fkey(years,service_categories!worker_skills_category_id_fkey(name)),worker_verifications!worker_verifications_worker_id_fkey(id,status),bookings!bookings_worker_account_id_fkey(count)',
+      'account_id,display_name,bio,experience,service_area,service_origin,service_radius_meters,approval_status,is_available,created_at,accounts!worker_profiles_account_id_fkey!inner(email,mobile,status,role,deleted_at),worker_skills!worker_skills_worker_id_fkey(years,category_id,service_categories!worker_skills_category_id_fkey(name)),worker_verifications!worker_verifications_worker_id_fkey(id,status),bookings!bookings_worker_account_id_fkey(count)',
     )
     .eq('accounts.role', 'WORKER')
     .is('accounts.deleted_at', null)
@@ -56,7 +56,12 @@ export async function loadWorkers() {
       name: identity(row.display_name, 'Worker'),
       email: row.accounts?.email ?? '',
       phone: row.accounts?.mobile ?? '',
+      bio: row.bio ?? '',
       category: row.worker_skills?.[0]?.service_categories?.name ?? '',
+      categoryId: row.worker_skills?.[0]?.category_id ?? null,
+      skillIds: (row.worker_skills ?? [])
+        .map((skill) => skill.category_id)
+        .filter(Boolean),
       rating: ratingByWorker.get(row.account_id)?.toFixed(1) ?? '0.0',
       jobsCompleted: row.bookings?.[0]?.count ?? 0,
       experience: Math.max(...(row.worker_skills ?? []).map((item) => item.years), 0),
@@ -65,7 +70,6 @@ export async function loadWorkers() {
       location: row.service_area ?? '',
       registeredDate: row.created_at ? new Date(row.created_at).toLocaleDateString() : '',
       earnings: walletByWorker.get(row.account_id) ?? 0,
-      availability: row.is_available ? 'Online' : 'Offline',
       verificationStatus: verification?.status ?? row.approval_status,
       verificationId: verification?.id ?? null,
       matchingReady,
@@ -84,18 +88,17 @@ export async function reviewWorker(verificationId, decision, notes) {
   return data;
 }
 
-export async function setWorkerAvailability(id, available) {
-  const { data, error } = await supabase.rpc('admin_set_worker_availability', {
+export async function updateWorker(id, value) {
+  const { data, error } = await supabase.rpc('admin_update_worker', {
     p_worker_id: id,
-    p_available: available,
+    p_display_name: value.name,
+    p_mobile: value.phone || null,
+    p_bio: value.bio || null,
+    p_service_area: value.serviceArea || null,
+    p_category_ids: Array.isArray(value.skillIds) ? value.skillIds : [],
+    p_experience:
+      value.experience != null && value.experience !== '' ? Number(value.experience) : null,
   });
-  if (error) {
-    if (error.message === 'WORKER_NOT_READY') {
-      throw new Error(
-        'This worker needs approval, skills, and a service area before going online.',
-      );
-    }
-    throw error;
-  }
+  if (error) throw error;
   return data;
 }

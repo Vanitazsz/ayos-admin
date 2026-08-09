@@ -1,3 +1,4 @@
 export { setAccountStatus } from '../../../services/accounts';
 export { subscribe } from '../../../services/realtime';
-export { loadWorkers, reviewWorker, setWorkerAvailability } from '../../../services/workers';
+export { loadWorkers, reviewWorker, updateWorker } from '../../../services/workers';
+export { loadCatalog } from '../../../services/catalog';
