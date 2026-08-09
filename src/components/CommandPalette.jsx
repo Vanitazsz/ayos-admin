@@ -10,7 +10,7 @@ import {
   CommandSeparator,
 } from 'cmdk';
 import {
-  LayoutDashboard,
+  Home,
   User,
   Briefcase,
   Calendar,
@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 const navigation = [
-  { group: 'Dashboard', items: [{ title: 'Go to Dashboard', to: '/admin/dashboard', icon: LayoutDashboard }] },
+  { group: 'Dashboard', items: [{ title: 'Go to Dashboard', to: '/admin/dashboard', icon: Home }] },
   {
     group: 'User Management',
     items: [

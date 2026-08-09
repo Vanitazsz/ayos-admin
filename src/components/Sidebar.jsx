@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard,
+  Home,
   Users,
   User,
   Briefcase,
@@ -41,11 +41,12 @@ import {
 
 const ICON_SIZE = 16;
 const ICON_STROKE_WIDTH = 1.5;
+const FOOTER_ICON_SIZE = 14;
 
 const SIDEBAR_BEHAVIOR_KEY = 'ayos-sidebar-behavior';
 
 const navigationGroups = [
-  { title: 'Dashboard', isLink: true, to: '/admin/dashboard', icon: LayoutDashboard },
+  { title: 'Dashboard', isLink: true, to: '/admin/dashboard', icon: Home },
   {
     title: 'User Management',
     icon: Users,
@@ -194,7 +195,7 @@ const NavGroup = ({ group, effectiveCollapsed, setIsMobileOpen }) => {
           isExpanded && !effectiveCollapsed ? 'mt-1 max-h-96 opacity-100' : 'max-h-0 opacity-0'
         )}
       >
-        <div className="space-y-0.5 pb-1 pl-4 pr-2">
+        <div className="space-y-0.5 pb-1 pl-4 pr-0">
           {(group.items || []).map((item) => {
             const isItemActive = location.pathname.startsWith(item.to);
             const ItemIcon = item.icon;
@@ -206,7 +207,6 @@ const NavGroup = ({ group, effectiveCollapsed, setIsMobileOpen }) => {
                 data-active={isItemActive}
                 className={cn(
                   itemBase,
-                  'py-1.5',
                   isItemActive ? 'font-medium' : ''
                 )}
               >
@@ -304,7 +304,7 @@ const Sidebar = () => {
 
         <nav
           aria-label="Administrator navigation"
-          className="flex-1 overflow-y-auto overflow-x-hidden pb-2 pt-1 custom-scrollbar"
+          className="flex-1 overflow-y-auto overflow-x-hidden pb-2 pt-2 custom-scrollbar"
         >
           {navigationGroups.map((group, index) => (
             <React.Fragment key={group.title}>
@@ -320,23 +320,22 @@ const Sidebar = () => {
           ))}
         </nav>
 
-        <div className="shrink-0 space-y-0.5 border-t border-sidebar-border p-2">
+        <div className="shrink-0 p-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 aria-label="Sidebar control"
                 className={cn(
-                  'flex w-full items-center gap-2 rounded-md py-2 px-1.5 text-left text-sm text-foreground-lighter transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground focus-ring',
-                  effectiveCollapsed && !isMobileOpen ? 'justify-center' : ''
+                  'flex items-center gap-2 rounded-md py-2 px-1.5 text-left text-sm text-foreground-lighter transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+                  effectiveCollapsed && !isMobileOpen ? 'w-full justify-center' : 'w-auto'
                 )}
                 title={effectiveCollapsed && !isMobileOpen ? 'Sidebar control' : undefined}
               >
                 <PanelLeftDashed
-                  size={ICON_SIZE}
+                  size={FOOTER_ICON_SIZE}
                   strokeWidth={ICON_STROKE_WIDTH}
                   className="shrink-0 text-foreground-muted"
                 />
-                {(!effectiveCollapsed || isMobileOpen) && <span>Sidebar</span>}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" className="w-40">
