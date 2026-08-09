@@ -6,7 +6,6 @@ import {
   HardHat,
   CheckCircle,
   Trash2,
-  RefreshCcw,
   Headset,
   UserPlus,
   Bell,
@@ -54,24 +53,29 @@ import {
 
 const swatch = (color) => (color ? { background: color } : undefined);
 
-const RevenueTooltip = ({ active, payload }) => {
+const RevenueTooltip = ({ active, payload, granularity = 'month' }) => {
   if (!active || !payload?.length) return null;
   const datum = payload[0].payload;
+  const dateOptions = {
+    day: { month: 'short', day: 'numeric', year: 'numeric' },
+    month: { month: 'long', year: 'numeric' },
+    year: { year: 'numeric' },
+  };
   return (
     <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-md">
       <p className="mb-1 font-medium text-foreground">
-        {datum.month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+        {datum.month.toLocaleDateString('en-US', dateOptions[granularity])}
       </p>
       <div className="space-y-0.5">
         <div className="flex items-center gap-2">
           <span className="inline-block size-2 shrink-0 rounded-sm" style={swatch('var(--chart-1)')} />
-          <span className="text-foreground-lighter">Revenue:</span>
-          <span className="font-medium text-foreground">{money(datum.revenue)}</span>
+          <span className="text-foreground-lighter">Worker payout:</span>
+          <span className="font-medium text-foreground">{money(datum.workerPayout)}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-block size-2 shrink-0 rounded-sm" style={swatch('var(--foreground-muted)')} />
-          <span className="text-foreground-lighter">Profit:</span>
-          <span className="font-medium text-foreground">{money(datum.profit)}</span>
+          <span className="inline-block size-2 shrink-0 rounded-sm" style={swatch('hsl(var(--chart-2))')} />
+          <span className="text-foreground-lighter">Platform commission:</span>
+          <span className="font-medium text-foreground">{money(datum.commission)}</span>
         </div>
       </div>
     </div>
@@ -95,20 +99,29 @@ export function DashboardView({ model }) {
     ...day,
     total: (day.completed ?? 0) + (day.pending ?? 0) + (day.cancelled ?? 0),
   }));
-  const periodTotal = bookingsTotal.reduce((sum, month) => sum + month.total, 0);
+  const periodPending = bookingsTotal.reduce((sum, day) => sum + (day.pending ?? 0), 0);
+  const periodCancelled = bookingsTotal.reduce((sum, day) => sum + (day.cancelled ?? 0), 0);
   const isBookingsEmpty =
     bookingsTotal.length === 0 || bookingsTotal.every((month) => month.total === 0);
-  const [revenueRange, setRevenueRange] = useState(12);
-  const revenueWindowRaw = revenueData.slice(-revenueRange);
-  const previousRevenueWindow = revenueData.slice(-2 * revenueRange, -revenueRange);
+  const [revenueGranularity, setRevenueGranularity] = useState('month');
+  const revenueWindows = {
+    day: { window: 90, label: '90-day' },
+    month: { window: 12, label: '12-month' },
+    year: { window: 5, label: '5-year' },
+  };
+  const { window: revenueWindow, label: revenueWindowLabel } =
+    revenueWindows[revenueGranularity];
+  const activeRevenueSeries = revenueData[revenueGranularity] ?? [];
+  const revenueWindowRaw = activeRevenueSeries.slice(-revenueWindow);
+  const previousRevenueWindow = activeRevenueSeries.slice(-2 * revenueWindow, -revenueWindow);
   const sumRevenue = (series) => series.reduce((total, point) => total + point.revenue, 0);
   const revenueCurrent = sumRevenue(revenueWindowRaw);
   const previousRevenue = sumRevenue(previousRevenueWindow);
   const revenueDelta =
     previousRevenue > 0 ? ((revenueCurrent - previousRevenue) / previousRevenue) * 100 : null;
   const isRevenueEmpty =
-    revenueData.length === 0 ||
-    revenueData.every((point) => point.revenue === 0 && point.profit === 0);
+    activeRevenueSeries.length === 0 ||
+    activeRevenueSeries.every((point) => point.revenue === 0 && point.profit === 0);
   const spansMultipleYears =
     new Set(revenueWindowRaw.map((point) => point.month.getFullYear())).size > 1;
   const revenueChart = revenueWindowRaw.map((point) => ({
@@ -147,15 +160,16 @@ export function DashboardView({ model }) {
       ) : null}
 
       {/* Stat Cards Grid */}
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         <StatCard
-          title="Total Revenue"
-          value={money(metrics.successful_payment_total ?? 0)}
+          title="Total Commission Revenue"
+          value={money(metrics.commission_total ?? 0)}
           icon={DollarSign}
           trend="up"
           trendValue="Live"
-          subtitle="successful payments"
+          subtitle="platform commission"
           isLoading={isLoading}
+          to="/admin/payments"
         />
         <StatCard
           title="Active Bookings"
@@ -165,6 +179,7 @@ export function DashboardView({ model }) {
           trendValue="Live"
           subtitle="current"
           isLoading={isLoading}
+          to="/admin/bookings"
         />
         <StatCard
           title="Total Users"
@@ -174,6 +189,7 @@ export function DashboardView({ model }) {
           trendValue="Live"
           subtitle="current"
           isLoading={isLoading}
+          to="/admin/users"
         />
         <StatCard
           title="Verified Workers"
@@ -183,15 +199,7 @@ export function DashboardView({ model }) {
           trendValue="Live"
           subtitle="approved"
           isLoading={isLoading}
-        />
-        <StatCard
-          title="Queued AI Jobs"
-          value={metrics.queued_ai_jobs ?? 0}
-          icon={RefreshCcw}
-          trend="up"
-          trendValue="Live"
-          subtitle="queued/processing"
-          isLoading={isLoading}
+          to="/admin/workers"
         />
         <StatCard
           title="Support Tickets"
@@ -201,6 +209,7 @@ export function DashboardView({ model }) {
           trendValue="Live"
           subtitle="open"
           isLoading={isLoading}
+          to="/admin/support"
         />
       </div>
 
@@ -219,22 +228,26 @@ export function DashboardView({ model }) {
             <div
               className="flex shrink-0 items-center gap-1"
               role="group"
-              aria-label="Revenue range"
+              aria-label="Revenue granularity"
             >
-              {[3, 6, 12].map((months) => (
+              {[
+                { key: 'day', label: 'Daily' },
+                { key: 'month', label: 'Monthly' },
+                { key: 'year', label: 'Yearly' },
+              ].map(({ key, label }) => (
                 <button
-                  key={months}
+                  key={key}
                   type="button"
-                  onClick={() => setRevenueRange(months)}
-                  aria-pressed={revenueRange === months}
+                  onClick={() => setRevenueGranularity(key)}
+                  aria-pressed={revenueGranularity === key}
                   className={cn(
                     'rounded-md px-2 py-1 text-xs font-medium transition-colors focus-ring',
-                    revenueRange === months
+                    revenueGranularity === key
                       ? 'bg-foreground text-foreground-contrast'
                       : 'text-foreground-lighter hover:text-foreground',
                   )}
                 >
-                  {months}M
+                  {label}
                 </button>
               ))}
             </div>
@@ -275,57 +288,89 @@ export function DashboardView({ model }) {
                   )}
                 </div>
                 <p className="px-3 pt-1 text-xs text-foreground-lighter">
-                  vs previous {revenueRange}-month period
+                  vs previous {revenueWindowLabel} period
                 </p>
-                <div className="h-48 w-full px-3 py-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={revenueChart} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
-                      <CartesianGrid vertical={false} stroke={chartGridStroke} />
-                      <XAxis
-                        dataKey="axisLabel"
-                        axisLine={false}
-                        tickLine={false}
-                        tickMargin={8}
-                        interval="preserveStartEnd"
-                        tick={chartTick}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        width={yAxisWidth}
-                        tickMargin={8}
-                        tick={chartTick}
-                        tickFormatter={formatMoneyTick}
-                      />
-                      <Tooltip cursor={chartCursor} content={<RevenueTooltip />} />
-                      <Bar
-                        dataKey="revenue"
-                        name="Revenue"
-                        fill="var(--chart-1)"
-                        radius={[2, 2, 1, 1]}
-                        maxBarSize={48}
-                        animationDuration={300}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <div className="h-48 w-full overflow-x-auto px-3 py-2">
+                  <div
+                    className="h-full"
+                    style={{
+                      width: `${Math.max(revenueChart.length * 36, 100)}%`,
+                      minWidth: '100%',
+                    }}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={revenueChart} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+                        <CartesianGrid vertical={false} stroke={chartGridStroke} />
+                        <XAxis
+                          dataKey="axisLabel"
+                          axisLine={false}
+                          tickLine={false}
+                          tickMargin={8}
+                          interval="preserveStartEnd"
+                          minTickGap={12}
+                          tick={chartTick}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          width={yAxisWidth}
+                          tickMargin={8}
+                          tick={chartTick}
+                          tickFormatter={formatMoneyTick}
+                        />
+                        <Tooltip cursor={chartCursor} content={<RevenueTooltip granularity={revenueGranularity} />} />
+                        <Bar
+                          dataKey="workerPayout"
+                          name="Worker payout"
+                          stackId="rev"
+                          fill="var(--chart-1)"
+                          radius={[2, 2, 1, 1]}
+                          maxBarSize={48}
+                          animationDuration={300}
+                        />
+                        <Bar
+                          dataKey="commission"
+                          name="Platform commission"
+                          stackId="rev"
+                          fill="hsl(var(--chart-2))"
+                          radius={[0, 0, 1, 1]}
+                          maxBarSize={48}
+                          animationDuration={300}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </>
             )}
           </div>
         </div>
 
-        {/* Monthly Bookings */}
-        <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-surface-100 shadow-sm lg:col-span-3">
+        {/* Daily Bookings */}
+        <div
+          data-testid="bookings-chart"
+          className="flex flex-col overflow-hidden rounded-lg border border-border bg-surface-100 shadow-sm lg:col-span-3"
+        >
           <div className="flex h-8 shrink-0 items-center justify-between gap-2 px-3">
             <div className="flex min-w-0 items-center gap-2">
               <Calendar className="size-4 shrink-0 text-foreground-muted" strokeWidth={1.5} />
-              <h3 className="heading-meta truncate">Monthly Bookings</h3>
+              <h3 className="heading-meta truncate">Daily Bookings</h3>
             </div>
-            <div className="flex shrink-0 items-baseline gap-1.5">
+            <div className="flex shrink-0 items-center gap-3">
               <span className="text-[11px] font-mono uppercase tracking-wide text-foreground-light">
-                Last 12 mo
+                Last 14 d
               </span>
-              <span className="text-sm font-medium tabular-nums text-foreground">{periodTotal}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block size-2 rounded-sm" style={swatch('var(--warning)')} />
+                <span className="text-sm font-medium tabular-nums text-foreground">{periodPending}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="inline-block size-2 rounded-sm"
+                  style={swatch('var(--destructive)')}
+                />
+                <span className="text-sm font-medium tabular-nums text-foreground">{periodCancelled}</span>
+              </div>
             </div>
           </div>
           <div className="flex grow flex-col border-t" data-testid="dashboard-chart">
@@ -343,12 +388,14 @@ export function DashboardView({ model }) {
               <div className="grow w-full px-3 py-2">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={bookingsTotal} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+                    <YAxis hide domain={[0, 'dataMax']} />
                     <XAxis
                       dataKey="name"
                       axisLine={false}
                       tickLine={false}
                       tickMargin={8}
                       interval="preserveStartEnd"
+                      minTickGap={18}
                       tick={chartTick}
                     />
                     <Tooltip cursor={chartCursor} content={<ChartTooltip />} />
