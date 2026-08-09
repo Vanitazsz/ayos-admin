@@ -15,6 +15,8 @@ import Modal from '../../../components/ui/Modal';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import Pagination from '../../../components/ui/Pagination';
 import StatCard from '../../../components/ui/StatCard';
+import Input from '../../../components/ui/Input';
+import Select from '../../../components/ui/Select';
 import { moneyFromMinor } from '../../../services/adminShared';
 import {
   Table,
@@ -47,11 +49,15 @@ export function ServicesView({ model }) {
     confirm,
     closeConfirm,
     industries,
-    industriesData,
     filteredSkills,
     totalPages,
     paginatedSkills,
     stats,
+    industrySearch,
+    setIndustrySearch,
+    filterIndustryStatus,
+    setFilterIndustryStatus,
+    filteredIndustries,
     handleOpenAddSkillModal,
     handleOpenEditSkillModal,
     handleDeleteSkill,
@@ -108,24 +114,19 @@ export function ServicesView({ model }) {
         <>
           {/* Filters and Search */}
           <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="relative w-full sm:w-96">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={18} className="text-foreground-muted" />
-              </div>
-              <input
-                type="text"
+            <div className="w-full sm:w-96">
+              <Input
+                icon={Search}
                 aria-label="Search skills by name or ID..."
                 placeholder="Search skills by name or ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus:ring-ring focus:border-brand-500 text-sm"
               />
             </div>
-            <div className="flex w-full sm:w-auto items-center gap-2">
-              <Filter size={18} className="text-foreground-lighter" />
-              <select
+            <div className="w-full sm:w-56">
+              <Select
+                icon={Filter}
                 aria-label="Filter skills by industry"
-                className="border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500"
                 value={filterIndustry}
                 onChange={(e) => setFilterIndustry(e.target.value)}
               >
@@ -134,7 +135,7 @@ export function ServicesView({ model }) {
                     {industry}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
 
@@ -249,22 +250,49 @@ export function ServicesView({ model }) {
           )}
         </>
       ) : (
-        <div className="bg-card shadow-sm border border-border overflow-x-auto rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead scope="col">Industry</TableHead>
-                <TableHead scope="col">Description</TableHead>
-                <TableHead scope="col">Total Skills</TableHead>
-                <TableHead scope="col">Status</TableHead>
-                <TableHead scope="col" className="text-right">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {industriesData.length > 0 ? (
-                industriesData.map((industry) => (
+        <>
+          {/* Filters and Search */}
+          <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="w-full sm:w-96">
+              <Input
+                icon={Search}
+                aria-label="Search industries by name or ID..."
+                placeholder="Search industries by name or ID..."
+                value={industrySearch}
+                onChange={(e) => setIndustrySearch(e.target.value)}
+              />
+            </div>
+            <div className="w-full sm:w-48">
+              <Select
+                icon={Filter}
+                aria-label="Filter industries by status"
+                value={filterIndustryStatus}
+                onChange={(e) => setFilterIndustryStatus(e.target.value)}
+              >
+                <option value="All">All Statuses</option>
+                <option value="Enabled">Enabled</option>
+                <option value="Disabled">Disabled</option>
+              </Select>
+            </div>
+          </div>
+
+          {/* Industries Table */}
+          <div className="bg-card shadow-sm border border-border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead scope="col">Industry</TableHead>
+                  <TableHead scope="col">Description</TableHead>
+                  <TableHead scope="col">Total Skills</TableHead>
+                  <TableHead scope="col">Status</TableHead>
+                  <TableHead scope="col" className="text-right">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredIndustries.length > 0 ? (
+                  filteredIndustries.map((industry) => (
                   <TableRow key={industry.id}>
                     <TableCell className="whitespace-nowrap">
                       <div className="flex items-center">
@@ -333,7 +361,7 @@ export function ServicesView({ model }) {
                       <Box size={48} className="text-foreground-muted mb-4" />
                       <h3 className="text-lg font-medium text-foreground">No industries found</h3>
                       <p className="text-foreground-lighter mt-1">
-                        Add a new industry to get started.
+                        Try adjusting your search or filters.
                       </p>
                     </div>
                   </TableCell>
@@ -342,6 +370,7 @@ export function ServicesView({ model }) {
             </TableBody>
           </Table>
         </div>
+        </>
       )}
 
       {/* Add/Edit Skill Modal */}

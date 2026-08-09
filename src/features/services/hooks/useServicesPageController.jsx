@@ -14,7 +14,9 @@ export function useServicesPageController() {
   const [skills, setSkills] = useState([]);
   const [industriesData, setIndustriesData] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterIndustry, setFilterIndustry] = useState('All');
+  const [filterIndustry, setFilterIndustry] = useState('All Statuses');
+  const [industrySearch, setIndustrySearch] = useState('');
+  const [filterIndustryStatus, setFilterIndustryStatus] = useState('All');
   const [activeTab, setActiveTab] = useState('skills');
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [isIndustryModalOpen, setIsIndustryModalOpen] = useState(false);
@@ -55,7 +57,7 @@ export function useServicesPageController() {
   }, [refresh]);
 
   const industries = useMemo(
-    () => ['All', ...industriesData.map((item) => item.name)],
+    () => ['All Statuses', ...industriesData.map((item) => item.name)],
     [industriesData],
   );
 
@@ -66,7 +68,7 @@ export function useServicesPageController() {
           skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           skill.id.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesIndustry =
-          filterIndustry === 'All' || skill.industry === filterIndustry;
+          filterIndustry === 'All Statuses' || skill.industry === filterIndustry;
         return matchesSearch && matchesIndustry;
       }),
     [skills, searchTerm, filterIndustry],
@@ -78,6 +80,23 @@ export function useServicesPageController() {
     totalPages,
     pageData: paginatedSkills,
   } = usePagination(filteredSkills, 8);
+
+  const filteredIndustries = useMemo(
+    () =>
+      industriesData.filter((industry) => {
+        const term = industrySearch.trim().toLowerCase();
+        const matchesSearch =
+          !term ||
+          industry.name.toLowerCase().includes(term) ||
+          industry.id.toLowerCase().includes(term) ||
+          industry.description.toLowerCase().includes(term);
+        const matchesStatus =
+          filterIndustryStatus === 'All' ||
+          industry.status === filterIndustryStatus;
+        return matchesSearch && matchesStatus;
+      }),
+    [industriesData, industrySearch, filterIndustryStatus],
+  );
 
   const stats = useMemo(
     () => [
@@ -264,6 +283,11 @@ export function useServicesPageController() {
       totalPages,
       paginatedSkills,
       stats,
+      industrySearch,
+      setIndustrySearch,
+      filterIndustryStatus,
+      setFilterIndustryStatus,
+      filteredIndustries,
       handleOpenAddSkillModal,
       handleOpenEditSkillModal,
       handleDeleteSkill,
@@ -278,6 +302,8 @@ export function useServicesPageController() {
     [
       searchTerm,
       filterIndustry,
+      industrySearch,
+      filterIndustryStatus,
       activeTab,
       currentPage,
       isSkillModalOpen,
@@ -289,6 +315,7 @@ export function useServicesPageController() {
       industries,
       industriesData,
       filteredSkills,
+      filteredIndustries,
       totalPages,
       paginatedSkills,
       stats,
@@ -305,6 +332,8 @@ export function useServicesPageController() {
       closeConfirm,
       setSearchTerm,
       setFilterIndustry,
+      setIndustrySearch,
+      setFilterIndustryStatus,
       setActiveTab,
       setCurrentPage,
       setIsSkillModalOpen,
