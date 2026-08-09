@@ -52,7 +52,7 @@ export function useDashboardPageController() {
   useEffect(() => {
     void refreshAll();
     const stops = [
-      subscribe('bookings', () => schedule(refreshLive)),
+      subscribe('bookings', () => schedule(refreshLive), { debounce: false }),
     ];
     return () => stops.forEach((stop) => stop());
   }, [refreshAll, refreshLive, schedule]);

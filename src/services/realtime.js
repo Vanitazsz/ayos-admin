@@ -1,13 +1,40 @@
 import { supabase } from './adminShared';
 
+export const withCooldown = (fn, ms = 1500) => {
+  let lastRun = 0;
+  let timer = null;
+  return (...args) => {
+    const remaining = lastRun + ms - Date.now();
+    if (remaining <= 0) {
+      lastRun = Date.now();
+      fn(...args);
+    } else if (!timer) {
+      timer = setTimeout(() => {
+        timer = null;
+        lastRun = Date.now();
+        fn(...args);
+      }, remaining);
+    }
+  };
+};
+
 export const subscribe = (table, refresh, options = {}) => {
-  const { event = '*', filter, onError, onSystem, debug = false } = options;
+  const {
+    event = '*',
+    filter,
+    onError,
+    onSystem,
+    debug = false,
+    debounce = true,
+    debounceMs = 1500,
+  } = options;
   const channelName = `admin:${table}:${crypto.randomUUID()}`;
+  const handler = debounce ? withCooldown(refresh, debounceMs) : refresh;
 
   const channel = supabase.channel(channelName).on(
     'postgres_changes',
     { event, schema: 'public', table, ...(filter ? { filter } : {}) },
-    refresh,
+    handler,
   );
 
   if (typeof onSystem === 'function') {
