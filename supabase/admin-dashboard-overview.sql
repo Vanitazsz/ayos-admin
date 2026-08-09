@@ -5,7 +5,7 @@
 -- Returns a single JSONB payload the Dashboard page maps into:
 --   metrics              - the admin_dashboard_metrics() row
 --   revenue              - [{ period, revenue, profit }]     (admin_revenue_series)
---   bookings             - [{ month, status, booking_count }]  (admin_booking_series, 12mo)
+--   bookings             - [{ day, status, booking_count }]  (daily, zero-filled, last 14 days)
 --   activities           - [{ id, action, entity_type, created_at }]  (audit_logs, 5)
 --   pending_workers      - [{ id, name, email, category, registeredDate, verificationId }]
 --   recent_users         - [{ id, name, registeredAt }]
@@ -36,6 +36,9 @@ begin
       'successful_payment_total',
         coalesce((select sum(service_amount) from payments
                   where status = 'SUCCESSFUL' and created_at is not null), 0),
+      'commission_total',
+        coalesce((select sum(commission_amount) from payments
+                  where status = 'SUCCESSFUL' and created_at is not null), 0),
       'active_bookings',
         (select count(*) from bookings where status not in ('COMPLETED', 'CANCELLED')),
       'accounts',
@@ -61,18 +64,23 @@ begin
     ),
     'bookings', (
       select coalesce(jsonb_agg(jsonb_build_object(
-        'month', month, 'status', status, 'booking_count', booking_count)), '[]'::jsonb)
+        'day', day, 'status', status, 'booking_count', booking_count)), '[]'::jsonb)
       from (
-        select to_char(date_trunc('month', created_at), 'Mon') as month,
-               date_trunc('month', created_at) as month_dt,
-               case when status = 'COMPLETED' then 'completed'
-                    when status = 'CANCELLED' then 'cancelled'
-                    else 'pending' end as status,
-               count(*) as booking_count
-        from bookings
-        where created_at >= now() - interval '12 months'
-        group by 1, 2, 3
-        order by 2
+        select to_char(d.day, 'Mon DD') as day,
+               s.status as status,
+               count(b.id) as booking_count
+        from generate_series(
+               date_trunc('day', now()) - interval '13 days',
+               date_trunc('day', now()), interval '1 day'
+             ) d(day)
+        cross join (values ('completed'), ('pending'), ('cancelled')) s(status)
+        left join bookings b
+          on date_trunc('day', b.created_at) = d.day
+         and case when b.status = 'COMPLETED' then 'completed'
+                  when b.status = 'CANCELLED' then 'cancelled'
+                  else 'pending' end = s.status
+        group by d.day, s.status
+        order by d.day, s.status
       ) b
     ),
     'activities', (
