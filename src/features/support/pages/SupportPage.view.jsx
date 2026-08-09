@@ -31,7 +31,7 @@ export function SupportView({ model }) {
     reopenTicket,
   } = model;
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Support Center</h1>
@@ -54,7 +54,7 @@ export function SupportView({ model }) {
         ))}
       </div>
 
-      <div className="bg-card rounded-xl shadow-sm border border-border mb-8 overflow-x-auto">
+      <div className="bg-card rounded-xl shadow-sm border border-border mb-8">
         <div className="p-4 border-b border-border">
           <h2 className="text-lg font-semibold text-foreground">Safety Reports & Disputes</h2>
           <p className="text-sm text-foreground-lighter">Read-only visibility into booking safety cases.</p>
@@ -120,7 +120,7 @@ export function SupportView({ model }) {
         <div className="flex w-full sm:w-auto items-center gap-2">
           <Filter size={18} className="text-foreground-lighter" />
           <select
-            className="border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500"
+            className="w-full flex-1 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -132,7 +132,7 @@ export function SupportView({ model }) {
         </div>
       </div>
 
-      <div className="bg-card shadow-sm border border-border overflow-x-auto">
+      <div className="bg-card shadow-sm border border-border">
         <Table>
           <TableHeader>
             <TableRow>

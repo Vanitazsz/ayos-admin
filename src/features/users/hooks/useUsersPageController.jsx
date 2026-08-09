@@ -32,7 +32,7 @@ export function useUsersPageController() {
     [],
   );
   const [selectedUser, setSelectedUser] = useState(null);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSavingUser, setIsSavingUser] = useState(false);
@@ -158,7 +158,7 @@ export function useUsersPageController() {
 
   const handleViewProfile = useCallback((user) => {
     setSelectedUser(user);
-    setIsProfileModalOpen(true);
+    setIsDrawerOpen(true);
     setActionMenuOpenId(null);
   }, []);
 
@@ -254,8 +254,8 @@ export function useUsersPageController() {
       confirm,
       closeConfirm,
       selectedUser,
-      isProfileModalOpen,
-      setIsProfileModalOpen,
+      isDrawerOpen,
+      setIsDrawerOpen,
       editUser,
       setEditUser,
       isEditModalOpen,
@@ -294,7 +294,7 @@ export function useUsersPageController() {
       error,
       confirm,
       selectedUser,
-      isProfileModalOpen,
+      isDrawerOpen,
       editUser,
       isEditModalOpen,
       isSavingUser,
@@ -318,7 +318,7 @@ export function useUsersPageController() {
       setFilterStatus,
       setSelectedVerification,
       setReviewNotes,
-      setIsProfileModalOpen,
+      setIsDrawerOpen,
       setEditUser,
       setIsEditModalOpen,
       setDeleteTarget,

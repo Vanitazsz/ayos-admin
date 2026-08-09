@@ -41,7 +41,7 @@ export function ReportsView({ model }) {
     handleGenerate,
   } = model;
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Reports Center</h1>
@@ -167,10 +167,10 @@ export function ReportsView({ model }) {
             className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus:ring-ring focus:border-brand-500 text-sm"
           />
         </div>
-        <div className="flex w-full sm:w-auto items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <Filter size={18} className="text-foreground-lighter" />
           <select
-            className="border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500"
+            className="w-full flex-1 min-w-0 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"
             value={reportType}
             onChange={(e) => setReportType(e.target.value)}
           >
@@ -182,7 +182,7 @@ export function ReportsView({ model }) {
             <option value="Review Sentiment">Review Sentiment</option>
           </select>
           <select
-            className="border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 ml-2"
+            className="w-full flex-1 min-w-0 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:ml-2 sm:w-auto sm:flex-none"
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
           >
@@ -195,7 +195,7 @@ export function ReportsView({ model }) {
       </div>
 
       {/* Table */}
-      <div className="bg-card shadow-sm border border-border overflow-x-auto">
+      <div className="bg-card shadow-sm border border-border">
         <Table>
           <TableHeader>
             <TableRow>

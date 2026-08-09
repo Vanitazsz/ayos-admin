@@ -64,7 +64,7 @@ export function BookingsView({ model }) {
     submitAction,
   } = model;
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Bookings Management</h1>
@@ -118,7 +118,7 @@ export function BookingsView({ model }) {
       </div>
 
       {/* Table */}
-      <div className="bg-card shadow-sm border border-border overflow-x-auto">
+      <div className="bg-card shadow-sm border border-border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -248,6 +248,25 @@ export function BookingsView({ model }) {
         onClose={() => setIsDrawerOpen(false)}
         title={`Booking ${selectedBooking?.id}`}
         width="w-[500px]"
+        footer={
+          selectedBooking &&
+          !['Completed', 'Cancelled'].includes(selectedBooking.status) ? (
+            <>
+              <button
+                onClick={() => openAction('reassign', selectedBooking)}
+                className="px-4 py-2 border border-border-strong rounded-lg text-sm font-medium text-foreground-light"
+              >
+                Reassign Worker
+              </button>
+              <button
+                onClick={() => openAction('cancel', selectedBooking)}
+                className="px-4 py-2 rounded-lg bg-destructive text-sm font-medium text-white"
+              >
+                Cancel Booking
+              </button>
+            </>
+          ) : null
+        }
       >
         {selectedBooking && (
           <div className="space-y-6">
@@ -315,7 +334,7 @@ export function BookingsView({ model }) {
             </div>
 
             {/* Booking event timeline */}
-            <div className="border-t border-border pt-6 pb-20">
+            <div className="border-t border-border pt-6">
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-6">
                 Booking Timeline
               </h4>
@@ -350,26 +369,6 @@ export function BookingsView({ model }) {
                 )}
               </div>
             )}
-
-            {/* Fixed footer in drawer */}
-            <div className="fixed bottom-0 right-0 w-[500px] bg-card border-t border-border p-4 flex justify-end space-x-3 shadow-lg">
-              {!['Completed', 'Cancelled'].includes(selectedBooking.status) && (
-                <>
-                  <button
-                    onClick={() => openAction('reassign', selectedBooking)}
-                    className="px-4 py-2 border border-border-strong rounded-lg text-sm font-medium text-foreground-light"
-                  >
-                    Reassign Worker
-                  </button>
-                  <button
-                    onClick={() => openAction('cancel', selectedBooking)}
-                    className="px-4 py-2 rounded-lg bg-destructive text-sm font-medium text-white"
-                  >
-                    Cancel Booking
-                  </button>
-                </>
-              )}
-            </div>
           </div>
         )}
       </Drawer>

@@ -44,7 +44,7 @@ export function LoginView({ model }) {
       <div className="flex flex-1 h-full">
         {/* Left Column - Sign In Form */}
         <main className="flex flex-1 shrink-0 flex-col items-center px-5 pt-16 pb-8 border-r border-border shadow-lg bg-card">
-          <div className="flex-1 flex w-[330px] sm:w-[384px] flex-col justify-center">
+          <div className="flex-1 flex w-full max-w-[384px] flex-col justify-center">
             <div className="mb-10">
               <h1 className="font-display mt-8 mb-2 text-3xl font-bold tracking-tight text-foreground">
                 Welcome Back

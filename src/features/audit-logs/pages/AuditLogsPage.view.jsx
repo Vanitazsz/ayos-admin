@@ -25,7 +25,7 @@ export function AuditLogsView({ model }) {
     stats,
   } = model;
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Security Audit Logs</h1>
@@ -78,7 +78,7 @@ export function AuditLogsView({ model }) {
         <div className="flex w-full sm:w-auto items-center gap-2">
           <Filter size={18} className="text-foreground-lighter" />
           <select
-            className="border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500"
+            className="w-full flex-1 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"
             value={filterModule}
             onChange={(e) => setFilterModule(e.target.value)}
           >
@@ -91,7 +91,7 @@ export function AuditLogsView({ model }) {
         </div>
       </div>
 
-      <div className="bg-card shadow-sm border border-border overflow-x-auto">
+      <div className="bg-card shadow-sm border border-border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -99,8 +99,8 @@ export function AuditLogsView({ model }) {
               <TableHead scope="col">Admin</TableHead>
               <TableHead scope="col">Module</TableHead>
               <TableHead scope="col">Action & Target</TableHead>
-              <TableHead scope="col">IP Address</TableHead>
-              <TableHead scope="col">Device</TableHead>
+              <TableHead scope="col" className="hidden lg:table-cell">IP Address</TableHead>
+              <TableHead scope="col" className="hidden lg:table-cell">Device</TableHead>
               <TableHead scope="col" className="text-right">Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -119,12 +119,12 @@ export function AuditLogsView({ model }) {
                     <div className="font-medium text-foreground">{log.action}</div>
                     <div className="text-xs text-foreground-lighter mt-1">Target: {log.target}</div>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell className="hidden lg:table-cell whitespace-nowrap">
                     <div className="flex items-center text-xs text-foreground-lighter">
                       <Globe size={12} className="mr-1" /> {log.ip}
                     </div>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell className="hidden lg:table-cell whitespace-nowrap">
                     <div className="flex items-center text-foreground-light text-xs">
                       {log.isMobile ? (
                         <Smartphone size={14} className="mr-2 text-foreground-muted" />

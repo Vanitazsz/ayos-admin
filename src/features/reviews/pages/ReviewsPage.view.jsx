@@ -49,7 +49,7 @@ export function ReviewsView({ model }) {
     renderStars,
   } = model;
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Reviews & Moderation</h1>
@@ -91,7 +91,7 @@ export function ReviewsView({ model }) {
         <div className="flex w-full sm:w-auto items-center gap-2">
           <Filter size={18} className="text-foreground-lighter" />
           <select
-            className="border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500"
+            className="w-full flex-1 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"
             value={filterRating}
             onChange={(e) => setFilterRating(e.target.value)}
           >
@@ -106,7 +106,7 @@ export function ReviewsView({ model }) {
       </div>
 
       {/* Reviews Table/List */}
-      <div className="bg-card shadow-sm border border-border overflow-x-auto">
+      <div className="bg-card shadow-sm border border-border">
         <Table>
           <TableHeader>
             <TableRow>

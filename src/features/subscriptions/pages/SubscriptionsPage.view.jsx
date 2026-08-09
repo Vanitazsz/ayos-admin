@@ -26,7 +26,7 @@ export function SubscriptionsView({ model }) {
     cancel,
   } = model;
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Recommendation Subscriptions</h1>
@@ -108,7 +108,7 @@ export function SubscriptionsView({ model }) {
           ))}
         </div>
       </section>
-      <section className="overflow-x-auto rounded-xl border bg-card">
+      <section className="rounded-xl border bg-card">
         <div className="border-b p-4">
           <h2 className="font-semibold">Subscriptions</h2>
         </div>

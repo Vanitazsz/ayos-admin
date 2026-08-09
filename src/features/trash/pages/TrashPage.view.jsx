@@ -26,7 +26,7 @@ export function TrashView({ model }) {
     closeConfirm,
   } = model;
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Trash & Recovery</h1>
@@ -66,7 +66,7 @@ export function TrashView({ model }) {
         </div>
       )}
 
-      <div className="bg-card rounded-xl shadow-sm border border-border overflow-x-auto mb-6">
+      <div className="bg-card rounded-xl shadow-sm border border-border mb-6">
         <div className="flex border-b border-border overflow-x-auto">
           {tabs.map((tab) => (
             <button

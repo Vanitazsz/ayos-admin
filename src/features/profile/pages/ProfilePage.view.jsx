@@ -95,7 +95,7 @@ export function ProfileView({ model }) {
   } = model;
   if (!profile) {
     return (
-      <div className="p-6 max-w-5xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-5xl mx-auto">
         <h1 className="text-2xl font-bold text-foreground">My Profile</h1>
         <p className={`mt-4 ${loadError ? 'text-destructive' : 'text-foreground-lighter'}`}>
           {loadError || 'Loading profile…'}
@@ -219,7 +219,7 @@ export function ProfileView({ model }) {
               )}
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {isEditing ? (
                 <form onSubmit={handleSave} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -341,16 +341,16 @@ export function ProfileView({ model }) {
               </p>
             </div>
             <div className="divide-y divide-border">
-              <div className="p-6 flex justify-between items-center">
-                <div className="flex items-center">
+              <div className="p-6 flex justify-between items-center gap-4">
+                <div className="flex min-w-0 items-center">
                   <div className="h-10 w-10 rounded-full bg-brand-500/10 flex items-center justify-center mr-4">
                     <Monitor size={20} className="text-brand-600" />
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-foreground truncate">
                       {deviceLabel(currentAgent) || 'Current authenticated session'}
                     </p>
-                    <p className="text-xs text-foreground-lighter">
+                    <p className="text-xs text-foreground-lighter truncate">
                       {currentEvent?.ip_address || 'IP not recorded'}
                       {profile.session?.created_at
                         ? ` • Started ${formatDateTime(profile.session.created_at)}`
@@ -366,7 +366,7 @@ export function ProfileView({ model }) {
           </div>
 
           {/* Login History */}
-          <div className="mt-8 bg-card rounded-xl shadow-sm border border-border overflow-x-auto">
+          <div className="mt-8 bg-card rounded-xl shadow-sm border border-border">
             <div className="p-6 border-b border-border bg-surface-100 flex justify-between items-center">
               <div>
                 <h2 className="text-lg font-bold text-foreground">Login History</h2>

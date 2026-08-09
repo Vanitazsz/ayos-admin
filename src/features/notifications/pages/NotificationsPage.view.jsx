@@ -34,7 +34,7 @@ export function NotificationsView({ model }) {
     saveCampaign,
   } = model;
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Notifications Engine</h1>
@@ -94,7 +94,7 @@ export function NotificationsView({ model }) {
         <div className="flex w-full sm:w-auto items-center gap-2">
           <Filter size={18} className="text-foreground-lighter" />
           <select
-            className="border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500"
+            className="w-full flex-1 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
           >
@@ -106,7 +106,7 @@ export function NotificationsView({ model }) {
         </div>
       </div>
 
-      <div className="bg-card shadow-sm border border-border overflow-x-auto">
+      <div className="bg-card shadow-sm border border-border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -196,7 +196,7 @@ export function NotificationsView({ model }) {
               placeholder="e.g. Service update"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-foreground-light mb-1">
                 Target Audience
@@ -230,7 +230,7 @@ export function NotificationsView({ model }) {
               placeholder="Type your message here..."
             ></textarea>
           </div>
-          <div className="pt-4 border-t border-border flex justify-end gap-3">
+          <div className="pt-4 border-t border-border flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}

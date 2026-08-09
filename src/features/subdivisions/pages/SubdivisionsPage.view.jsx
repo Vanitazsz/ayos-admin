@@ -22,7 +22,7 @@ export function SubdivisionsView({ model }) {
     toggle,
   } = model;
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Subdivisions</h1>
@@ -48,7 +48,7 @@ export function SubdivisionsView({ model }) {
           {error}
         </div>
       )}
-      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+      <div className="rounded-xl border border-border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>

@@ -9,6 +9,8 @@ import {
   Mail,
   Phone,
   Eye,
+  MapPin,
+  Calendar,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { formatDateTime } from '../../../services/adminShared';
@@ -35,6 +37,8 @@ import {
 } from '../../../components/ui/Tabs';
 import Skeleton from '../../../components/ui/Skeleton';
 import Modal from '../../../components/ui/Modal';
+import Drawer from '../../../components/ui/Drawer';
+import { Badge } from '../../../components/ui/Badge';
 import AccountDeleteModal from '../../../components/admin/AccountDeleteModal';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import {
@@ -66,8 +70,8 @@ export function UsersView({ model }) {
     confirm,
     closeConfirm,
     selectedUser,
-    isProfileModalOpen,
-    setIsProfileModalOpen,
+    isDrawerOpen,
+    setIsDrawerOpen,
     editUser,
     setEditUser,
     isEditModalOpen,
@@ -92,7 +96,7 @@ export function UsersView({ model }) {
     stats,
   } = model;
   return (
-    <div className="space-y-6 p-6 animate-fade-in">
+    <div className="space-y-6 p-4 sm:p-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Users Management</h1>
@@ -162,10 +166,10 @@ export function UsersView({ model }) {
                     </div>
                   </TableHead>
                   <TableHead scope="col">User Details</TableHead>
-                  <TableHead scope="col">Contact</TableHead>
-                  <TableHead scope="col">Registration Date</TableHead>
+                  <TableHead scope="col" className="hidden lg:table-cell">Contact</TableHead>
+                  <TableHead scope="col" className="hidden lg:table-cell">Registration Date</TableHead>
                   <TableHead scope="col">Bookings</TableHead>
-                  <TableHead scope="col">Verification</TableHead>
+                  <TableHead scope="col" className="hidden xl:table-cell">Verification</TableHead>
                   <TableHead scope="col">Status</TableHead>
                   <TableHead scope="col" className="text-right">
                     Actions
@@ -189,19 +193,19 @@ export function UsersView({ model }) {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <div className="space-y-2">
                           <Skeleton className="h-4 w-40" />
                           <Skeleton className="h-4 w-32" />
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <Skeleton className="h-4 w-24" />
                       </TableCell>
                       <TableCell>
                         <Skeleton className="h-6 w-10 rounded-md" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <Skeleton className="h-6 w-20 rounded-full" />
                       </TableCell>
                       <TableCell className="text-right">
@@ -230,7 +234,11 @@ export function UsersView({ model }) {
                   </TableRow>
                 ) : (
                   currentUsers.map((user) => (
-                    <TableRow key={user.id}>
+                    <TableRow
+                      key={user.id}
+                      onClick={() => handleViewProfile(user)}
+                      className="cursor-pointer"
+                    >
                       <TableCell className="text-center">
                         <div className="flex justify-center">
                           <Checkbox aria-label={`Select ${user.name}`} />
@@ -247,7 +255,7 @@ export function UsersView({ model }) {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <div className="flex flex-col space-y-1">
                           <span className="flex items-center text-sm text-foreground-light">
                             <Mail className="h-3.5 w-3.5 mr-1.5 text-foreground-muted" /> {user.email}
@@ -257,13 +265,13 @@ export function UsersView({ model }) {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-foreground-lighter">{user.registeredAt}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-foreground-lighter">{user.registeredAt}</TableCell>
                       <TableCell>
                         <span className="font-medium text-foreground bg-surface-200 px-2 py-1 rounded-md">
                           {user.bookings}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         {user.verified ? (
                           <span className="inline-flex items-center text-xs font-medium text-success">
                             <ShieldCheck size={14} className="mr-1" /> Verified
@@ -275,7 +283,7 @@ export function UsersView({ model }) {
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(user.status)}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button
@@ -432,47 +440,72 @@ export function UsersView({ model }) {
           </div>
         ) : null}
       </Modal>
-      <Modal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
+      <Drawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
         title="User Profile"
       >
         {selectedUser ? (
-          <div className="space-y-4 text-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-500/10 text-lg font-bold text-brand-600">
+          <div className="space-y-6">
+            <div className="flex items-center">
+              <div className="h-16 w-16 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-600 font-bold text-2xl">
                 {selectedUser.name.charAt(0)}
               </div>
-              <div>
-                <h3 className="font-semibold text-foreground">{selectedUser.name}</h3>
-                <p className="text-foreground-lighter">{selectedUser.status}</p>
+              <div className="ml-4">
+                <h3 className="text-xl font-bold text-foreground">{selectedUser.name}</h3>
+                <p className="text-foreground-lighter">{selectedUser.id}</p>
+                <div className="mt-1 flex gap-2">
+                  {getStatusBadge(selectedUser.status)}
+                  {selectedUser.verified && (
+                    <Badge variant="primary">
+                      <ShieldCheck size={12} /> Verified
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
-            <dl className="grid gap-3 rounded-lg bg-surface-200 p-4">
-              <div>
-                <dt className="text-foreground-lighter">Email</dt>
-                <dd className="font-medium text-foreground">{selectedUser.email}</dd>
+
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                Contact Information
+              </h4>
+              <div className="space-y-3">
+                <div className="flex items-center text-sm text-foreground-light">
+                  <Mail size={16} className="mr-3 text-foreground-muted" /> {selectedUser.email}
+                </div>
+                <div className="flex items-center text-sm text-foreground-light">
+                  <Phone size={16} className="mr-3 text-foreground-muted" /> {selectedUser.phone || 'Not provided'}
+                </div>
+                <div className="flex items-center text-sm text-foreground-light">
+                  <MapPin size={16} className="mr-3 text-foreground-muted" /> {selectedUser.address || 'Not provided'}
+                </div>
+                <div className="flex items-center text-sm text-foreground-light">
+                  <Calendar size={16} className="mr-3 text-foreground-muted" /> Registered{' '}
+                  {selectedUser.registeredAt}
+                </div>
               </div>
-              <div>
-                <dt className="text-foreground-lighter">Phone</dt>
-                <dd className="font-medium text-foreground">{selectedUser.phone || 'Not provided'}</dd>
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                Account Overview
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-surface-200 p-4 rounded-lg">
+                  <p className="text-xs text-foreground-lighter mb-1">Bookings</p>
+                  <p className="font-semibold text-foreground">{selectedUser.bookings}</p>
+                </div>
+                <div className="bg-surface-200 p-4 rounded-lg">
+                  <p className="text-xs text-foreground-lighter mb-1">Verification</p>
+                  <p className="font-semibold text-foreground">
+                    {selectedUser.verified ? 'Verified' : 'Unverified'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <dt className="text-foreground-lighter">Address</dt>
-                <dd className="font-medium text-foreground">{selectedUser.address || 'Not provided'}</dd>
-              </div>
-              <div>
-                <dt className="text-foreground-lighter">Registered</dt>
-                <dd className="font-medium text-foreground">{selectedUser.registeredAt}</dd>
-              </div>
-              <div>
-                <dt className="text-foreground-lighter">Bookings</dt>
-                <dd className="font-medium text-foreground">{selectedUser.bookings}</dd>
-              </div>
-            </dl>
+            </div>
           </div>
         ) : null}
-      </Modal>
+      </Drawer>
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User">
         {editUser ? (
           <form onSubmit={handleSaveUser} className="space-y-4">
