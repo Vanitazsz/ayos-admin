@@ -285,8 +285,9 @@ const Sidebar = () => {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={cn(
-          'absolute inset-y-0 left-0 z-50 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-100 ease-linear md:z-10',
-          isMobileOpen ? 'w-72 translate-x-0' : '-translate-x-full md:translate-x-0',
+          'absolute inset-y-0 z-50 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[left,right,width] duration-100 ease-linear md:z-10',
+          isMobileOpen ? 'left-0' : '-left-72 md:left-0',
+          'w-72',
           effectiveCollapsed && !isMobileOpen ? 'md:w-12' : 'md:w-52'
         )}
       >
