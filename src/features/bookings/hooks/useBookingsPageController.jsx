@@ -66,26 +66,22 @@ export function useBookingsPageController() {
       {
         label: "Today's Bookings",
         value: s?.today ?? 0,
-        icon: <Calendar className="text-brand-500" />,
-        bg: 'bg-brand-500/10',
+        icon: Calendar,
       },
       {
         label: 'Pending / Unassigned',
         value: s?.pending ?? 0,
-        icon: <Clock className="text-warning" />,
-        bg: 'bg-warning/10',
+        icon: Clock,
       },
       {
         label: 'Ongoing Services',
         value: s?.ongoing ?? 0,
-        icon: <PlayCircle className="text-info" />,
-        bg: 'bg-info/10',
+        icon: PlayCircle,
       },
       {
         label: 'Completed Today',
         value: s?.completedToday ?? 0,
-        icon: <CheckCircle className="text-success" />,
-        bg: 'bg-success/10',
+        icon: CheckCircle,
       },
     ];
   }, [meta]);

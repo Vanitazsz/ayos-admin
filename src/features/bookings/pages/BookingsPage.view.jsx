@@ -13,6 +13,7 @@ import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
 import Pagination from '../../../components/ui/Pagination';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
+import StatCard from '../../../components/ui/StatCard';
 import {
   Table,
   TableHeader,
@@ -81,18 +82,9 @@ export function BookingsView({ model }) {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat, index) => (
-          <div
-            key={index}
-            className="bg-card rounded-xl shadow-sm border border-border p-6 flex items-center"
-          >
-            <div className={`p-4 rounded-lg ${stat.bg} mr-4`}>{stat.icon}</div>
-            <div>
-              <p className="text-sm text-foreground-lighter font-medium">{stat.label}</p>
-              <h3 className="text-2xl font-bold text-foreground">{stat.value}</h3>
-            </div>
-          </div>
+          <StatCard key={index} title={stat.label} value={stat.value} icon={stat.icon} />
         ))}
       </div>
 
@@ -143,7 +135,11 @@ export function BookingsView({ model }) {
           <TableBody>
             {paginatedBookings.length > 0 ? (
               paginatedBookings.map((booking) => (
-                <TableRow key={booking.id}>
+                <TableRow
+                  key={booking.id}
+                  onClick={() => handleViewDetails(booking)}
+                  className="cursor-pointer"
+                >
                   <TableCell className="whitespace-nowrap">
                     <div className="text-sm font-medium text-foreground">{booking.id}</div>
                     <div className="text-xs text-foreground-lighter mt-1 flex items-center">
@@ -154,13 +150,12 @@ export function BookingsView({ model }) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <button
-                      onClick={() => handleViewDetails(booking)}
-                      className="block max-w-[260px] truncate text-left text-sm font-medium text-foreground hover:text-brand-600 hover:underline"
+                    <div
+                      className="max-w-[260px] truncate text-sm font-medium text-foreground"
                       title={booking.service}
                     >
                       {booking.service}
-                    </button>
+                    </div>
                     <div className="text-xs text-foreground-lighter">{booking.category}</div>
                     <div className="text-xs text-foreground-lighter mt-1 truncate" title={booking.address}>
                       <MapPin size={12} className="inline mr-1" /> {booking.address}
@@ -189,7 +184,7 @@ export function BookingsView({ model }) {
                       {booking.status}
                     </span>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-right font-medium">
+                  <TableCell className="whitespace-nowrap text-right font-medium" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
