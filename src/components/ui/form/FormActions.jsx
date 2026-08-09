@@ -13,7 +13,7 @@ export function FormActions({
 }) {
   return (
     <div
-      className={`${withDivider ? 'mt-8 border-t border-border pt-6 ' : ''}flex items-center justify-end gap-2 ${className}`}
+      className={`${withDivider ? 'mt-8 border-t border-border pt-6 ' : ''}flex flex-wrap items-center justify-end gap-2 ${className}`}
     >
       {isDirty && (
         <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>

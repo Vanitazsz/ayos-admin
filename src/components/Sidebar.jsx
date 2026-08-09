@@ -228,7 +228,7 @@ const NavGroup = ({ group, effectiveCollapsed, setIsMobileOpen }) => {
   );
 };
 
-const Sidebar = () => {
+const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
   const [behavior, setBehavior] = useState(() => {
     try {
       return localStorage.getItem(SIDEBAR_BEHAVIOR_KEY) || 'expandable';
@@ -237,12 +237,11 @@ const Sidebar = () => {
     }
   });
   const [isHovered, setIsHovered] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
     setIsMobileOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, setIsMobileOpen]);
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_BEHAVIOR_KEY, behavior);

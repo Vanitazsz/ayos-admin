@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, UserCircle } from 'lucide-react';
+import { Menu, Search, UserCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 import { Avatar, AvatarFallback } from './ui/Avatar';
@@ -28,7 +28,7 @@ const themeOptions = [
   { value: 'light', label: 'Light' },
 ];
 
-const Navbar = () => {
+const Navbar = ({ onOpenSidebar }) => {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const location = useLocation();
@@ -40,34 +40,52 @@ const Navbar = () => {
   };
 
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-border bg-background pl-4 pr-4 sm:pl-2.5 sm:pr-6">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <span
-              title="A-yos"
-              className="flex size-7 items-center justify-center rounded-md bg-brand-500/15 font-display text-sm font-bold text-brand-700 dark:text-brand-300"
-            >
-              A
-            </span>
-          </BreadcrumbItem>
-          {pathnames.map((name, index) => {
-            const isLast = index === pathnames.length - 1;
-            return (
-              <React.Fragment key={`${name}-${index}`}>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  {isLast ? (
-                    <BreadcrumbPage>{name}</BreadcrumbPage>
-                  ) : (
-                    <span className="capitalize text-foreground-lighter">{name}</span>
-                  )}
-                </BreadcrumbItem>
-              </React.Fragment>
-            );
-          })}
-        </BreadcrumbList>
-      </Breadcrumb>
+    <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border bg-background pl-4 pr-4 sm:pl-2.5 sm:pr-6">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <button
+          type="button"
+          aria-label="Open navigation"
+          onClick={onOpenSidebar}
+          className="rounded-md p-1.5 text-foreground-lighter transition-colors hover:bg-accent hover:text-foreground focus-ring md:hidden"
+        >
+          <Menu className="size-5" />
+        </button>
+        <button
+          type="button"
+          aria-label="Search"
+          onClick={openCommandPalette}
+          className="rounded-md p-1.5 text-foreground-lighter transition-colors hover:bg-accent hover:text-foreground focus-ring md:hidden"
+        >
+          <Search className="size-5" />
+        </button>
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <span
+                title="A-yos"
+                className="flex size-7 items-center justify-center rounded-md bg-brand-500/15 font-display text-sm font-bold text-brand-700 dark:text-brand-300"
+              >
+                A
+              </span>
+            </BreadcrumbItem>
+            {pathnames.map((name, index) => {
+              const isLast = index === pathnames.length - 1;
+              return (
+                <React.Fragment key={`${name}-${index}`}>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem className="min-w-0">
+                    {isLast ? (
+                      <BreadcrumbPage className="truncate">{name}</BreadcrumbPage>
+                    ) : (
+                      <span className="truncate capitalize text-foreground-lighter">{name}</span>
+                    )}
+                  </BreadcrumbItem>
+                </React.Fragment>
+              );
+            })}
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
         <button

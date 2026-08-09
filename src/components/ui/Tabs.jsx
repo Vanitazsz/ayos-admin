@@ -7,7 +7,7 @@ const Tabs = TabsPrimitive.Root;
 const TabsList = React.forwardRef(({ className, ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
-    className={cn('flex items-center gap-3 border-b', className)}
+    className={cn('flex items-center gap-3 overflow-x-auto border-b', className)}
     {...props}
   />
 ));

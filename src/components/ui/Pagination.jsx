@@ -19,7 +19,7 @@ const Pagination = ({
   return (
     <div
       className={cn(
-        'flex items-center justify-between gap-4 border-t border-border px-4 py-3 sm:px-6',
+        'flex flex-col items-center gap-3 border-t border-border px-4 py-3 sm:flex-row sm:justify-between sm:px-6',
         className,
       )}
     >
