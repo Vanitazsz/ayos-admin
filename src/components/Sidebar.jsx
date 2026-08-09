@@ -136,7 +136,7 @@ const NavGroup = ({ group, effectiveCollapsed, setIsMobileOpen }) => {
           to={group.to}
           onClick={() => setIsMobileOpen(false)}
           data-active={isActive}
-          className={cn(itemBase, effectiveCollapsed ? 'justify-center' : '')}
+          className={itemBase}
           title={effectiveCollapsed ? group.title : undefined}
         >
           <GroupIcon
@@ -163,7 +163,7 @@ const NavGroup = ({ group, effectiveCollapsed, setIsMobileOpen }) => {
           'flex h-8 w-full items-center gap-2 rounded-md px-2.5 text-sm transition-colors focus-ring',
           'hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
           isActiveGroup ? 'font-medium text-foreground' : 'text-foreground-lighter',
-          effectiveCollapsed ? 'justify-center' : 'justify-between'
+          'justify-between'
         )}
         title={effectiveCollapsed ? group.title : undefined}
       >
@@ -328,7 +328,7 @@ const Sidebar = () => {
                 aria-label="Sidebar control"
                 className={cn(
                   'flex h-8 items-center gap-2 rounded-md px-2 text-left text-sm text-foreground-lighter transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
-                  effectiveCollapsed && !isMobileOpen ? 'w-full justify-center' : 'w-auto'
+                  effectiveCollapsed && !isMobileOpen ? 'w-full' : 'w-auto'
                 )}
                 title={effectiveCollapsed && !isMobileOpen ? 'Sidebar control' : undefined}
               >
