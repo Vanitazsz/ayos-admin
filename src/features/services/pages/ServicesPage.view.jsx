@@ -10,14 +10,27 @@ import {
   ToggleLeft,
   ToggleRight,
   Box,
+  MoreVertical,
+  Eye,
+  AlertTriangle,
+  Power,
 } from 'lucide-react';
 import Modal from '../../../components/ui/Modal';
+import Drawer from '../../../components/ui/Drawer';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
+import Button from '../../../components/ui/Button';
 import Pagination from '../../../components/ui/Pagination';
 import StatCard from '../../../components/ui/StatCard';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import { moneyFromMinor } from '../../../services/adminShared';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '../../../components/ui/DropdownMenu';
 import {
   Table,
   TableHeader,
@@ -60,17 +73,29 @@ export function ServicesView({ model }) {
     filteredIndustries,
     handleOpenAddSkillModal,
     handleOpenEditSkillModal,
-    handleDeleteSkill,
+    handleHardDeleteSkill,
+    handleDeactivateSkill,
     handleDuplicateSkill,
     handleSaveSkill,
+    details,
+    closeDetails,
+    openSkillDetails,
+    openIndustryDetails,
+    industryDelete,
+    closeIndustryDelete,
+    industrySkills,
+    openIndustryDelete,
+    toggleIndustrySkillSelection,
+    allIndustrySkillsSelected,
+    handleConfirmHardDeleteIndustry,
     handleOpenAddIndustryModal,
     handleOpenEditIndustryModal,
-    handleDeleteIndustry,
+    handleDeactivateIndustry,
     toggleIndustryStatus,
     handleSaveIndustry,
   } = model;
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Industries &amp; Skills</h1>
@@ -140,7 +165,7 @@ export function ServicesView({ model }) {
           </div>
 
           {/* Skills Table */}
-          <div className="bg-card shadow-sm border border-border overflow-x-auto">
+          <div className="bg-card shadow-sm border border-border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -156,7 +181,11 @@ export function ServicesView({ model }) {
               <TableBody>
                 {paginatedSkills.length > 0 ? (
                   paginatedSkills.map((skill) => (
-                    <TableRow key={skill.id}>
+                    <TableRow
+                      key={skill.id}
+                      onClick={() => openSkillDetails(skill)}
+                      className="cursor-pointer"
+                    >
                       <TableCell className="whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="h-10 w-10 flex-shrink-0 bg-brand-500/10 rounded-lg flex items-center justify-center">
@@ -197,30 +226,48 @@ export function ServicesView({ model }) {
                           {skill.status}
                         </span>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-right font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => handleDuplicateSkill(skill)}
-                            className="text-foreground-muted hover:text-brand-600 p-1 rounded-lg hover:bg-brand-500/10 transition-colors"
-                            title="Duplicate"
-                          >
-                            <Copy size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleOpenEditSkillModal(skill)}
-                            className="text-foreground-muted hover:text-info p-1 rounded-lg hover:bg-info/10 transition-colors"
-                            title="Edit"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteSkill(skill.id)}
-                            className="text-foreground-muted hover:text-destructive p-1 rounded-lg hover:bg-destructive/10 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
+                      <TableCell
+                        className="whitespace-nowrap text-right font-medium"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              aria-label={`Open actions for ${skill.name}`}
+                              className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
+                            >
+                              <MoreVertical size={20} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem
+                              onSelect={() => openSkillDetails(skill)}
+                              className="cursor-pointer"
+                            >
+                              <Eye className="mr-2" /> View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => handleOpenEditSkillModal(skill)}
+                              className="cursor-pointer"
+                            >
+                              <Edit2 className="mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => handleDuplicateSkill(skill)}
+                              className="cursor-pointer"
+                            >
+                              <Copy className="mr-2" /> Duplicate
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onSelect={() => handleDeactivateSkill(skill)}
+                              className="cursor-pointer"
+                            >
+                              <Power className="mr-2" />
+                              {skill.status === 'Active' ? 'Deactivate' : 'Activate'}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
@@ -277,7 +324,7 @@ export function ServicesView({ model }) {
           </div>
 
           {/* Industries Table */}
-          <div className="bg-card shadow-sm border border-border overflow-x-auto">
+          <div className="bg-card shadow-sm border border-border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -293,7 +340,11 @@ export function ServicesView({ model }) {
               <TableBody>
                 {filteredIndustries.length > 0 ? (
                   filteredIndustries.map((industry) => (
-                  <TableRow key={industry.id}>
+                  <TableRow
+                    key={industry.id}
+                    onClick={() => openIndustryDetails(industry)}
+                    className="cursor-pointer"
+                  >
                     <TableCell className="whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-10 w-10 flex-shrink-0 bg-info/10 rounded-lg flex items-center justify-center">
@@ -317,7 +368,10 @@ export function ServicesView({ model }) {
                         {industry.skillsCount} Skills
                       </span>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">
+                    <TableCell
+                      className="whitespace-nowrap"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
                         onClick={() => toggleIndustryStatus(industry.id)}
                         className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
@@ -334,23 +388,42 @@ export function ServicesView({ model }) {
                         <span>{industry.status}</span>
                       </button>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-right font-medium">
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          onClick={() => handleOpenEditIndustryModal(industry)}
-                          className="text-foreground-muted hover:text-info p-1 rounded-lg hover:bg-info/10 transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteIndustry(industry.id)}
-                          className="text-foreground-muted hover:text-destructive p-1 rounded-lg hover:bg-destructive/10 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
+                    <TableCell
+                      className="whitespace-nowrap text-right font-medium"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            aria-label={`Open actions for ${industry.name}`}
+                            className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
+                          >
+                            <MoreVertical size={20} />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuItem
+                            onSelect={() => openIndustryDetails(industry)}
+                            className="cursor-pointer"
+                          >
+                            <Eye className="mr-2" /> View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => handleOpenEditIndustryModal(industry)}
+                            className="cursor-pointer"
+                          >
+                            <Edit2 className="mr-2" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onSelect={() => handleDeactivateIndustry(industry)}
+                            className="cursor-pointer"
+                          >
+                            <Power className="mr-2" />
+                            {industry.status === 'Enabled' ? 'Deactivate' : 'Activate'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))
@@ -373,11 +446,12 @@ export function ServicesView({ model }) {
         </>
       )}
 
-      {/* Add/Edit Skill Modal */}
-      <Modal
+      {/* Add/Edit Skill Drawer */}
+      <Drawer
         isOpen={isSkillModalOpen}
         onClose={() => setIsSkillModalOpen(false)}
         title={modalMode === 'add' ? 'Add New Skill' : 'Edit Skill'}
+        width="w-[500px]"
       >
         <form onSubmit={handleSaveSkill} className="space-y-4">
           <div>
@@ -392,7 +466,7 @@ export function ServicesView({ model }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-foreground-light mb-1">
                 Industry
@@ -426,7 +500,7 @@ export function ServicesView({ model }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-foreground-light mb-1">
                 Min Price (₱)
@@ -505,13 +579,14 @@ export function ServicesView({ model }) {
             </button>
           </div>
         </form>
-      </Modal>
+      </Drawer>
 
-      {/* Add/Edit Industry Modal */}
-      <Modal
+      {/* Add/Edit Industry Drawer */}
+      <Drawer
         isOpen={isIndustryModalOpen}
         onClose={() => setIsIndustryModalOpen(false)}
         title={modalMode === 'add' ? 'Add New Industry' : 'Edit Industry'}
+        width="w-[500px]"
       >
         <form onSubmit={handleSaveIndustry} className="space-y-4">
           <div>
@@ -573,6 +648,240 @@ export function ServicesView({ model }) {
             </button>
           </div>
         </form>
+      </Drawer>
+
+      {/* Skill Details Drawer */}
+      <Drawer
+        isOpen={details?.type === 'skill'}
+        onClose={closeDetails}
+        title="Skill Details"
+        width="w-[500px]"
+        footer={
+          details?.type === 'skill' ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  closeDetails();
+                  handleOpenEditSkillModal(details.item);
+                }}
+              >
+                <Edit2 /> Edit
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => handleHardDeleteSkill(details.item)}
+              >
+                <Trash2 /> Hard Delete
+              </Button>
+            </>
+          ) : null
+        }
+      >
+        {details?.type === 'skill' && details.item && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 flex-shrink-0 bg-brand-500/10 rounded-lg flex items-center justify-center">
+                <Wrench size={20} className="text-brand-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  {details.item.name}
+                </h3>
+                <p className="text-xs text-foreground-lighter font-mono">
+                  {details.item.id}
+                </p>
+              </div>
+            </div>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <dt className="text-foreground-lighter">Industry</dt>
+                <dd className="mt-0.5 font-medium text-foreground">
+                  {details.item.industry}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-foreground-lighter">Status</dt>
+                <dd className="mt-0.5">
+                  <span
+                    className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      details.item.status === 'Active'
+                        ? 'bg-success/10 text-success-600 dark:text-success-400'
+                        : 'bg-surface-200 text-foreground'
+                    }`}
+                  >
+                    {details.item.status}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-foreground-lighter">Pricing</dt>
+                <dd className="mt-0.5 font-medium text-foreground">
+                  {details.item.maximumPriceMinor != null
+                    ? `${moneyFromMinor(details.item.minimumPriceMinor)} – ${moneyFromMinor(details.item.maximumPriceMinor)}`
+                    : `From ${moneyFromMinor(details.item.minimumPriceMinor)}`}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-foreground-lighter">Active Workers</dt>
+                <dd className="mt-0.5 font-medium text-foreground">
+                  {details.item.workers}
+                </dd>
+              </div>
+            </dl>
+            {details.item.isSafetyCritical && (
+              <div className="inline-flex items-center gap-1.5 rounded-md bg-warning/10 px-2 py-1 text-xs font-medium text-warning-700 dark:text-warning-500">
+                <AlertTriangle size={14} /> Safety critical
+              </div>
+            )}
+          </div>
+        )}
+      </Drawer>
+
+      {/* Industry Details Drawer */}
+      <Drawer
+        isOpen={details?.type === 'industry'}
+        onClose={closeDetails}
+        title="Industry Details"
+        width="w-[500px]"
+        footer={
+          details?.type === 'industry' ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  closeDetails();
+                  handleOpenEditIndustryModal(details.item);
+                }}
+              >
+                <Edit2 /> Edit
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => openIndustryDelete(details.item)}
+              >
+                <Trash2 /> Hard Delete
+              </Button>
+            </>
+          ) : null
+        }
+      >
+        {details?.type === 'industry' && details.item && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 flex-shrink-0 bg-info/10 rounded-lg flex items-center justify-center">
+                <Grid size={20} className="text-info" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  {details.item.name}
+                </h3>
+                <p className="text-xs text-foreground-lighter font-mono">
+                  {details.item.id}
+                </p>
+              </div>
+            </div>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <dt className="text-foreground-lighter">Status</dt>
+                <dd className="mt-0.5">
+                  <span
+                    className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      details.item.status === 'Enabled'
+                        ? 'bg-success/10 text-success-600 dark:text-success-400'
+                        : 'bg-surface-200 text-foreground'
+                    }`}
+                  >
+                    {details.item.status}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-foreground-lighter">Total Skills</dt>
+                <dd className="mt-0.5 font-medium text-foreground">
+                  {details.item.skillsCount}
+                </dd>
+              </div>
+            </dl>
+            {details.item.description && (
+              <div>
+                <dt className="text-sm text-foreground-lighter">Description</dt>
+                <p className="mt-1 text-sm text-foreground leading-relaxed">
+                  {details.item.description}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </Drawer>
+
+      {/* Industry Hard Delete Safety Dialog */}
+      <Modal
+        isOpen={industryDelete != null}
+        onClose={closeIndustryDelete}
+        title="Hard Delete Industry"
+        footer={
+          industryDelete ? (
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={closeIndustryDelete}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                disabled={!allIndustrySkillsSelected}
+                onClick={handleConfirmHardDeleteIndustry}
+              >
+                <Trash2 /> Delete {industryDelete.industry.name}
+              </Button>
+            </div>
+          ) : null
+        }
+      >
+        {industryDelete && (
+          <div className="space-y-4">
+            <p className="text-sm text-foreground-lighter leading-relaxed">
+              This permanently deletes{' '}
+              <span className="font-medium text-foreground">
+                {industryDelete.industry.name}
+              </span>{' '}
+              and every selected skill below — including all service requests,
+              bookings, payments, receipts, reviews and wallet transactions tied
+              to them. This{' '}
+              <span className="font-medium text-foreground">cannot be undone</span>.
+            </p>
+            <ul className="space-y-2">
+              {industrySkills.map((skill) => (
+                <li key={skill.id}>
+                  <label className="flex items-center gap-3 rounded-lg border border-border px-3 py-2 cursor-pointer hover:bg-accent transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(industryDelete.selected[skill.id])}
+                      onChange={() => toggleIndustrySkillSelection(skill.id)}
+                      className="h-4 w-4 accent-brand-600"
+                    />
+                    <span className="text-sm font-medium text-foreground">
+                      {skill.name}
+                    </span>
+                    <span className="ml-auto text-xs text-foreground-lighter">
+                      {skill.workers} workers
+                    </span>
+                  </label>
+                </li>
+              ))}
+              {industrySkills.length === 0 && (
+                <p className="text-sm text-foreground-lighter">
+                  This industry has no skills.
+                </p>
+              )}
+            </ul>
+            {!allIndustrySkillsSelected && industrySkills.length > 0 && (
+              <p className="text-xs text-destructive">
+                Select all {industrySkills.length} skills to delete this
+                industry.
+              </p>
+            )}
+          </div>
+        )}
       </Modal>
 
       <ConfirmModal
@@ -581,7 +890,7 @@ export function ServicesView({ model }) {
         title={confirm.title}
         message={confirm.message}
         onConfirm={confirm.onConfirm}
-        confirmLabel="Delete"
+        confirmLabel={confirm.confirmLabel || 'Delete'}
         variant="danger"
       />
     </div>

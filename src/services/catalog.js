@@ -65,6 +65,21 @@ export async function saveSkill(value, industries) {
   return data;
 }
 
+export async function hardDeleteSkill(id) {
+  const { data, error } = await supabase.rpc('admin_hard_delete_skill', { p_id: id });
+  if (error) throw error;
+  return data;
+}
+
+export async function hardDeleteIndustry(id, skillIds) {
+  const { data, error } = await supabase.rpc('admin_hard_delete_industry', {
+    p_id: id,
+    p_skill_ids: skillIds,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function saveIndustry(value) {
   const { data, error } = await supabase.rpc('admin_upsert_industry', {
     p_id: value.id || null,

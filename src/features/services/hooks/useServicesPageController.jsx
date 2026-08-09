@@ -3,6 +3,8 @@ import {
   loadMostBookedService,
   saveIndustry,
   saveSkill,
+  hardDeleteSkill,
+  hardDeleteIndustry,
   subscribe,
 } from '../logic/ServicesPageLogic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -143,17 +145,33 @@ export function useServicesPageController() {
     setIsSkillModalOpen(true);
   }, []);
 
-  const handleDeleteSkill = useCallback(
-    (id) => {
+  const [details, setDetails] = useState(null);
+  const openSkillDetails = useCallback(
+    (skill) => setDetails({ type: 'skill', item: skill }),
+    [],
+  );
+  const openIndustryDetails = useCallback(
+    (industry) => setDetails({ type: 'industry', item: industry }),
+    [],
+  );
+  const closeDetails = useCallback(() => setDetails(null), []);
+
+  const handleHardDeleteSkill = useCallback(
+    (skill) => {
       setConfirm({
         isOpen: true,
-        title: 'Delete Skill',
-        message:
-          'Are you sure you want to delete this skill? It will be disabled and hidden from the platform.',
+        title: 'Hard Delete Skill',
+        message: `Permanently delete "${skill.name}" and ALL data tied to it (${
+          skill.workers ?? 0
+        } worker assignments, service requests, bookings, payments, receipts, reviews, wallet transactions)? This CANNOT be undone.`,
+        confirmLabel: 'Hard Delete',
         onConfirm: async () => {
-          const skill = skills.find((item) => item.id === id);
           try {
-            await saveSkill({ ...skill, status: 'Inactive' }, industriesData);
+            const result = await hardDeleteSkill(skill.id);
+            toast.success(
+              `Skill "${result.name}" deleted (${result.bookings} bookings, ${result.service_requests} requests)`,
+            );
+            setDetails(null);
             await refresh();
           } catch (error) {
             toast.error('Operation failed', error.message);
@@ -161,7 +179,35 @@ export function useServicesPageController() {
         },
       });
     },
-    [skills, industriesData, refresh, toast],
+    [hardDeleteSkill, refresh, toast],
+  );
+
+  const handleDeactivateSkill = useCallback(
+    (skill) => {
+      const deactivating = skill.status === 'Active';
+      const action = deactivating ? 'Deactivate' : 'Activate';
+      setConfirm({
+        isOpen: true,
+        title: `${action} Skill`,
+        message: deactivating
+          ? `Deactivate "${skill.name}"? It will be hidden from the platform, but all of its data will be kept.`
+          : `Activate "${skill.name}"? It will be visible and bookable on the platform again.`,
+        confirmLabel: action,
+        onConfirm: async () => {
+          try {
+            await saveSkill(
+              { ...skill, status: deactivating ? 'Inactive' : 'Active' },
+              industriesData,
+            );
+            toast.success(`Skill "${skill.name}" ${deactivating ? 'deactivated' : 'activated'}`);
+            await refresh();
+          } catch (error) {
+            toast.error('Operation failed', error.message);
+          }
+        },
+      });
+    },
+    [industriesData, refresh, toast],
   );
 
   const handleDuplicateSkill = useCallback(
@@ -205,17 +251,81 @@ export function useServicesPageController() {
     setIsIndustryModalOpen(true);
   }, []);
 
-  const handleDeleteIndustry = useCallback(
-    (id) => {
+  const [industryDelete, setIndustryDelete] = useState(null);
+  const industrySkills = useMemo(
+    () =>
+      industryDelete
+        ? skills.filter(
+            (skill) => skill.industry === industryDelete.industry.name,
+          )
+        : [],
+    [skills, industryDelete],
+  );
+  const openIndustryDelete = useCallback(
+    (industry) => {
+      const industrySkillIds = skills
+        .filter((skill) => skill.industry === industry.name)
+        .map((skill) => skill.id);
+      setIndustryDelete({
+        industry,
+        selected: Object.fromEntries(industrySkillIds.map((id) => [id, true])),
+      });
+    },
+    [skills],
+  );
+  const toggleIndustrySkillSelection = useCallback((skillId) => {
+    setIndustryDelete((cur) => {
+      if (!cur) return cur;
+      const selected = { ...cur.selected };
+      if (selected[skillId]) delete selected[skillId];
+      else selected[skillId] = true;
+      return { ...cur, selected };
+    });
+  }, []);
+  const allIndustrySkillsSelected = useMemo(
+    () =>
+      industryDelete !== null &&
+      industrySkills.length > 0 &&
+      Object.keys(industryDelete.selected).length === industrySkills.length,
+    [industryDelete, industrySkills],
+  );
+  const handleConfirmHardDeleteIndustry = useCallback(async () => {
+    if (!industryDelete) return;
+    try {
+      const result = await hardDeleteIndustry(
+        industryDelete.industry.id,
+        Object.keys(industryDelete.selected),
+      );
+      toast.success(
+        `Industry "${result.name}" deleted (${result.skills} skills, ${result.bookings} bookings)`,
+      );
+      setIndustryDelete(null);
+      setDetails(null);
+      await refresh();
+    } catch (error) {
+      toast.error('Operation failed', error.message);
+    }
+  }, [industryDelete, hardDeleteIndustry, refresh, toast]);
+  const closeIndustryDelete = useCallback(() => setIndustryDelete(null), []);
+
+  const handleDeactivateIndustry = useCallback(
+    (industry) => {
+      const deactivating = industry.status === 'Enabled';
+      const action = deactivating ? 'Deactivate' : 'Activate';
       setConfirm({
         isOpen: true,
-        title: 'Delete Industry',
-        message:
-          'Are you sure you want to delete this industry? It will be disabled and hidden from the platform.',
+        title: `${action} Industry`,
+        message: deactivating
+          ? `Deactivate "${industry.name}"? It will be hidden from the platform, but all of its data will be kept.`
+          : `Activate "${industry.name}"? It will be visible on the platform again.`,
+        confirmLabel: action,
         onConfirm: async () => {
-          const industry = industriesData.find((item) => item.id === id);
           try {
-            await saveIndustry({ ...industry, status: 'Disabled' });
+            await saveIndustry({
+              ...industry,
+              status: deactivating ? 'Disabled' : 'Enabled',
+            });
+            toast.success(`Industry "${industry.name}" ${deactivating ? 'deactivated' : 'activated'}`);
             await refresh();
           } catch (error) {
             toast.error('Operation failed', error.message);
@@ -223,7 +333,7 @@ export function useServicesPageController() {
         },
       });
     },
-    [industriesData, refresh, toast],
+    [refresh, toast],
   );
 
   const toggleIndustryStatus = useCallback(
@@ -277,6 +387,19 @@ export function useServicesPageController() {
       setCurrentIndustry,
       confirm,
       closeConfirm,
+      details,
+      closeDetails,
+      openSkillDetails,
+      openIndustryDetails,
+      handleHardDeleteSkill,
+      handleDeactivateSkill,
+      industryDelete,
+      closeIndustryDelete,
+      industrySkills,
+      openIndustryDelete,
+      toggleIndustrySkillSelection,
+      allIndustrySkillsSelected,
+      handleConfirmHardDeleteIndustry,
       industries,
       industriesData,
       filteredSkills,
@@ -290,12 +413,11 @@ export function useServicesPageController() {
       filteredIndustries,
       handleOpenAddSkillModal,
       handleOpenEditSkillModal,
-      handleDeleteSkill,
       handleDuplicateSkill,
       handleSaveSkill,
       handleOpenAddIndustryModal,
       handleOpenEditIndustryModal,
-      handleDeleteIndustry,
+      handleDeactivateIndustry,
       toggleIndustryStatus,
       handleSaveIndustry,
     }),
@@ -312,6 +434,7 @@ export function useServicesPageController() {
       currentSkill,
       currentIndustry,
       confirm,
+      details,
       industries,
       industriesData,
       filteredSkills,
@@ -319,17 +442,28 @@ export function useServicesPageController() {
       totalPages,
       paginatedSkills,
       stats,
+      industryDelete,
+      industrySkills,
+      allIndustrySkillsSelected,
       handleOpenAddSkillModal,
       handleOpenEditSkillModal,
-      handleDeleteSkill,
+      handleHardDeleteSkill,
+      handleDeactivateSkill,
       handleDuplicateSkill,
       handleSaveSkill,
       handleOpenAddIndustryModal,
       handleOpenEditIndustryModal,
-      handleDeleteIndustry,
+      handleDeactivateIndustry,
+      handleConfirmHardDeleteIndustry,
+      toggleIndustrySkillSelection,
       toggleIndustryStatus,
       handleSaveIndustry,
       closeConfirm,
+      closeDetails,
+      closeIndustryDelete,
+      openSkillDetails,
+      openIndustryDetails,
+      openIndustryDelete,
       setSearchTerm,
       setFilterIndustry,
       setIndustrySearch,
