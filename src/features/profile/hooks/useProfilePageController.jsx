@@ -4,6 +4,7 @@ import {
   loadAdminProfile,
   saveAdminProfile,
   uploadAdminAvatar,
+  verifyCurrentPassword,
 } from '../logic/ProfilePageLogic';
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '../../../context/ToastContext';
@@ -17,7 +18,9 @@ export function useProfilePageController() {
   const [loadError, setLoadError] = useState('');
   const [profile, setProfile] = useState(null);
   const [passwordModal, setPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const refresh = async () => {
     try {
       const data = await loadAdminProfile();
@@ -87,9 +90,16 @@ export function useProfilePageController() {
       return;
     }
     try {
+      const currentOk = await verifyCurrentPassword(currentPassword);
+      if (!currentOk) {
+        toast.error('Current password is incorrect', 'Enter your current password and try again.');
+        return;
+      }
       await changeAdminPassword(password);
       setPasswordModal(false);
+      setCurrentPassword('');
       setNewPassword('');
+      setConfirmPassword('');
       await refresh();
       toast.success('Password updated', 'Your password was changed successfully.');
     } catch (error) {
@@ -109,8 +119,12 @@ export function useProfilePageController() {
     setProfile,
     passwordModal,
     setPasswordModal,
+    currentPassword,
+    setCurrentPassword,
     newPassword,
     setNewPassword,
+    confirmPassword,
+    setConfirmPassword,
     handleSave,
     handleAvatar,
     handlePassword,

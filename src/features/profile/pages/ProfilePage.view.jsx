@@ -1,7 +1,73 @@
-import { Mail, Phone, MapPin, Shield, Camera, CheckCircle, Clock, Monitor } from 'lucide-react';
+import { useState } from 'react';
+import { Mail, Phone, MapPin, Shield, Camera, CheckCircle, Clock, Monitor, ChevronDown } from 'lucide-react';
 import Modal from '../../../components/ui/Modal';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import { formatDate, formatDateTime } from '../../../services/adminShared';
+import { cn } from '../../../lib/utils';
+import { COUNTRIES, composeE164, flagEmoji, isValidMobile, parseE164 } from '../logic/countries';
+
+function PhoneField({ value, onChange }) {
+  const initial = useState(() => parseE164(value))[0];
+  const [country, setCountry] = useState(initial.country);
+  const [national, setNational] = useState(initial.national);
+  const handleDialChange = (event) => {
+    const next = COUNTRIES.find((c) => c.iso === event.target.value);
+    if (!next) return;
+    setCountry(next);
+    onChange(national ? composeE164(next.dial, national) : '');
+  };
+  const handleNationalChange = (event) => {
+    const digits = event.target.value.replace(/\D/g, '');
+    setNational(digits);
+    onChange(digits ? composeE164(country.dial, digits) : '');
+  };
+  const composed = composeE164(country.dial, national);
+  const error = national && !isValidMobile(composed) ? 'Enter a valid phone number, e.g. 917 123 4567.' : '';
+  return (
+    <div>
+      <label className="block text-sm font-medium text-foreground-light mb-1">Phone Number</label>
+      <div
+        className={cn(
+          'flex items-stretch overflow-hidden rounded-lg border bg-card shadow-sm transition-colors',
+          error ? 'border-destructive' : 'border-border',
+          'focus-within:ring-ring focus-within:ring-2',
+        )}
+      >
+        <div className="relative shrink-0">
+          <select
+            value={country.iso}
+            onChange={handleDialChange}
+            aria-label="Country dial code"
+            className="h-full appearance-none border-0 bg-card pl-3 pr-7 py-2 text-sm text-foreground focus:outline-none"
+          >
+            {COUNTRIES.map((c) => (
+              <option key={c.iso} value={c.iso}>
+                {flagEmoji(c.iso)} +{c.dial}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-4 -translate-y-1/2 text-foreground-lighter" />
+        </div>
+        <span className="w-px self-stretch bg-border" aria-hidden="true" />
+        <input
+          type="tel"
+          inputMode="numeric"
+          placeholder="917 123 4567"
+          value={national}
+          onChange={handleNationalChange}
+          className="w-full min-w-0 border-0 bg-card px-3 py-2 text-sm text-foreground placeholder:text-foreground-muted focus:outline-none focus:ring-0"
+        />
+      </div>
+      {error ? (
+        <p className="mt-1.5 text-sm text-destructive">{error}</p>
+      ) : (
+        <p className="mt-1.5 text-sm text-foreground-muted">
+          Country code is added automatically — enter your number without the leading 0.
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function ProfileView({ model }) {
   const {
@@ -13,8 +79,12 @@ export function ProfileView({ model }) {
     setProfile,
     passwordModal,
     setPasswordModal,
+    currentPassword,
+    setCurrentPassword,
     newPassword,
     setNewPassword,
+    confirmPassword,
+    setConfirmPassword,
     handleSave,
     handleAvatar,
     handlePassword,
@@ -187,14 +257,9 @@ export function ProfileView({ model }) {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-foreground-light mb-1">
-                        Phone Number
-                      </label>
-                      <input
-                        type="text"
+                      <PhoneField
                         value={profile.phone}
-                        onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                        className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring"
+                        onChange={(phone) => setProfile({ ...profile, phone })}
                       />
                     </div>
                     <div className="md:col-span-2">
@@ -357,18 +422,51 @@ export function ProfileView({ model }) {
       </div>
       <Modal isOpen={passwordModal} onClose={() => setPasswordModal(false)} title="Change Password">
         <div className="space-y-4">
-          <p className="text-foreground-light">Enter a new password with at least 8 characters:</p>
+          <p className="text-foreground-light">
+            Enter your current password and a new password with at least 8 characters:
+          </p>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus-ring"
+            placeholder="Current password"
+            autoComplete="current-password"
+          />
           <input
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full rounded-lg border p-2"
+            className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus-ring"
             placeholder="New password"
+            autoComplete="new-password"
           />
+          <div>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={`w-full rounded-lg border bg-card px-3 py-2 text-sm text-foreground focus-ring ${
+                confirmPassword && confirmPassword !== newPassword
+                  ? 'border-destructive'
+                  : 'border-border'
+              }`}
+              placeholder="Confirm new password"
+              autoComplete="new-password"
+            />
+            {confirmPassword && confirmPassword !== newPassword && (
+              <p className="mt-1.5 text-sm text-destructive">Passwords do not match.</p>
+            )}
+          </div>
           <div className="flex justify-end gap-3">
             <button
               type="button"
-              onClick={() => setPasswordModal(false)}
+              onClick={() => {
+                setPasswordModal(false);
+                setCurrentPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+              }}
               className="rounded-lg border px-4 py-2 text-sm"
             >
               Cancel
@@ -376,7 +474,12 @@ export function ProfileView({ model }) {
             <button
               type="button"
               onClick={() => void handlePassword()}
-              disabled={newPassword.length < 8}
+              disabled={
+                !currentPassword ||
+                newPassword.length < 8 ||
+                !confirmPassword ||
+                confirmPassword !== newPassword
+              }
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white disabled:opacity-50"
             >
               Update Password
