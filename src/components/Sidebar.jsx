@@ -326,7 +326,7 @@ const Sidebar = () => {
               <button
                 aria-label="Sidebar control"
                 className={cn(
-                  'flex items-center gap-2 rounded-md py-2 px-1.5 text-left text-sm text-foreground-lighter transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+                  'flex items-center gap-2 rounded-md py-2 px-2 text-left text-sm text-foreground-lighter transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
                   effectiveCollapsed && !isMobileOpen ? 'w-full justify-center' : 'w-auto'
                 )}
                 title={effectiveCollapsed && !isMobileOpen ? 'Sidebar control' : undefined}
