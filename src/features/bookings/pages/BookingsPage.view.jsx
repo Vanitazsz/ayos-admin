@@ -14,6 +14,8 @@ import Modal from '../../../components/ui/Modal';
 import Pagination from '../../../components/ui/Pagination';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import StatCard from '../../../components/ui/StatCard';
+import Input from '../../../components/ui/Input';
+import Select from '../../../components/ui/Select';
 import {
   Table,
   TableHeader,
@@ -90,23 +92,19 @@ export function BookingsView({ model }) {
 
       {/* Filters and Search */}
       <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="relative w-full sm:w-96">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-foreground-muted" />
-          </div>
-          <input
-            type="text"
+        <div className="w-full sm:w-96">
+          <Input
+            icon={Search}
             aria-label="Search by ID, customer, or service..."
             placeholder="Search by ID, customer, or service..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus:ring-ring focus:border-brand-500 text-sm"
           />
         </div>
-        <div className="flex w-full sm:w-auto items-center gap-2">
-          <Filter size={18} className="text-foreground-lighter" />
-          <select
-            className="border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500"
+        <div className="w-full sm:w-48">
+          <Select
+            icon={Filter}
+            aria-label="Filter bookings by status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -115,7 +113,7 @@ export function BookingsView({ model }) {
             <option value="Ongoing">Ongoing</option>
             <option value="Completed">Completed</option>
             <option value="Cancelled">Cancelled</option>
-          </select>
+          </Select>
         </div>
       </div>
 
