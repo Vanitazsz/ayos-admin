@@ -41,7 +41,7 @@ export function PaymentsView({ model }) {
     setIsDrawerOpen,
     activeTab,
     setActiveTab,
-    filteredTxns,
+    count,
     totalPages,
     paginatedTxns,
     stats,
@@ -255,7 +255,7 @@ export function PaymentsView({ model }) {
             </Table>
           </div>
 
-          {filteredTxns.length > 0 && (
+          {count > 0 && (
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}

@@ -80,7 +80,7 @@ export function UsersView({ model }) {
     handleSaveUser,
     handleToggleStatus,
     handleDelete,
-    filteredUsers,
+    count,
     totalPages,
     currentUsers,
     getStatusBadge,
@@ -124,7 +124,7 @@ export function UsersView({ model }) {
               />
             </div>
             <div className="text-sm text-foreground-lighter font-medium whitespace-nowrap">
-              Showing {currentUsers.length} of {filteredUsers.length} users
+              Showing {currentUsers.length} of {count} users
             </div>
           </CardHeader>
 
@@ -305,7 +305,7 @@ export function UsersView({ model }) {
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
-            totalCount={filteredUsers.length}
+            totalCount={count}
             pageSize={itemsPerPage}
           />
         </Card>

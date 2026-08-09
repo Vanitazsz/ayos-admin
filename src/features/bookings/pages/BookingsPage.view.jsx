@@ -50,7 +50,8 @@ export function BookingsView({ model }) {
     savingAction,
     confirm,
     closeConfirm,
-    filteredBookings,
+    error,
+    count,
     totalPages,
     paginatedBookings,
     stats,
@@ -69,6 +70,15 @@ export function BookingsView({ model }) {
           </p>
         </div>
       </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {error}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -231,7 +241,7 @@ export function BookingsView({ model }) {
         </Table>
       </div>
 
-      {filteredBookings.length > 0 && (
+      {count > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

@@ -1,20 +1,17 @@
 import {
   loadCustomerVerifications,
-  loadUsers,
+  loadUsersPage,
   reviewCustomerVerification,
   setAccountStatus,
   subscribe,
   updateUser,
 } from '../logic/UsersPageLogic';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Badge from '../../../components/ui/Badge';
 import { useToast } from '../../../context/ToastContext';
-import { usePagination } from '../../../hooks/usePagination';
-import { useDebouncedRefresh } from '../../../hooks/useDebouncedRefresh';
+import { useServerPagination } from '../../../hooks/useServerPagination';
 
 export function useUsersPageController() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [activeTab, setActiveTab] = useState('customers');
@@ -22,7 +19,6 @@ export function useUsersPageController() {
   const [selectedVerification, setSelectedVerification] = useState(null);
   const [reviewNotes, setReviewNotes] = useState('');
   const [reviewing, setReviewing] = useState(false);
-  const [loadError, setLoadError] = useState('');
   const [confirm, setConfirm] = useState({
     isOpen: false,
     title: '',
@@ -41,47 +37,52 @@ export function useUsersPageController() {
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const toast = useToast();
-  const { schedule, mark } = useDebouncedRefresh();
 
-  const refresh = useCallback(async () => {
-    setLoadError('');
-    try {
-      const customerRows = await loadUsers();
-      setUsers(customerRows);
-    } catch (error) {
-      setLoadError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to load customer accounts.',
-      );
-    }
+  const fetchUsers = useCallback(
+    ({ page, pageSize }) => loadUsersPage({ search: searchQuery, page, pageSize }),
+    [searchQuery],
+  );
+
+  const {
+    rows: users,
+    count,
+    error,
+    isInitialLoading: isLoading,
+    refresh: refreshUsers,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+  } = useServerPagination({ fetchPage: fetchUsers });
+
+  const loadVerifications = useCallback(async () => {
     try {
       setVerifications(await loadCustomerVerifications());
-    } catch (error) {
+    } catch {
       setVerifications([]);
-      setLoadError(
-        (current) =>
-          current ||
-          (error instanceof Error
-            ? error.message
-            : 'Unable to load customer verifications.'),
-      );
-    } finally {
-      setIsLoading(false);
-      mark();
     }
-  }, [mark]);
+  }, []);
+
+  const refresh = useCallback(async () => {
+    await refreshUsers();
+    await loadVerifications();
+  }, [refreshUsers, loadVerifications]);
+
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
 
   useEffect(() => {
-    void refresh();
     const stops = [
-      subscribe('accounts', () => schedule(refresh)),
-      subscribe('customer_verifications', () => schedule(refresh)),
+      subscribe('accounts', () => {
+        void refreshRef.current();
+      }),
+      subscribe('customer_verifications', () => {
+        void refreshRef.current();
+      }),
     ];
     return () => {
       stops.forEach((stop) => stop());
     };
-  }, [refresh, schedule]);
+  }, []);
 
   const decide = useCallback(
     (decision) => {
@@ -188,24 +189,6 @@ export function useUsersPageController() {
     setDeleteTarget(user);
   }, []);
 
-  const filteredUsers = useMemo(
-    () =>
-      users.filter(
-        (user) =>
-          user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.id.toLowerCase().includes(searchQuery.toLowerCase()),
-      ),
-    [users, searchQuery],
-  );
-
-  const {
-    currentPage,
-    setCurrentPage,
-    totalPages,
-    pageData: currentUsers,
-  } = usePagination(filteredUsers, 10);
-
   const getStatusBadge = useCallback((status) => {
     switch (status) {
       case 'Active':
@@ -235,7 +218,7 @@ export function useUsersPageController() {
       reviewNotes,
       setReviewNotes,
       reviewing,
-      loadError,
+      loadError: error,
       confirm,
       closeConfirm,
       selectedUser,
@@ -259,9 +242,9 @@ export function useUsersPageController() {
       handleSaveUser,
       handleToggleStatus,
       handleDelete,
-      filteredUsers,
+      count,
       totalPages,
-      currentUsers,
+      currentUsers: users,
       getStatusBadge,
     }),
     [
@@ -274,7 +257,7 @@ export function useUsersPageController() {
       selectedVerification,
       reviewNotes,
       reviewing,
-      loadError,
+      error,
       confirm,
       selectedUser,
       isProfileModalOpen,
@@ -291,9 +274,9 @@ export function useUsersPageController() {
       handleSaveUser,
       handleToggleStatus,
       handleDelete,
-      filteredUsers,
+      count,
       totalPages,
-      currentUsers,
+      users,
       getStatusBadge,
       closeConfirm,
       setCurrentPage,

@@ -1,15 +1,13 @@
-import { loadPayments } from '../logic/PaymentsPageLogic';
-import { useState } from 'react';
+import { loadPaymentsPage } from '../logic/PaymentsPageLogic';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { DollarSign, TrendingUp, CreditCard, ArrowDownRight } from 'lucide-react';
-import { useDataFetch } from '../../../hooks/useDataFetch';
 import { money } from '../../../services/adminShared';
-import { useRealtime } from '../../../hooks/useRealtime';
+import { subscribe } from '../../../services/realtime';
 import { PAYMENT_STATUS_BADGE, badgeFor } from '../../../services/statusMeta';
-import { usePagination } from '../../../hooks/usePagination';
+import { useServerPagination } from '../../../hooks/useServerPagination';
+import { useState } from 'react';
 
 export function usePaymentsPageController() {
-  const { data: transactions, isLoading, error, refresh } = useDataFetch(loadPayments, []);
-  useRealtime('payments', refresh);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('All');
   const [selectedTxn, setSelectedTxn] = useState(null);
@@ -17,71 +15,72 @@ export function usePaymentsPageController() {
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [activeTab, setActiveTab] = useState('transactions');
 
-  const filteredTxns = (transactions ?? []).filter((t) => {
-    const matchesSearch =
-      t.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.worker.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'All' || t.type === filterType;
+  const fetchPayments = useCallback(
+    ({ page, pageSize }) =>
+      loadPaymentsPage({ search: searchTerm, type: filterType, tab: activeTab, page, pageSize }),
+    [searchTerm, filterType, activeTab],
+  );
 
-    let matchesTab = true;
-    if (activeTab === 'refunds') matchesTab = t.type === 'Refund';
-    if (activeTab === 'cash') matchesTab = t.method === 'Cash' || t.method === 'Bank Transfer'; // Simulating offline payments
-
-    return matchesSearch && matchesType && matchesTab;
-  });
   const {
+    rows: transactions,
+    count,
+    meta,
+    error,
+    isInitialLoading: isLoading,
+    refresh,
     currentPage,
     setCurrentPage,
     totalPages,
-    pageData: paginatedTxns,
-  } = usePagination(filteredTxns, 10);
-  const stats = [
-    {
-      label: 'Total Revenue',
-      value: money(
-        (transactions ?? [])
-          .filter((t) => t.status === 'Completed')
-          .reduce((sum, t) => sum + t.amount, 0),
-      ),
-      trend: 'Live',
-      icon: <DollarSign className="text-success" />,
-      bg: 'bg-success/10',
-      positive: true,
-    },
-    {
-      label: 'Platform Commission',
-      value: money(
-        (transactions ?? [])
-          .filter((t) => t.status === 'Completed')
-          .reduce((sum, t) => sum + t.fee, 0),
-      ),
-      trend: 'Live',
-      icon: <TrendingUp className="text-brand-500" />,
-      bg: 'bg-brand-500/10',
-      positive: true,
-    },
-    {
-      label: 'Pending Payments',
-      value: money(
-        (transactions ?? [])
-          .filter((t) => t.status === 'Pending')
-          .reduce((sum, t) => sum + t.amount, 0),
-      ),
-      trend: 'Live',
-      icon: <CreditCard className="text-warning" />,
-      bg: 'bg-warning/10',
-      positive: false,
-    },
-    {
-      label: 'Failed Payments',
-      value: (transactions ?? []).filter((t) => t.status === 'Failed').length,
-      trend: 'Live',
-      icon: <ArrowDownRight className="text-destructive" />,
-      bg: 'bg-destructive/10',
-      positive: false,
-    },
-  ];
+  } = useServerPagination({ fetchPage: fetchPayments });
+
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+
+  useEffect(() => {
+    const stop = subscribe('payments', () => {
+      void refreshRef.current();
+    });
+    return stop;
+  }, []);
+
+  const stats = useMemo(() => {
+    const s = meta?.stats;
+    return [
+      {
+        label: 'Total Revenue',
+        value: money(s?.revenue ?? 0),
+        trend: 'Live',
+        icon: <DollarSign className="text-success" />,
+        bg: 'bg-success/10',
+        positive: true,
+      },
+      {
+        label: 'Platform Commission',
+        value: money(s?.commission ?? 0),
+        trend: 'Live',
+        icon: <TrendingUp className="text-brand-500" />,
+        bg: 'bg-brand-500/10',
+        positive: true,
+      },
+      {
+        label: 'Pending Payments',
+        value: money(s?.pending ?? 0),
+        trend: 'Live',
+        icon: <CreditCard className="text-warning" />,
+        bg: 'bg-warning/10',
+        positive: false,
+      },
+      {
+        label: 'Failed Payments',
+        value: s?.failed ?? 0,
+        trend: 'Live',
+        icon: <ArrowDownRight className="text-destructive" />,
+        bg: 'bg-destructive/10',
+        positive: false,
+      },
+    ];
+  }, [meta]);
+
   const getStatusColor = (status) => badgeFor(PAYMENT_STATUS_BADGE, status);
   const handleViewDetails = (txn) => {
     setSelectedTxn(txn);
@@ -104,9 +103,9 @@ export function usePaymentsPageController() {
     setActionMenuOpenId,
     activeTab,
     setActiveTab,
-    filteredTxns,
+    count,
     totalPages,
-    paginatedTxns,
+    paginatedTxns: transactions,
     stats,
     getStatusColor,
     handleViewDetails,

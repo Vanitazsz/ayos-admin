@@ -1,29 +1,65 @@
 import { supabase, status, identity } from './adminShared';
 
-export async function loadUsers() {
-  const { data, error } = await supabase
+export const mapUser = (row) => ({
+  id: row.id,
+  name: row.user_profiles?.display_name?.trim() || row.email?.split('@')[0] || 'Customer',
+  email: row.email,
+  phone: row.mobile ?? '',
+  address: [row.addresses?.[0]?.line1, row.addresses?.[0]?.barangay, row.addresses?.[0]?.city]
+    .filter(Boolean)
+    .join(', '),
+  registeredAt: new Date(row.created_at).toLocaleDateString(),
+  status: status(row.status),
+  bookings: row.user_profiles?.bookings?.[0]?.count ?? 0,
+  verified: row.user_profiles?.verification_status === 'verified',
+  verificationStatus: row.user_profiles?.verification_status ?? 'unverified',
+});
+
+const USER_PAGE_SELECT =
+  'id,email,mobile,status,created_at,user_profiles(display_name,verification_status,bookings!bookings_user_account_id_fkey(count)),addresses(line1,barangay,city)';
+
+const USER_KEY_SELECT = 'id,email,status,created_at,user_profiles(display_name)';
+
+export async function loadUsersPage({ search = '', page = 1, pageSize = 10 } = {}) {
+  const { data: keys, error: keyError } = await supabase
     .from('accounts')
-    .select(
-      'id,email,mobile,status,created_at,user_profiles(display_name,verification_status,bookings!bookings_user_account_id_fkey(count)),addresses(line1,barangay,city)',
-    )
+    .select(USER_KEY_SELECT)
     .eq('role', 'USER')
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
+  if (keyError) throw keyError;
+
+  const term = search.trim().toLowerCase();
+  const matched = term
+    ? (keys ?? []).filter((row) => {
+        const name = row.user_profiles?.display_name ?? '';
+        return (
+          name.toLowerCase().includes(term) ||
+          row.email.toLowerCase().includes(term) ||
+          row.id.toLowerCase().includes(term)
+        );
+      })
+    : (keys ?? []);
+  const count = matched.length;
+  const pageIds = matched
+    .slice((page - 1) * pageSize, page * pageSize)
+    .map((row) => row.id);
+
+  if (!pageIds.length) return { rows: [], count };
+
+  const { data, error } = await supabase
+    .from('accounts')
+    .select(USER_PAGE_SELECT)
+    .eq('role', 'USER')
+    .is('deleted_at', null)
+    .in('id', pageIds);
   if (error) throw error;
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    name: row.user_profiles?.display_name?.trim() || row.email?.split('@')[0] || 'Customer',
-    email: row.email,
-    phone: row.mobile ?? '',
-    address: [row.addresses?.[0]?.line1, row.addresses?.[0]?.barangay, row.addresses?.[0]?.city]
-      .filter(Boolean)
-      .join(', '),
-    registeredAt: new Date(row.created_at).toLocaleDateString(),
-    status: status(row.status),
-    bookings: row.user_profiles?.bookings?.[0]?.count ?? 0,
-    verified: row.user_profiles?.verification_status === 'verified',
-    verificationStatus: row.user_profiles?.verification_status ?? 'unverified',
-  }));
+
+  const byId = new Map((data ?? []).map((row) => [row.id, row]));
+  return {
+    rows: pageIds.map((id) => mapUser(byId.get(id))).filter(Boolean),
+    count,
+  };
 }
 
 export async function loadCustomerVerifications() {

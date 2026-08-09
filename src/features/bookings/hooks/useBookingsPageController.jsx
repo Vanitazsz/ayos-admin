@@ -1,18 +1,17 @@
 import {
   cancelBookingAsAdmin,
-  loadBookings,
+  loadBookingsPage,
   reassignBookingAsAdmin,
   subscribe,
 } from '../logic/BookingsPageLogic';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, Clock, CheckCircle, PlayCircle } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { BOOKING_STATUS_BADGE, badgeFor } from '../../../services/statusMeta';
-import { usePagination } from '../../../hooks/usePagination';
+import { useServerPagination } from '../../../hooks/useServerPagination';
 
 export function useBookingsPageController() {
   const toast = useToast();
-  const [bookings, setBookings] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -33,66 +32,63 @@ export function useBookingsPageController() {
     [],
   );
 
-  useEffect(() => {
-    const refresh = async () => setBookings(await loadBookings());
-    void refresh();
-    return subscribe('bookings', refresh);
-  }, []);
-
-  const filteredBookings = useMemo(
-    () =>
-      bookings.filter((b) => {
-        const matchesSearch =
-          b.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          b.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          b.service.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus =
-          filterStatus === 'All' || b.status === filterStatus;
-        return matchesSearch && matchesStatus;
-      }),
-    [bookings, searchTerm, filterStatus],
+  const fetchBookings = useCallback(
+    ({ page, pageSize }) =>
+      loadBookingsPage({ search: searchTerm, status: filterStatus, page, pageSize }),
+    [searchTerm, filterStatus],
   );
 
   const {
+    rows: bookings,
+    count,
+    meta,
+    error,
+    isInitialLoading: isLoading,
+    refresh,
     currentPage,
     setCurrentPage,
     totalPages,
-    pageData: paginatedBookings,
-  } = usePagination(filteredBookings, 10);
+  } = useServerPagination({ fetchPage: fetchBookings });
 
-  const todayStr = useMemo(() => new Date().toLocaleDateString(), []);
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
 
-  const stats = useMemo(
-    () => [
+  useEffect(() => {
+    const stop = subscribe('bookings', () => {
+      void refreshRef.current();
+    });
+    return stop;
+  }, []);
+
+  const stats = useMemo(() => {
+    const s = meta?.stats;
+    return [
       {
         label: "Today's Bookings",
-        value: bookings.filter((b) => b.date === todayStr).length,
+        value: s?.today ?? 0,
         icon: <Calendar className="text-brand-500" />,
         bg: 'bg-brand-500/10',
       },
       {
         label: 'Pending / Unassigned',
-        value: bookings.filter((b) => b.status === 'Pending').length,
+        value: s?.pending ?? 0,
         icon: <Clock className="text-warning" />,
         bg: 'bg-warning/10',
       },
       {
         label: 'Ongoing Services',
-        value: bookings.filter((b) => b.status === 'Ongoing').length,
+        value: s?.ongoing ?? 0,
         icon: <PlayCircle className="text-info" />,
         bg: 'bg-info/10',
       },
       {
         label: 'Completed Today',
-        value: bookings.filter(
-          (b) => b.status === 'Completed' && b.date === todayStr,
-        ).length,
+        value: s?.completedToday ?? 0,
         icon: <CheckCircle className="text-success" />,
         bg: 'bg-success/10',
       },
-    ],
-    [bookings, todayStr],
-  );
+    ];
+  }, [meta]);
 
   const getStatusColor = useCallback(
     (status) => badgeFor(BOOKING_STATUS_BADGE, status),
@@ -130,14 +126,14 @@ export function useBookingsPageController() {
           actionReason.trim(),
         );
       setAction(null);
-      setBookings(await loadBookings());
+      await refresh();
       setIsDrawerOpen(false);
     } catch (error) {
       toast.error('Action failed', error.message);
     } finally {
       setSavingAction(false);
     }
-  }, [action, actionReason, replacementWorker, toast]);
+  }, [action, actionReason, replacementWorker, refresh, toast]);
 
   const submitAction = useCallback(() => {
     if (!action || actionReason.trim().length < 3) return;
@@ -173,9 +169,12 @@ export function useBookingsPageController() {
       savingAction,
       confirm,
       closeConfirm,
-      filteredBookings,
+      isLoading,
+      error,
+      count,
+      refresh,
       totalPages,
-      paginatedBookings,
+      paginatedBookings: bookings,
       stats,
       getStatusColor,
       toggleActionMenu,
@@ -195,9 +194,12 @@ export function useBookingsPageController() {
       replacementWorker,
       savingAction,
       confirm,
-      filteredBookings,
+      isLoading,
+      error,
+      count,
+      refresh,
       totalPages,
-      paginatedBookings,
+      bookings,
       stats,
       getStatusColor,
       toggleActionMenu,
