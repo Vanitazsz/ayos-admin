@@ -11,9 +11,13 @@ import {
   Eye,
   MapPin,
   Calendar,
+  Clock,
+  User,
+  ArrowLeft,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
-import { formatDateTime } from '../../../services/adminShared';
+import { formatDateTime, money } from '../../../services/adminShared';
+import { badgeFor, BOOKING_STATUS_BADGE } from '../../../services/statusMeta';
 import StatCard from '../../../components/ui/StatCard';
 import Select from '../../../components/ui/Select';
 import {
@@ -46,7 +50,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from '../../../components/ui/DropdownMenu';
 
 export function UsersView({ model }) {
@@ -56,6 +59,8 @@ export function UsersView({ model }) {
     setSearchQuery,
     filterStatus,
     setFilterStatus,
+    filterVerified,
+    setFilterVerified,
     currentPage,
     setCurrentPage,
     activeTab,
@@ -70,12 +75,16 @@ export function UsersView({ model }) {
     confirm,
     closeConfirm,
     selectedUser,
+    avatarUrl,
+    userBookings,
+    isBookingsLoading,
+    activeBooking,
+    setActiveBooking,
     isDrawerOpen,
     setIsDrawerOpen,
-    editUser,
-    setEditUser,
-    isEditModalOpen,
-    setIsEditModalOpen,
+    isEditing,
+    editDraft,
+    setEditDraft,
     isSavingUser,
     actionLoadingId,
     deleteTarget,
@@ -85,9 +94,12 @@ export function UsersView({ model }) {
     refresh,
     decide,
     handleViewProfile,
-    handleEditUser,
+    enterEditMode,
+    cancelEdit,
     handleSaveUser,
     handleToggleStatus,
+    handleToggleVerification,
+    handleViewBooking,
     handleDelete,
     count,
     totalPages,
@@ -140,11 +152,23 @@ export function UsersView({ model }) {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="flex w-full sm:w-auto items-center">
+            <div className="flex w-full sm:w-auto items-center gap-2">
               <div className="w-full sm:w-44">
                 <Select
                   icon={Filter}
-                  aria-label="Filter by status"
+                  aria-label="Filter by verification status"
+                  value={filterVerified}
+                  onChange={(e) => setFilterVerified(e.target.value)}
+                >
+                  <option value="All">All Verifications</option>
+                  <option value="verified">Verified</option>
+                  <option value="unverified">Unverified</option>
+                </Select>
+              </div>
+              <div className="w-full sm:w-40">
+                <Select
+                  icon={ShieldCheck}
+                  aria-label="Filter by account status"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                 >
@@ -295,16 +319,10 @@ export function UsersView({ model }) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuItem
-                              onSelect={() => handleViewProfile(user)}
+                              onSelect={() => void handleViewProfile(user)}
                               className="cursor-pointer"
                             >
-                              <Eye className="mr-2" /> View Profile
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onSelect={() => handleEditUser(user)}
-                              className="cursor-pointer"
-                            >
-                              <Edit className="mr-2" /> Edit User
+                              <Eye className="mr-2" /> More Details
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onSelect={() => void handleToggleStatus(user)}
@@ -313,14 +331,6 @@ export function UsersView({ model }) {
                             >
                               <Ban className="mr-2" />
                               {user.status === 'Active' ? 'Suspend' : 'Reactivate'}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onSelect={() => void handleDelete(user)}
-                              disabled={actionLoadingId === `${user.id}:delete`}
-                              className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
-                            >
-                              <Trash2 className="mr-2" /> Delete Account
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -442,104 +452,307 @@ export function UsersView({ model }) {
       </Modal>
       <Drawer
         isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        title="User Profile"
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setActiveBooking(null);
+          cancelEdit();
+        }}
+        title={activeBooking ? 'Booking Details' : 'More Details'}
+        width="w-[520px]"
       >
-        {selectedUser ? (
+        {activeBooking ? (
+          <div className="space-y-6">
+            <button
+              type="button"
+              onClick={() => setActiveBooking(null)}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground-light transition-colors hover:text-foreground"
+            >
+              <ArrowLeft size={16} /> Back to {selectedUser?.name ?? 'user'}
+            </button>
+
+            <div className="bg-surface-200 p-4 rounded-xl">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">{activeBooking.service}</h3>
+                  <p className="text-sm text-foreground-lighter">{activeBooking.category}</p>
+                </div>
+                <span
+                  className={`shrink-0 inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${badgeFor(BOOKING_STATUS_BADGE, activeBooking.status)}`}
+                >
+                  {activeBooking.status}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+                <div>
+                  <p className="text-foreground-lighter">Date & Time</p>
+                  <p className="font-medium text-foreground">
+                    {activeBooking.date} • {activeBooking.schedule}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-foreground-lighter">Total Price</p>
+                  <p className="font-medium text-foreground">{money(activeBooking.price)}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-foreground-lighter">Service Address</p>
+                  <p className="font-medium text-foreground">
+                    {activeBooking.address || 'Not provided'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                People Involved
+              </h4>
+              <div className="flex justify-between gap-4">
+                <div className="flex-1 bg-card border border-border rounded-lg p-3">
+                  <p className="text-xs text-foreground-lighter mb-1">Customer</p>
+                  <div className="flex items-center">
+                    <div className="h-8 w-8 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-600 text-xs font-bold mr-2">
+                      {activeBooking.customer.charAt(0)}
+                    </div>
+                    <span className="font-medium text-sm">{activeBooking.customer}</span>
+                  </div>
+                </div>
+                <div className="flex-1 bg-card border border-border rounded-lg p-3">
+                  <p className="text-xs text-foreground-lighter mb-1">Assigned Worker</p>
+                  <div className="flex items-center">
+                    {activeBooking.worker ? (
+                      <>
+                        <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center text-success text-xs font-bold mr-2">
+                          {activeBooking.worker.charAt(0)}
+                        </div>
+                        <span className="font-medium text-sm">{activeBooking.worker}</span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-destructive font-medium">Not Assigned</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-6">
+                Booking Timeline
+              </h4>
+              {activeBooking.events?.length ? (
+                <div className="relative border-l border-border ml-3 space-y-8">
+                  {activeBooking.events.map((event, index) => (
+                    <div key={`${event.created_at}-${index}`} className="relative pl-6">
+                      <span className="absolute -left-[5px] top-1 h-2.5 w-2.5 rounded-full bg-brand-600 ring-4 ring-white"></span>
+                      <p className="text-sm font-medium text-foreground">
+                        {event.to_status.replaceAll('_', ' ')}
+                      </p>
+                      <p className="text-xs text-foreground-lighter">
+                        {formatDateTime(event.created_at)}
+                        {event.reason ? ` • ${event.reason}` : ''}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-foreground-lighter">No status events recorded.</p>
+              )}
+            </div>
+
+            {activeBooking.cancellation && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm">
+                <h4 className="font-semibold text-destructive-600 dark:text-destructive-400">
+                  Cancellation
+                </h4>
+                <p className="mt-1 text-destructive">{activeBooking.cancellation.reason}</p>
+                <p className="mt-2 text-destructive">
+                  Refund: {money(Number(activeBooking.cancellation.refund_amount ?? 0))} · Fee:{' '}
+                  {money(Number(activeBooking.cancellation.fee_amount ?? 0))}
+                </p>
+                {activeBooking.refund && (
+                  <p className="mt-1 text-destructive">
+                    Refund status: {activeBooking.refund.status} — {activeBooking.refund.reason}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        ) : selectedUser ? (
           <div className="space-y-6">
             <div className="flex items-center">
-              <div className="h-16 w-16 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-600 font-bold text-2xl">
-                {selectedUser.name.charAt(0)}
-              </div>
-              <div className="ml-4">
-                <h3 className="text-xl font-bold text-foreground">{selectedUser.name}</h3>
-                <p className="text-foreground-lighter">{selectedUser.id}</p>
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={`${selectedUser.name}'s profile photo`}
+                  className="h-16 w-16 rounded-full object-cover border border-border"
+                />
+              ) : (
+                <div className="h-16 w-16 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-600 font-bold text-2xl">
+                  {selectedUser.name.charAt(0)}
+                </div>
+              )}
+              <div className="ml-4 min-w-0">
+                <h3 className="text-xl font-bold text-foreground truncate">{selectedUser.name}</h3>
+                <p className="text-xs text-foreground-lighter font-mono truncate">
+                  {selectedUser.id}
+                </p>
                 <div className="mt-1 flex gap-2">
                   {getStatusBadge(selectedUser.status)}
-                  {selectedUser.verified && (
-                    <Badge variant="primary">
+                  {selectedUser.verified ? (
+                    <Badge variant="success">
                       <ShieldCheck size={12} /> Verified
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">
+                      <ShieldCheck size={12} /> Unverified
                     </Badge>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-border pt-6">
-              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
-                Contact Information
-              </h4>
-              <div className="space-y-3">
-                <div className="flex items-center text-sm text-foreground-light">
-                  <Mail size={16} className="mr-3 text-foreground-muted" /> {selectedUser.email}
-                </div>
-                <div className="flex items-center text-sm text-foreground-light">
-                  <Phone size={16} className="mr-3 text-foreground-muted" /> {selectedUser.phone || 'Not provided'}
-                </div>
-                <div className="flex items-center text-sm text-foreground-light">
-                  <MapPin size={16} className="mr-3 text-foreground-muted" /> {selectedUser.address || 'Not provided'}
-                </div>
-                <div className="flex items-center text-sm text-foreground-light">
-                  <Calendar size={16} className="mr-3 text-foreground-muted" /> Registered{' '}
-                  {selectedUser.registeredAt}
-                </div>
-              </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="secondary" onClick={enterEditMode}>
+                <Edit size={15} /> Edit
+              </Button>
+              <Button
+                size="sm"
+                variant={selectedUser.verified ? 'outline' : 'primary'}
+                onClick={() => void handleToggleVerification(selectedUser)}
+                isLoading={actionLoadingId === `${selectedUser.id}:verification`}
+              >
+                <ShieldCheck size={15} />
+                {selectedUser.verified ? 'Unverify' : 'Verify'}
+              </Button>
+              <Button
+                size="sm"
+                variant={selectedUser.status === 'Active' ? 'warning' : 'primary'}
+                onClick={() => void handleToggleStatus(selectedUser)}
+                isLoading={actionLoadingId === `${selectedUser.id}:status`}
+              >
+                <Ban size={15} />
+                {selectedUser.status === 'Active' ? 'Suspend' : 'Reactivate'}
+              </Button>
             </div>
 
             <div className="border-t border-border pt-6">
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
-                Account Overview
+                Contact Information
               </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-surface-200 p-4 rounded-lg">
-                  <p className="text-xs text-foreground-lighter mb-1">Bookings</p>
-                  <p className="font-semibold text-foreground">{selectedUser.bookings}</p>
+              {isEditing ? (
+                <form onSubmit={handleSaveUser} className="space-y-4">
+                  <Input
+                    label="Name"
+                    required
+                    minLength={2}
+                    maxLength={120}
+                    value={editDraft.name}
+                    onChange={(event) =>
+                      setEditDraft({ ...editDraft, name: event.target.value })
+                    }
+                  />
+                  <Input
+                    label="Email"
+                    value={selectedUser.email}
+                    readOnly
+                    inputClassName="bg-surface-200 text-foreground-lighter"
+                  />
+                  <Input
+                    label="Phone"
+                    value={editDraft.phone}
+                    onChange={(event) =>
+                      setEditDraft({ ...editDraft, phone: event.target.value })
+                    }
+                    placeholder="+639XXXXXXXXX"
+                  />
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button type="button" variant="secondary" onClick={cancelEdit}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" isLoading={isSavingUser}>
+                      Save Changes
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center text-sm text-foreground-light">
+                    <Mail size={16} className="mr-3 text-foreground-muted" /> {selectedUser.email}
+                  </div>
+                  <div className="flex items-center text-sm text-foreground-light">
+                    <Phone size={16} className="mr-3 text-foreground-muted" />{' '}
+                    {selectedUser.phone || 'Not provided'}
+                  </div>
+                  <div className="flex items-center text-sm text-foreground-light">
+                    <MapPin size={16} className="mr-3 text-foreground-muted" />{' '}
+                    {selectedUser.address || 'Not provided'}
+                  </div>
+                  <div className="flex items-center text-sm text-foreground-light">
+                    <Calendar size={16} className="mr-3 text-foreground-muted" /> Registered{' '}
+                    {selectedUser.registeredAt}
+                  </div>
                 </div>
-                <div className="bg-surface-200 p-4 rounded-lg">
-                  <p className="text-xs text-foreground-lighter mb-1">Verification</p>
-                  <p className="font-semibold text-foreground">
-                    {selectedUser.verified ? 'Verified' : 'Unverified'}
-                  </p>
+              )}
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                Bookings
+              </h4>
+              {isBookingsLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-16 w-full rounded-lg" />
+                  <Skeleton className="h-16 w-full rounded-lg" />
                 </div>
-              </div>
+              ) : userBookings.length === 0 ? (
+                <p className="text-sm text-foreground-lighter">No bookings yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {userBookings.map((booking) => (
+                    <button
+                      key={booking.id}
+                      type="button"
+                      onClick={() => handleViewBooking(booking)}
+                      className="w-full text-left rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {booking.service}
+                        </span>
+                        <span
+                          className={`shrink-0 inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${badgeFor(BOOKING_STATUS_BADGE, booking.status)}`}
+                        >
+                          {booking.status}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-foreground-lighter">
+                        <span className="inline-flex items-center">
+                          <User size={12} className="mr-1" /> {booking.worker || 'Unassigned'}
+                        </span>
+                        <span className="inline-flex items-center">
+                          <Calendar size={12} className="mr-1" /> {booking.date}
+                        </span>
+                        <span className="inline-flex items-center">
+                          <Clock size={12} className="mr-1" /> {money(booking.price)}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-destructive uppercase tracking-wider mb-3">
+                Danger Zone
+              </h4>
+              <Button variant="outline-danger" onClick={() => handleDelete(selectedUser)}>
+                <Trash2 size={15} /> Delete Account
+              </Button>
             </div>
           </div>
         ) : null}
       </Drawer>
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User">
-        {editUser ? (
-          <form onSubmit={handleSaveUser} className="space-y-4">
-            <Input
-              label="Name"
-              required
-              minLength={2}
-              maxLength={120}
-              value={editUser.name}
-              onChange={(event) => setEditUser({ ...editUser, name: event.target.value })}
-            />
-            <Input
-              label="Email"
-              value={editUser.email}
-              readOnly
-              inputClassName="bg-surface-200 text-foreground-lighter"
-            />
-            <Input
-              label="Phone"
-              value={editUser.phone}
-              onChange={(event) => setEditUser({ ...editUser, phone: event.target.value })}
-              placeholder="+639XXXXXXXXX"
-            />
-            <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="secondary" onClick={() => setIsEditModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={isSavingUser}>
-                Save Changes
-              </Button>
-            </div>
-          </form>
-        ) : null}
-      </Modal>
       <AccountDeleteModal
         account={deleteTarget}
         onClose={() => setDeleteTarget(null)}

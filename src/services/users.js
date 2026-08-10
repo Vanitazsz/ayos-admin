@@ -13,16 +13,19 @@ export const mapUser = (row) => ({
   bookings: row.user_profiles?.bookings?.[0]?.count ?? 0,
   verified: row.user_profiles?.verification_status === 'verified',
   verificationStatus: row.user_profiles?.verification_status ?? 'unverified',
+  avatarPath: row.user_profiles?.avatar_path ?? null,
 });
 
 const USER_PAGE_SELECT =
-  'id,email,mobile,status,created_at,user_profiles(display_name,verification_status,bookings!bookings_user_account_id_fkey(count)),addresses(line1,barangay,city)';
+  'id,email,mobile,status,created_at,user_profiles(display_name,verification_status,avatar_path,bookings!bookings_user_account_id_fkey(count)),addresses(line1,barangay,city)';
 
-const USER_KEY_SELECT = 'id,email,status,created_at,user_profiles(display_name)';
+const USER_KEY_SELECT =
+  'id,email,status,created_at,user_profiles(display_name,verification_status)';
 
 export async function loadUsersPage({
   search = '',
   status = 'All',
+  verified = 'All',
   page = 1,
   pageSize = 10,
 } = {}) {
@@ -51,8 +54,10 @@ export async function loadUsersPage({
     );
   };
   const matchesStatus = (row) => status === 'All' || row.status === status;
+  const matchesVerified =
+    verified === 'All' || (row.user_profiles?.verification_status ?? 'unverified') === verified;
   const matched = allKeys.filter(
-    (row) => (!term || matchesSearch(row)) && matchesStatus(row),
+    (row) => (!term || matchesSearch(row)) && matchesStatus(row) && matchesVerified,
   );
   const count = matched.length;
   const pageIds = matched
@@ -133,4 +138,23 @@ export async function updateUser(id, displayName, mobile) {
   });
   if (error) throw error;
   return data;
+}
+
+export async function setCustomerVerification(id, status) {
+  const { data, error } = await supabase.rpc('admin_set_customer_verification', {
+    p_account_id: id,
+    p_status: status,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function resolveUserAvatar(path) {
+  if (!path) return '';
+  if (/^https?:\/\//i.test(path)) return path;
+  const { data, error } = await supabase.storage
+    .from('profile-avatars')
+    .createSignedUrl(path, 3600);
+  if (error) throw error;
+  return data.signedUrl;
 }

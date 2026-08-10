@@ -1,8 +1,11 @@
 import {
+  loadBookingsForUser,
   loadCustomerVerifications,
   loadUsersPage,
+  resolveUserAvatar,
   reviewCustomerVerification,
   setAccountStatus,
+  setCustomerVerification,
   subscribe,
   updateUser,
 } from '../logic/UsersPageLogic';
@@ -15,6 +18,7 @@ import { useServerPagination } from '../../../hooks/useServerPagination';
 export function useUsersPageController() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [filterVerified, setFilterVerified] = useState('All');
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [activeTab, setActiveTab] = useState('customers');
   const [verifications, setVerifications] = useState([]);
@@ -33,8 +37,12 @@ export function useUsersPageController() {
   );
   const [selectedUser, setSelectedUser] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [editUser, setEditUser] = useState(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [userBookings, setUserBookings] = useState([]);
+  const [isBookingsLoading, setIsBookingsLoading] = useState(false);
+  const [activeBooking, setActiveBooking] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState({ name: '', phone: '' });
   const [isSavingUser, setIsSavingUser] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -42,8 +50,14 @@ export function useUsersPageController() {
 
   const fetchUsers = useCallback(
     ({ page, pageSize }) =>
-      loadUsersPage({ search: searchQuery, status: filterStatus, page, pageSize }),
-    [searchQuery, filterStatus],
+      loadUsersPage({
+        search: searchQuery,
+        status: filterStatus,
+        verified: filterVerified,
+        page,
+        pageSize,
+      }),
+    [searchQuery, filterStatus, filterVerified],
   );
 
   const {
@@ -156,28 +170,53 @@ export function useUsersPageController() {
     [],
   );
 
-  const handleViewProfile = useCallback((user) => {
+  const handleViewProfile = useCallback(async (user) => {
     setSelectedUser(user);
     setIsDrawerOpen(true);
+    setActiveBooking(null);
     setActionMenuOpenId(null);
+    setAvatarUrl('');
+    try {
+      setAvatarUrl(await resolveUserAvatar(user.avatarPath));
+    } catch {
+      setAvatarUrl('');
+    }
+    setIsBookingsLoading(true);
+    try {
+      setUserBookings(await loadBookingsForUser(user.id));
+    } catch {
+      setUserBookings([]);
+    } finally {
+      setIsBookingsLoading(false);
+    }
   }, []);
 
-  const handleEditUser = useCallback((user) => {
-    setEditUser({ ...user });
-    setIsEditModalOpen(true);
-    setActionMenuOpenId(null);
+  const enterEditMode = useCallback(() => {
+    if (!selectedUser) return;
+    setEditDraft({ name: selectedUser.name, phone: selectedUser.phone });
+    setIsEditing(true);
+  }, [selectedUser]);
+
+  const cancelEdit = useCallback(() => {
+    setIsEditing(false);
+    setEditDraft({ name: '', phone: '' });
+  }, []);
+
+  const syncSelectedUser = useCallback((patch) => {
+    setSelectedUser((current) => (current ? { ...current, ...patch } : current));
   }, []);
 
   const handleSaveUser = useCallback(
     async (event) => {
       event.preventDefault();
-      if (!editUser) return;
+      if (!selectedUser) return;
       setIsSavingUser(true);
       try {
-        await updateUser(editUser.id, editUser.name, editUser.phone);
+        await updateUser(selectedUser.id, editDraft.name, editDraft.phone);
+        syncSelectedUser({ name: editDraft.name.trim(), phone: editDraft.phone });
         await refresh();
-        setIsEditModalOpen(false);
-        toast.success('User updated', `${editUser.name}'s profile was saved.`);
+        setIsEditing(false);
+        toast.success('User updated', `${editDraft.name.trim()}'s profile was saved.`);
       } catch (error) {
         toast.error(
           'Update failed',
@@ -187,8 +226,40 @@ export function useUsersPageController() {
         setIsSavingUser(false);
       }
     },
-    [editUser, refresh, toast],
+    [selectedUser, editDraft, refresh, syncSelectedUser, toast],
   );
+
+  const handleToggleVerification = useCallback(
+    async (user) => {
+      const nextStatus = user.verified ? 'unverified' : 'verified';
+      setActionLoadingId(`${user.id}:verification`);
+      setActionMenuOpenId(null);
+      try {
+        await setCustomerVerification(user.id, nextStatus);
+        syncSelectedUser({
+          verified: nextStatus === 'verified',
+          verificationStatus: nextStatus,
+        });
+        await refresh();
+        toast.success(
+          nextStatus === 'verified' ? 'User verified' : 'Verification removed',
+          `${user.name} is now ${nextStatus === 'verified' ? 'verified' : 'unverified'}.`,
+        );
+      } catch (error) {
+        toast.error(
+          'Verification update failed',
+          error instanceof Error ? error.message : 'Unable to update verification.',
+        );
+      } finally {
+        setActionLoadingId(null);
+      }
+    },
+    [refresh, syncSelectedUser, toast],
+  );
+
+  const handleViewBooking = useCallback((booking) => {
+    setActiveBooking(booking);
+  }, []);
 
   const handleToggleStatus = useCallback(
     async (user) => {
@@ -197,6 +268,7 @@ export function useUsersPageController() {
       setActionMenuOpenId(null);
       try {
         await setAccountStatus(user.id, nextStatus);
+        syncSelectedUser({ status: nextStatus === 'SUSPENDED' ? 'Suspended' : 'Active' });
         await refresh();
         toast.success(
           nextStatus === 'SUSPENDED' ? 'User suspended' : 'User reactivated',
@@ -211,7 +283,7 @@ export function useUsersPageController() {
         setActionLoadingId(null);
       }
     },
-    [refresh, toast],
+    [refresh, syncSelectedUser, toast],
   );
 
   const handleDelete = useCallback((user) => {
@@ -239,6 +311,8 @@ export function useUsersPageController() {
       setSearchQuery,
       filterStatus,
       setFilterStatus,
+      filterVerified,
+      setFilterVerified,
       currentPage,
       setCurrentPage,
       actionMenuOpenId,
@@ -254,12 +328,16 @@ export function useUsersPageController() {
       confirm,
       closeConfirm,
       selectedUser,
+      avatarUrl,
+      userBookings,
+      isBookingsLoading,
+      activeBooking,
+      setActiveBooking,
       isDrawerOpen,
       setIsDrawerOpen,
-      editUser,
-      setEditUser,
-      isEditModalOpen,
-      setIsEditModalOpen,
+      isEditing,
+      editDraft,
+      setEditDraft,
       isSavingUser,
       actionLoadingId,
       deleteTarget,
@@ -270,9 +348,12 @@ export function useUsersPageController() {
       decide,
       toggleActionMenu,
       handleViewProfile,
-      handleEditUser,
+      enterEditMode,
+      cancelEdit,
       handleSaveUser,
       handleToggleStatus,
+      handleToggleVerification,
+      handleViewBooking,
       handleDelete,
       count,
       totalPages,
@@ -284,6 +365,7 @@ export function useUsersPageController() {
       isLoading,
       searchQuery,
       filterStatus,
+      filterVerified,
       currentPage,
       actionMenuOpenId,
       activeTab,
@@ -294,9 +376,13 @@ export function useUsersPageController() {
       error,
       confirm,
       selectedUser,
+      avatarUrl,
+      userBookings,
+      isBookingsLoading,
+      activeBooking,
       isDrawerOpen,
-      editUser,
-      isEditModalOpen,
+      isEditing,
+      editDraft,
       isSavingUser,
       actionLoadingId,
       deleteTarget,
@@ -304,9 +390,12 @@ export function useUsersPageController() {
       decide,
       toggleActionMenu,
       handleViewProfile,
-      handleEditUser,
+      enterEditMode,
+      cancelEdit,
       handleSaveUser,
       handleToggleStatus,
+      handleToggleVerification,
+      handleViewBooking,
       handleDelete,
       count,
       totalPages,
@@ -316,11 +405,12 @@ export function useUsersPageController() {
       closeConfirm,
       setCurrentPage,
       setFilterStatus,
+      setFilterVerified,
       setSelectedVerification,
       setReviewNotes,
       setIsDrawerOpen,
-      setEditUser,
-      setIsEditModalOpen,
+      setActiveBooking,
+      setEditDraft,
       setDeleteTarget,
       toast,
     ],

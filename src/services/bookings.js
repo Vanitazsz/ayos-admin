@@ -111,6 +111,17 @@ export async function loadBookingsPage({
   };
 }
 
+export async function loadBookingsForUser(userId, { limit = 10 } = {}) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(BOOKING_PAGE_SELECT)
+    .eq('user_account_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map(mapBooking);
+}
+
 export async function cancelBookingAsAdmin(id, reason) {
   const { data, error } = await supabase.rpc('admin_cancel_booking', {
     p_booking_id: id,
