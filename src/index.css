@@ -427,6 +427,17 @@
   }
 }
 
+/* A-shaped loader: a bright segment traces the outline of the "A" */
+@keyframes a-loader-dash {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+.a-loader-dash {
+  animation: a-loader-dash 1.2s linear infinite;
+}
+
 /* Scrollbars */
 .custom-scrollbar {
   scrollbar-width: thin;
@@ -533,6 +544,20 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+.animate-trash-pulse {
+  animation: trash-entry-pulse 0.5s ease-in-out 4;
+}
+
+@keyframes trash-entry-pulse {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: var(--background-surface-200);
   }
 }
 

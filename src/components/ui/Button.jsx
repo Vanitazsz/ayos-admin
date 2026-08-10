@@ -47,7 +47,7 @@ const buttonVariants = cva(
 
 const Spinner = ({ className }) => (
   <svg
-    className={cn('size-4 animate-spin text-current', className)}
+    className={cn('size-4 text-current', className)}
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -56,9 +56,13 @@ const Spinner = ({ className }) => (
     strokeLinejoin="round"
     aria-hidden="true"
   >
-    <path d="M12 3L3.5 21" />
-    <path d="M12 3L20.5 21" />
-    <path d="M7 15h10" />
+    <path d="M3.5 21L12 3L20.5 21M7 15L17 15" pathLength="100" className="opacity-25" />
+    <path
+      d="M3.5 21L12 3L20.5 21M7 15L17 15"
+      pathLength="100"
+      strokeDasharray="20 80"
+      className="a-loader-dash"
+    />
   </svg>
 );
 

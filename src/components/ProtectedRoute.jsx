@@ -10,7 +10,7 @@ const ProtectedRoute = ({ children }) => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <svg
-          className="h-12 w-12 animate-spin text-primary"
+          className="h-12 w-12 text-primary"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -19,9 +19,13 @@ const ProtectedRoute = ({ children }) => {
           strokeLinejoin="round"
           aria-hidden="true"
         >
-          <path d="M12 3L3.5 21" />
-          <path d="M12 3L20.5 21" />
-          <path d="M7 15h10" />
+          <path d="M3.5 21L12 3L20.5 21M7 15L17 15" pathLength="100" className="opacity-25" />
+          <path
+            d="M3.5 21L12 3L20.5 21M7 15L17 15"
+            pathLength="100"
+            strokeDasharray="20 80"
+            className="a-loader-dash"
+          />
         </svg>
       </div>
     );
