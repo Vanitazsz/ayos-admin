@@ -16,7 +16,7 @@ const Checkbox = forwardRef(
           checked={checked}
           onCheckedChange={(value) => onCheckedChange?.(value === true)}
           className={cn(
-            'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border border-border-strong bg-card transition-colors',
+            'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-border-strong bg-card transition-colors',
             'data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground',
             'hover:border-foreground-lighter focus-ring',
             'disabled:cursor-not-allowed disabled:opacity-50',
