@@ -10,6 +10,8 @@ import {
   bulkSetCustomerVerification,
   setAccountStatus,
   setCustomerVerification,
+  softDeleteAccount,
+  restoreAccountFromTrash,
   subscribe,
   updateUser,
   updateUserEmail,
@@ -27,6 +29,7 @@ export function useUsersPageController() {
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [activeTab, setActiveTab] = useState('customers');
   const [verifications, setVerifications] = useState([]);
+  const [isVerificationsLoading, setIsVerificationsLoading] = useState(false);
   const [selectedVerification, setSelectedVerification] = useState(null);
   const [reviewNotes, setReviewNotes] = useState('');
   const [reviewing, setReviewing] = useState(false);
@@ -51,7 +54,6 @@ export function useUsersPageController() {
   const [editDraft, setEditDraft] = useState({ name: '', email: '', phone: '' });
   const [isSavingUser, setIsSavingUser] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkAction, setBulkAction] = useState(null);
   const isBulkLoading = bulkAction !== null;
@@ -74,18 +76,24 @@ export function useUsersPageController() {
     count,
     error,
     meta,
-    isInitialLoading: isLoading,
+    isLoading,
     refresh: refreshUsers,
     currentPage,
     setCurrentPage,
     totalPages,
-  } = useServerPagination({ fetchPage: fetchUsers });
+  } = useServerPagination({
+    fetchPage: fetchUsers,
+    filterKey: `${filterStatus}|${filterVerified}`,
+  });
 
   const loadVerifications = useCallback(async () => {
+    setIsVerificationsLoading(true);
     try {
       setVerifications(await loadCustomerVerifications());
     } catch {
       setVerifications([]);
+    } finally {
+      setIsVerificationsLoading(false);
     }
   }, []);
 
@@ -440,10 +448,57 @@ export function useUsersPageController() {
     [refresh, syncSelectedUser, toast],
   );
 
-  const handleDelete = useCallback((user) => {
-    setActionMenuOpenId(null);
-    setDeleteTarget(user);
-  }, []);
+  const handleMoveToTrash = useCallback(
+    (user) => {
+      setActionMenuOpenId(null);
+      setConfirm({
+        isOpen: true,
+        title: 'Move to Trash',
+        message: `Move "${user.name}" to trash? They will be suspended and listed in the Trash page until restored or permanently deleted.`,
+        confirmLabel: 'Move to Trash',
+        onConfirm: async () => {
+          try {
+            await softDeleteAccount(user.id);
+            setIsDrawerOpen(false);
+            await refresh();
+            toast.success('User moved to trash', `${user.name} was suspended and moved to trash.`);
+          } catch (error) {
+            toast.error(
+              'Operation failed',
+              error instanceof Error ? error.message : 'Unable to move user to trash.',
+            );
+          }
+        },
+      });
+    },
+    [refresh, toast],
+  );
+
+  const handleRestore = useCallback(
+    (user) => {
+      setActionMenuOpenId(null);
+      setConfirm({
+        isOpen: true,
+        title: 'Restore User',
+        message: `Restore "${user.name}"? Their account will be reactivated and removed from the Trash page.`,
+        confirmLabel: 'Restore',
+        onConfirm: async () => {
+          try {
+            await restoreAccountFromTrash(user.trashEntryId);
+            setIsDrawerOpen(false);
+            await refresh();
+            toast.success('User restored', `${user.name}'s account was reactivated.`);
+          } catch (error) {
+            toast.error(
+              'Restore failed',
+              error instanceof Error ? error.message : 'Unable to restore user.',
+            );
+          }
+        },
+      });
+    },
+    [refresh, toast],
+  );
 
   const getStatusBadge = useCallback((status) => {
     switch (status) {
@@ -473,6 +528,7 @@ export function useUsersPageController() {
       activeTab,
       setActiveTab,
       verifications,
+      isVerificationsLoading,
       selectedVerification,
       setSelectedVerification,
       reviewNotes,
@@ -495,8 +551,6 @@ export function useUsersPageController() {
       setEditDraft,
       isSavingUser,
       actionLoadingId,
-      deleteTarget,
-      setDeleteTarget,
       selectedIds,
       selectedCount: selectedIds.size,
       isSelectionActive: selectedIds.size > 0,
@@ -514,7 +568,8 @@ export function useUsersPageController() {
       handleToggleStatus,
       handleToggleVerification,
       handleViewBooking,
-      handleDelete,
+      handleMoveToTrash,
+      handleRestore,
       toggleSelectUser,
       selectUser,
       toggleSelectAll,
@@ -536,6 +591,7 @@ export function useUsersPageController() {
       actionMenuOpenId,
       activeTab,
       verifications,
+      isVerificationsLoading,
       selectedVerification,
       reviewNotes,
       reviewing,
@@ -552,7 +608,6 @@ export function useUsersPageController() {
       editDraft,
       isSavingUser,
       actionLoadingId,
-      deleteTarget,
       refresh,
       decide,
       toggleActionMenu,
@@ -563,7 +618,8 @@ export function useUsersPageController() {
       handleToggleStatus,
       handleToggleVerification,
       handleViewBooking,
-      handleDelete,
+      handleMoveToTrash,
+      handleRestore,
       toggleSelectUser,
       selectUser,
       toggleSelectAll,
@@ -587,7 +643,6 @@ export function useUsersPageController() {
       setIsDrawerOpen,
       setActiveBooking,
       setEditDraft,
-      setDeleteTarget,
       toast,
     ],
   );

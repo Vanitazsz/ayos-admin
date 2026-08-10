@@ -19,6 +19,7 @@ import {
   UserCheck,
   ArrowLeft,
   X,
+  ArchiveRestore,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { formatDateTime, money } from '../../../services/adminShared';
@@ -45,10 +46,10 @@ import {
   TabsContent,
 } from '../../../components/ui/Tabs';
 import Skeleton from '../../../components/ui/Skeleton';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 import Modal from '../../../components/ui/Modal';
 import Drawer from '../../../components/ui/Drawer';
 import { Badge } from '../../../components/ui/Badge';
-import AccountDeleteModal from '../../../components/admin/AccountDeleteModal';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import {
   DropdownMenu,
@@ -71,6 +72,7 @@ export function UsersView({ model }) {
     activeTab,
     setActiveTab,
     verifications,
+    isVerificationsLoading,
     selectedVerification,
     setSelectedVerification,
     reviewNotes,
@@ -93,8 +95,6 @@ export function UsersView({ model }) {
     setEditDraft,
     isSavingUser,
     actionLoadingId,
-    deleteTarget,
-    setDeleteTarget,
     selectedIds,
     selectedCount,
     isSelectionActive,
@@ -106,9 +106,7 @@ export function UsersView({ model }) {
     clearSelection,
     handleBulkStatus,
     handleBulkVerification,
-    toast,
     itemsPerPage,
-    refresh,
     decide,
     handleViewProfile,
     enterEditMode,
@@ -117,7 +115,8 @@ export function UsersView({ model }) {
     handleToggleStatus,
     handleToggleVerification,
     handleViewBooking,
-    handleDelete,
+    handleMoveToTrash,
+    handleRestore,
     count,
     totalPages,
     currentUsers,
@@ -200,6 +199,7 @@ export function UsersView({ model }) {
                   <option value="All">All Statuses</option>
                   <option value="ACTIVE">Active</option>
                   <option value="SUSPENDED">Suspended</option>
+                  <option value="Trashed">Trashed</option>
                 </Select>
               </div>
             </div>
@@ -294,46 +294,37 @@ export function UsersView({ model }) {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  // Skeleton Rows
-                  Array.from({ length: 5 }).map((_, idx) => (
-                    <TableRow key={idx}>
-                      {isSelectionActive ? (
-                        <TableCell className="text-center">
-                          <Skeleton className="h-4 w-4 rounded" />
-                        </TableCell>
-                      ) : null}
-                      <TableCell>
-                        <div className="flex items-center">
-                          <Skeleton className="w-10 h-10 rounded-full mr-3 shrink-0" />
-                          <div className="space-y-2">
-                            <Skeleton className="h-4 w-32" />
-                            <Skeleton className="h-3 w-20" />
+                  <TableSkeleton
+                    rows={6}
+                    withSelect={isSelectionActive}
+                    columns={[
+                      {
+                        children: (
+                          <div className="flex items-center">
+                            <Skeleton className="w-10 h-10 rounded-full mr-3 shrink-0" />
+                            <div className="space-y-2">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-20" />
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-40" />
-                          <Skeleton className="h-4 w-32" />
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <Skeleton className="h-4 w-24" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-6 w-10 rounded-md" />
-                      </TableCell>
-                      <TableCell className="hidden xl:table-cell">
-                        <Skeleton className="h-6 w-20 rounded-full" />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Skeleton className="h-8 w-8 rounded-lg" />
-                          <Skeleton className="h-8 w-8 rounded-lg" />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        ),
+                      },
+                      { className: 'hidden lg:table-cell' },
+                      { className: 'hidden lg:table-cell' },
+                      {},
+                      { className: 'hidden xl:table-cell' },
+                      {},
+                      {
+                        className: 'text-right',
+                        children: (
+                          <div className="flex justify-end space-x-2">
+                            <Skeleton className="h-8 w-8 rounded-lg" />
+                            <Skeleton className="h-8 w-8 rounded-lg" />
+                          </div>
+                        ),
+                      },
+                    ]}
+                  />
                 ) : currentUsers.length === 0 ? (
                   <TableRow hover={false}>
                     <TableCell colSpan={isSelectionActive ? 8 : 7} className="h-64 text-center">
@@ -355,7 +346,7 @@ export function UsersView({ model }) {
                     <TableRow
                       key={user.id}
                       onClick={() => handleViewProfile(user)}
-                      className="cursor-pointer"
+                      className={`cursor-pointer ${user.isTrashed ? 'opacity-55 grayscale' : ''}`}
                     >
                       {isSelectionActive ? (
                         <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
@@ -482,34 +473,37 @@ export function UsersView({ model }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {verifications.map((verification) => (
-                  <TableRow key={verification.id}>
-                    <TableCell>
-                      <div className="font-medium text-foreground">{verification.customerName}</div>
-                      <div className="text-xs text-foreground-lighter">{verification.email}</div>
-                    </TableCell>
-                    <TableCell>{verification.id_type.replaceAll('_', ' ')}</TableCell>
-                    <TableCell>{formatDateTime(verification.created_at)}</TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedVerification(verification);
-                          setReviewNotes('');
-                        }}
-                      >
-                        <Eye size={15} className="mr-1" /> Review
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {!verifications.length ? (
+                {isVerificationsLoading ? (
+                  <TableSkeleton rows={4} columns={4} />
+                ) : verifications.length ? (
+                  verifications.map((verification) => (
+                    <TableRow key={verification.id}>
+                      <TableCell>
+                        <div className="font-medium text-foreground">{verification.customerName}</div>
+                        <div className="text-xs text-foreground-lighter">{verification.email}</div>
+                      </TableCell>
+                      <TableCell>{verification.id_type.replaceAll('_', ' ')}</TableCell>
+                      <TableCell>{formatDateTime(verification.created_at)}</TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setSelectedVerification(verification);
+                            setReviewNotes('');
+                          }}
+                        >
+                          <Eye size={15} className="mr-1" /> Review
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
                   <TableRow>
                     <TableCell colSpan={4} className="py-12 text-center text-foreground-lighter">
                       No pending customer verifications.
                     </TableCell>
                   </TableRow>
-                ) : null}
+                )}
               </TableBody>
             </Table>
           </Card>
@@ -780,27 +774,35 @@ export function UsersView({ model }) {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="secondary" onClick={enterEditMode}>
-                <Edit size={15} /> Edit
-              </Button>
-              <Button
-                size="sm"
-                variant={selectedUser.verified ? 'outline' : 'primary'}
-                onClick={() => void handleToggleVerification(selectedUser)}
-                isLoading={actionLoadingId === `${selectedUser.id}:verification`}
-              >
-                <ShieldCheck size={15} />
-                {selectedUser.verified ? 'Unverify' : 'Verify'}
-              </Button>
-              <Button
-                size="sm"
-                variant={selectedUser.status === 'Active' ? 'warning' : 'primary'}
-                onClick={() => void handleToggleStatus(selectedUser)}
-                isLoading={actionLoadingId === `${selectedUser.id}:status`}
-              >
-                <Ban size={15} />
-                {selectedUser.status === 'Active' ? 'Suspend' : 'Reactivate'}
-              </Button>
+              {selectedUser.isTrashed ? (
+                <Button size="sm" variant="secondary" onClick={() => handleRestore(selectedUser)}>
+                  <ArchiveRestore size={15} /> Restore
+                </Button>
+              ) : (
+                <>
+                  <Button size="sm" variant="secondary" onClick={enterEditMode}>
+                    <Edit size={15} /> Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedUser.verified ? 'outline' : 'primary'}
+                    onClick={() => void handleToggleVerification(selectedUser)}
+                    isLoading={actionLoadingId === `${selectedUser.id}:verification`}
+                  >
+                    <ShieldCheck size={15} />
+                    {selectedUser.verified ? 'Unverify' : 'Verify'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedUser.status === 'Active' ? 'warning' : 'primary'}
+                    onClick={() => void handleToggleStatus(selectedUser)}
+                    isLoading={actionLoadingId === `${selectedUser.id}:status`}
+                  >
+                    <Ban size={15} />
+                    {selectedUser.status === 'Active' ? 'Suspend' : 'Reactivate'}
+                  </Button>
+                </>
+              )}
             </div>
 
             <div className="border-t border-border pt-6">
@@ -995,35 +997,26 @@ export function UsersView({ model }) {
               )}
             </div>
 
-            <div className="border-t border-border pt-6">
-              <h4 className="text-sm font-semibold text-destructive uppercase tracking-wider mb-3">
-                Danger Zone
-              </h4>
-              <Button variant="outline-danger" onClick={() => handleDelete(selectedUser)}>
-                <Trash2 size={15} /> Delete Account
-              </Button>
-            </div>
+            {!selectedUser.isTrashed && (
+              <div className="border-t border-border pt-6">
+                <h4 className="text-sm font-semibold text-destructive uppercase tracking-wider mb-3">
+                  Danger Zone
+                </h4>
+                <Button variant="outline-danger" onClick={() => handleMoveToTrash(selectedUser)}>
+                  <Trash2 size={15} /> Move to trash
+                </Button>
+              </div>
+            )}
           </div>
         ) : null}
       </Drawer>
-      <AccountDeleteModal
-        account={deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onDeleted={async (deletedUser) => {
-          await refresh();
-          toast.success(
-            'User deleted',
-            `${deletedUser.name} and all related records were permanently deleted.`,
-          );
-        }}
-      />
       <ConfirmModal
         isOpen={confirm.isOpen}
         onClose={closeConfirm}
         title={confirm.title}
         message={confirm.message}
         onConfirm={confirm.onConfirm}
-        confirmLabel="Yes"
+        confirmLabel={confirm.confirmLabel || 'Yes'}
         variant="danger"
       />
     </div>
