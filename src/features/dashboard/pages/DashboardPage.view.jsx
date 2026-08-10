@@ -22,6 +22,7 @@ import {
 import Badge from '../../../components/ui/Badge';
 import Skeleton from '../../../components/ui/Skeleton';
 import EmptyState from '../../../components/ui/EmptyState';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 import StatCard from '../../../components/ui/StatCard';
 import { Button } from '../../../components/ui/Button';
 import {
@@ -41,6 +42,7 @@ import {
 } from '../../../components/ui/Table';
 import { cn } from '../../../lib/utils';
 import { money } from '../../../services/adminShared';
+import { Link } from 'react-router-dom';
 import {
   Bar,
   BarChart,
@@ -367,9 +369,10 @@ export function DashboardView({ model }) {
         </div>
 
         {/* Daily Bookings */}
-        <div
+        <Link
+          to="/admin/bookings"
           data-testid="bookings-chart"
-          className="flex flex-col overflow-hidden rounded-lg border border-border bg-surface-100 shadow-sm lg:col-span-3"
+          className="flex flex-col cursor-pointer overflow-hidden rounded-lg border border-border bg-surface-100 shadow-sm transition-colors focus-ring hover:border-border-strong hover:bg-surface-200/50 lg:col-span-3"
         >
           <div className="flex h-8 shrink-0 items-center justify-between gap-2 px-3">
             <div className="flex min-w-0 items-center gap-2">
@@ -445,7 +448,7 @@ export function DashboardView({ model }) {
               </div>
             )}
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Tables Section */}
@@ -507,41 +510,51 @@ export function DashboardView({ model }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pendingWorkers.map((worker) => (
-                    <TableRow key={worker.id}>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-full bg-surface-300 mr-3 flex items-center justify-center text-xs font-bold text-foreground-lighter">
-                            {worker.name.charAt(0)}
+                  {isLoading ? (
+                    <TableSkeleton rows={4} columns={[{}, {}, {}, { className: 'text-right' }]} />
+                  ) : pendingWorkers.length > 0 ? (
+                    pendingWorkers.map((worker) => (
+                      <TableRow key={worker.id}>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 rounded-full bg-surface-300 mr-3 flex items-center justify-center text-xs font-bold text-foreground-lighter">
+                              {worker.name.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-medium text-foreground">{worker.name}</div>
+                              <div className="text-foreground-lighter text-xs">{worker.email}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="font-medium text-foreground">{worker.name}</div>
-                            <div className="text-foreground-lighter text-xs">{worker.email}</div>
+                        </TableCell>
+                        <TableCell className="text-foreground-light">{worker.category}</TableCell>
+                        <TableCell className="text-foreground-lighter">{worker.registeredDate}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            <button
+                              onClick={() => handleReviewWorker(worker, 'APPROVED')}
+                              className="text-success hover:bg-success/10 p-1.5 rounded-md transition-colors"
+                              title="Approve"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleReviewWorker(worker, 'REJECTED')}
+                              className="text-danger hover:bg-danger/10 p-1.5 rounded-md transition-colors"
+                              title="Reject"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-foreground-light">{worker.category}</TableCell>
-                      <TableCell className="text-foreground-lighter">{worker.registeredDate}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => handleReviewWorker(worker, 'APPROVED')}
-                            className="text-success hover:bg-success/10 p-1.5 rounded-md transition-colors"
-                            title="Approve"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleReviewWorker(worker, 'REJECTED')}
-                            className="text-danger hover:bg-danger/10 p-1.5 rounded-md transition-colors"
-                            title="Reject"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow hover={false}>
+                      <TableCell colSpan="4" className="py-6 text-center text-foreground-lighter">
+                        No workers awaiting verification.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
           </CardContent>
