@@ -21,6 +21,7 @@ import {
   CheckCheck,
   X,
   Coins,
+  ArchiveRestore,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
@@ -32,6 +33,8 @@ import Button from '../../../components/ui/Button';
 import Checkbox from '../../../components/ui/Checkbox';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import StatCard from '../../../components/ui/StatCard';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
+import Skeleton from '../../../components/ui/Skeleton';
 import { Badge } from '../../../components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import {
@@ -40,7 +43,6 @@ import {
   TabsTrigger,
 } from '../../../components/ui/Tabs';
 import { money, moneyFromMinor } from '../../../services/adminShared';
-import AccountDeleteModal from '../../../components/admin/AccountDeleteModal';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -63,8 +65,6 @@ export function WorkersView({ model }) {
     selectedWorker,
     isDrawerOpen,
     setIsDrawerOpen,
-    workerToDelete,
-    setWorkerToDelete,
     activeTab,
     setActiveTab,
     isRemarksModalOpen,
@@ -84,7 +84,6 @@ export function WorkersView({ model }) {
     setWorkerRate,
     isLoading,
     loadError,
-    refresh,
     needsReview,
     filteredWorkers,
     totalPages,
@@ -93,7 +92,8 @@ export function WorkersView({ model }) {
     handleViewDetails,
     handleEditWorker,
     handleSaveWorker,
-    handleDeleteClick,
+    handleMoveToTrash,
+    handleRestore,
     toggleStatus,
     toggleWorkerVerification,
     approveWorker,
@@ -186,6 +186,7 @@ export function WorkersView({ model }) {
               <option value="Active">Active</option>
               <option value="Suspended">Suspended</option>
               <option value="Pending">Pending</option>
+              <option value="Trashed">Trashed</option>
             </Select>
           </div>
         </div>
@@ -302,17 +303,43 @@ export function WorkersView({ model }) {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow hover={false}>
-                <TableCell colSpan={isSelectionActive ? 8 : 7} className="text-center text-foreground-lighter">
-                  Loading workers…
-                </TableCell>
-              </TableRow>
+              <TableSkeleton
+                rows={6}
+                withSelect={isSelectionActive}
+                columns={[
+                  {
+                    children: (
+                      <div className="flex items-center">
+                        <Skeleton className="w-10 h-10 rounded-full mr-3 shrink-0" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {},
+                  {},
+                  { className: 'hidden xl:table-cell' },
+                  { className: 'hidden lg:table-cell' },
+                  {},
+                  {
+                    className: 'text-right',
+                    children: (
+                      <div className="flex justify-end space-x-2">
+                        <Skeleton className="h-8 w-8 rounded-lg" />
+                        <Skeleton className="h-8 w-8 rounded-lg" />
+                      </div>
+                    ),
+                  },
+                ]}
+              />
             ) : paginatedWorkers.length > 0 ? (
               paginatedWorkers.map((worker) => (
                 <TableRow
                   key={worker.id}
                   onClick={() => handleViewDetails(worker)}
-                  className="cursor-pointer"
+                  className={`cursor-pointer ${worker.isTrashed ? 'opacity-55 grayscale' : ''}`}
                 >
                   {isSelectionActive ? (
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
@@ -463,12 +490,21 @@ export function WorkersView({ model }) {
                           {worker.status === 'Active' ? 'Suspend' : 'Reactivate'}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onSelect={() => handleDeleteClick(worker)}
-                          className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
-                        >
-                          <Trash2 className="mr-2" /> Delete Worker
-                        </DropdownMenuItem>
+                        {worker.isTrashed ? (
+                          <DropdownMenuItem
+                            onSelect={() => handleRestore(worker)}
+                            className="cursor-pointer"
+                          >
+                            <ArchiveRestore className="mr-2" /> Restore
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            onSelect={() => handleMoveToTrash(worker)}
+                            className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
+                          >
+                            <Trash2 className="mr-2" /> Move to trash
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -527,24 +563,35 @@ export function WorkersView({ model }) {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant={selectedWorker.verified ? 'outline' : 'primary'}
-                onClick={() => void toggleWorkerVerification(selectedWorker)}
-                isLoading={actionLoadingId === `${selectedWorker.id}:verification`}
-              >
-                <ShieldCheck size={15} />
-                {selectedWorker.verified ? 'Unverify' : 'Verify'}
-              </Button>
-              <Button
-                size="sm"
-                variant={selectedWorker.status === 'Active' ? 'warning' : 'primary'}
-                onClick={() => void toggleStatus(selectedWorker)}
-                isLoading={actionLoadingId === `${selectedWorker.id}:status`}
-              >
-                <Ban size={15} />
-                {selectedWorker.status === 'Active' ? 'Suspend' : 'Reactivate'}
-              </Button>
+              {selectedWorker.isTrashed ? (
+                <Button size="sm" variant="secondary" onClick={() => handleRestore(selectedWorker)}>
+                  <ArchiveRestore size={15} /> Restore
+                </Button>
+              ) : (
+                <>
+                  <Button size="sm" variant="secondary" onClick={() => handleEditWorker(selectedWorker)}>
+                    <Edit size={15} /> Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedWorker.verified ? 'outline' : 'primary'}
+                    onClick={() => void toggleWorkerVerification(selectedWorker)}
+                    isLoading={actionLoadingId === `${selectedWorker.id}:verification`}
+                  >
+                    <ShieldCheck size={15} />
+                    {selectedWorker.verified ? 'Unverify' : 'Verify'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedWorker.status === 'Active' ? 'warning' : 'primary'}
+                    onClick={() => void toggleStatus(selectedWorker)}
+                    isLoading={actionLoadingId === `${selectedWorker.id}:status`}
+                  >
+                    <Ban size={15} />
+                    {selectedWorker.status === 'Active' ? 'Suspend' : 'Reactivate'}
+                  </Button>
+                </>
+              )}
             </div>
 
             <div className="border-t border-border pt-6">
@@ -606,7 +653,7 @@ export function WorkersView({ model }) {
               {(selectedWorker.skills?.length ?? 0) > 0 && (
                 <div className="mt-4">
                   <p className="mb-2 text-xs text-foreground-lighter">Skills & Rates</p>
-                  <div className="space-y-2">
+                  <div className="max-h-64 space-y-2 overflow-y-auto pr-1 custom-scrollbar">
                     {selectedWorker.skills.map((skill) => (
                       <div
                         key={skill.id}
@@ -675,6 +722,17 @@ export function WorkersView({ model }) {
                 </div>
               )}
             </div>
+
+            {!selectedWorker.isTrashed && (
+              <div className="border-t border-border pt-6">
+                <h4 className="text-sm font-semibold text-destructive uppercase tracking-wider mb-3">
+                  Danger Zone
+                </h4>
+                <Button variant="outline-danger" onClick={() => handleMoveToTrash(selectedWorker)}>
+                  <Trash2 size={15} /> Move to trash
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </Drawer>
@@ -825,21 +883,13 @@ export function WorkersView({ model }) {
         )}
       </Drawer>
 
-      <AccountDeleteModal
-        account={workerToDelete}
-        onClose={() => setWorkerToDelete(null)}
-        onDeleted={async () => {
-          await refresh();
-        }}
-      />
-
       <ConfirmModal
         isOpen={confirm.isOpen}
         onClose={closeConfirm}
         title={confirm.title}
         message={confirm.message}
         onConfirm={confirm.onConfirm}
-        confirmLabel="Yes"
+        confirmLabel={confirm.confirmLabel || 'Yes'}
         variant="danger"
       />
 

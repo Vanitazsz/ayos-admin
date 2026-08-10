@@ -5,6 +5,8 @@ import {
   loadWorkers,
   reviewWorker,
   setAccountStatus,
+  softDeleteAccount,
+  restoreAccountFromTrash,
   updateWorker,
   updateWorkerEmail,
   loadCatalog,
@@ -24,7 +26,6 @@ export function useWorkersPageController() {
   const [filterVerified, setFilterVerified] = useState('All');
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [workerToDelete, setWorkerToDelete] = useState(null);
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
   const [isRemarksModalOpen, setIsRemarksModalOpen] = useState(false);
@@ -109,7 +110,11 @@ export function useWorkersPageController() {
       (w.categories ?? []).join(' ').toLowerCase().includes(searchTerm.toLowerCase()) ||
       w.category.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus =
-          filterStatus === 'All' || w.status === filterStatus;
+          filterStatus === 'All' || filterStatus === 'Trashed'
+            ? filterStatus === 'Trashed'
+              ? w.isTrashed
+              : true
+            : w.status === filterStatus;
         const matchesVerified =
           filterVerified === 'All' ||
           (filterVerified === 'verified' ? w.verified : !w.verified);
@@ -294,6 +299,7 @@ export function useWorkersPageController() {
       experience: worker.experience ?? '',
     });
     setIsEditDrawerOpen(true);
+    setIsDrawerOpen(false);
     setActionMenuOpenId(null);
   }, []);
 
@@ -398,10 +404,57 @@ export function useWorkersPageController() {
     [editWorker, saveWorker, toast],
   );
 
-  const handleDeleteClick = useCallback((worker) => {
-    setWorkerToDelete(worker);
-    setActionMenuOpenId(null);
-  }, []);
+  const handleMoveToTrash = useCallback(
+    (worker) => {
+      setActionMenuOpenId(null);
+      setConfirm({
+        isOpen: true,
+        title: 'Move to Trash',
+        message: `Move "${worker.name}" to trash? They will be suspended and listed in the Trash page until restored or permanently deleted.`,
+        confirmLabel: 'Move to Trash',
+        onConfirm: async () => {
+          try {
+            await softDeleteAccount(worker.id);
+            setIsDrawerOpen(false);
+            await refresh();
+            toast.success('Worker moved to trash', `${worker.name} was suspended and moved to trash.`);
+          } catch (error) {
+            toast.error(
+              'Operation failed',
+              error instanceof Error ? error.message : 'Unable to move worker to trash.',
+            );
+          }
+        },
+      });
+    },
+    [refresh, toast],
+  );
+
+  const handleRestore = useCallback(
+    (worker) => {
+      setActionMenuOpenId(null);
+      setConfirm({
+        isOpen: true,
+        title: 'Restore Worker',
+        message: `Restore "${worker.name}"? Their account will be reactivated and removed from the Trash page.`,
+        confirmLabel: 'Restore',
+        onConfirm: async () => {
+          try {
+            await restoreAccountFromTrash(worker.trashEntryId);
+            setIsDrawerOpen(false);
+            await refresh();
+            toast.success('Worker restored', `${worker.name}'s account was reactivated.`);
+          } catch (error) {
+            toast.error(
+              'Restore failed',
+              error instanceof Error ? error.message : 'Unable to restore worker.',
+            );
+          }
+        },
+      });
+    },
+    [refresh, toast],
+  );
 
   const toggleStatus = useCallback(
     async (worker) => {
@@ -506,8 +559,6 @@ export function useWorkersPageController() {
       selectedWorker,
       isDrawerOpen,
       setIsDrawerOpen,
-      workerToDelete,
-      setWorkerToDelete,
       actionMenuOpenId,
       activeTab,
       setActiveTab,
@@ -540,7 +591,8 @@ export function useWorkersPageController() {
       handleViewDetails,
       handleEditWorker,
       handleSaveWorker,
-      handleDeleteClick,
+      handleMoveToTrash,
+      handleRestore,
       toggleStatus,
       toggleWorkerVerification,
       approveWorker,
@@ -569,7 +621,6 @@ export function useWorkersPageController() {
       currentPage,
       selectedWorker,
       isDrawerOpen,
-      workerToDelete,
       actionMenuOpenId,
       activeTab,
       isRemarksModalOpen,
@@ -597,7 +648,8 @@ export function useWorkersPageController() {
       handleViewDetails,
       handleEditWorker,
       handleSaveWorker,
-      handleDeleteClick,
+      handleMoveToTrash,
+      handleRestore,
       toggleStatus,
       toggleWorkerVerification,
       approveWorker,
@@ -621,7 +673,6 @@ export function useWorkersPageController() {
       setFilterVerified,
       setCurrentPage,
       setIsDrawerOpen,
-      setWorkerToDelete,
       setActiveTab,
       setIsRemarksModalOpen,
       setRemarks,

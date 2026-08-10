@@ -1,6 +1,8 @@
 export {
   bulkSetWorkerStatus,
   setAccountStatus,
+  softDeleteAccount,
+  restoreAccountFromTrash,
 } from '../../../services/accounts';
 export { subscribe } from '../../../services/realtime';
 export {
