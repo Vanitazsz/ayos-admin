@@ -155,7 +155,7 @@ export function UsersView({ model }) {
             <div className="flex w-full sm:w-auto items-center gap-2">
               <div className="w-full sm:w-44">
                 <Select
-                  icon={Filter}
+                  icon={ShieldCheck}
                   aria-label="Filter by verification status"
                   value={filterVerified}
                   onChange={(e) => setFilterVerified(e.target.value)}
@@ -167,7 +167,7 @@ export function UsersView({ model }) {
               </div>
               <div className="w-full sm:w-40">
                 <Select
-                  icon={ShieldCheck}
+                  icon={Filter}
                   aria-label="Filter by account status"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
