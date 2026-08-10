@@ -121,20 +121,20 @@ export function LoginView({ model }) {
 
           <div className="text-center text-balance">
             <p className="text-xs text-foreground-lighter sm:mx-auto sm:max-w-sm">
-              By continuing, you agree to A-yos&apos;s{' '}
-              <a
-                href="#"
+              By continuing, you agree to A-yos Admin&apos;s{' '}
+              <Link
+                to="/terms"
                 className="underline transition decoration-inherit hover:decoration-foreground text-inherit hover:text-foreground"
               >
                 Terms of Service
-              </a>{' '}
+              </Link>{' '}
               and{' '}
-              <a
-                href="#"
+              <Link
+                to="/privacy"
                 className="underline transition decoration-inherit hover:decoration-foreground text-inherit hover:text-foreground"
               >
                 Privacy Policy
-              </a>
+              </Link>
               .
             </p>
             <div className="mt-2 flex items-center justify-center text-xs text-foreground-lighter">

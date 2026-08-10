@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Mail, Phone, MapPin, Shield, Camera, CheckCircle, Clock, Monitor, ChevronDown } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Mail, Phone, MapPin, Shield, Camera, CheckCircle, Clock, Monitor, ChevronDown, FileText, ShieldCheck } from 'lucide-react';
 import Modal from '../../../components/ui/Modal';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import { formatDate, formatDateTime } from '../../../services/adminShared';
@@ -200,6 +201,32 @@ export function ProfileView({ model }) {
                     : 'No verified factors'}
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+            <h3 className="font-bold text-foreground mb-4 flex items-center">
+              <FileText size={18} className="mr-2 text-brand-500" /> Legal
+            </h3>
+            <div className="space-y-3">
+              <Link
+                to="/terms"
+                className="flex items-center justify-between w-full text-sm bg-card border border-border-strong text-foreground-light py-2 px-3 rounded-lg font-medium hover:bg-surface-200 transition-colors"
+              >
+                <span className="flex items-center">
+                  <ShieldCheck size={16} className="mr-2 text-foreground-muted" /> Terms of Service
+                </span>
+                <ChevronDown size={16} className="text-foreground-muted rotate-[-90deg]" />
+              </Link>
+              <Link
+                to="/privacy"
+                className="flex items-center justify-between w-full text-sm bg-card border border-border-strong text-foreground-light py-2 px-3 rounded-lg font-medium hover:bg-surface-200 transition-colors"
+              >
+                <span className="flex items-center">
+                  <ShieldCheck size={16} className="mr-2 text-foreground-muted" /> Privacy Policy
+                </span>
+                <ChevronDown size={16} className="text-foreground-muted rotate-[-90deg]" />
+              </Link>
             </div>
           </div>
         </div>

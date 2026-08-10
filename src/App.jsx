@@ -6,6 +6,8 @@ import Skeleton from './components/ui/Skeleton';
 
 const Login = React.lazy(() => import('./pages/auth/Login'));
 const ForgotPassword = React.lazy(() => import('./pages/auth/ForgotPassword'));
+const Terms = React.lazy(() => import('./pages/legal/Terms'));
+const Privacy = React.lazy(() => import('./pages/legal/Privacy'));
 const Dashboard = React.lazy(() => import('./pages/admin/Dashboard'));
 const Users = React.lazy(() => import('./pages/admin/Users'));
 const Workers = React.lazy(() => import('./pages/admin/Workers'));
@@ -41,6 +43,8 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
 
           {/* Redirect Root to Dashboard */}
           <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
