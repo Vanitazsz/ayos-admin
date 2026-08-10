@@ -8,7 +8,7 @@ const errorMessage = (error) =>
     : [error?.message, error?.details, error?.hint, error?.code].filter(Boolean).join(' | ') ||
       'Unable to permanently delete account.';
 
-export function useAccountDeletion({ account, onClose, onDeleted }) {
+export function useAccountDeletion({ account, onClose, onDeleted, onDelete }) {
   const [preview, setPreview] = useState(null);
   const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState('');
@@ -46,7 +46,8 @@ export function useAccountDeletion({ account, onClose, onDeleted }) {
     setIsDeleting(true);
     setError('');
     try {
-      await deleteAccount(account.id, confirmation);
+      const performDelete = onDelete ?? deleteAccount;
+      await performDelete(account.id, confirmation);
       await onDeleted(account);
       onClose();
     } catch (deleteError) {

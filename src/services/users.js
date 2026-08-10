@@ -1,20 +1,30 @@
 import { supabase, status, identity } from './adminShared';
 
-export const mapUser = (row) => ({
-  id: row.id,
-  name: row.user_profiles?.display_name?.trim() || row.email?.split('@')[0] || 'Customer',
-  email: row.email,
-  phone: row.mobile ?? '',
-  address: [row.addresses?.[0]?.line1, row.addresses?.[0]?.barangay, row.addresses?.[0]?.city]
-    .filter(Boolean)
-    .join(', '),
-  registeredAt: new Date(row.created_at).toLocaleDateString(),
-  status: status(row.status),
-  bookings: row.user_profiles?.bookings?.[0]?.count ?? 0,
-  verified: row.user_profiles?.verification_status === 'verified',
-  verificationStatus: row.user_profiles?.verification_status ?? 'unverified',
-  avatarPath: row.user_profiles?.avatar_path ?? null,
-});
+const asProfile = (row) =>
+  Array.isArray(row.user_profiles) ? row.user_profiles[0] : row.user_profiles;
+
+const normalizeVerificationStatus = (value) =>
+  String(value ?? '').trim().toLowerCase() === 'verified' ? 'verified' : 'unverified';
+
+export const mapUser = (row) => {
+  const profile = asProfile(row);
+  const verificationStatus = normalizeVerificationStatus(profile?.verification_status);
+  return {
+    id: row.id,
+    name: profile?.display_name?.trim() || row.email?.split('@')[0] || 'Customer',
+    email: row.email,
+    phone: row.mobile ?? '',
+    address: [row.addresses?.[0]?.line1, row.addresses?.[0]?.barangay, row.addresses?.[0]?.city]
+      .filter(Boolean)
+      .join(', '),
+    registeredAt: new Date(row.created_at).toLocaleDateString(),
+    status: status(row.status),
+    bookings: profile?.bookings?.[0]?.count ?? 0,
+    verified: verificationStatus === 'verified',
+    verificationStatus,
+    avatarPath: profile?.avatar_path ?? null,
+  };
+};
 
 const USER_PAGE_SELECT =
   'id,email,mobile,status,created_at,user_profiles(display_name,verification_status,avatar_path,bookings!bookings_user_account_id_fkey(count)),addresses(line1,barangay,city)';
@@ -37,6 +47,16 @@ export async function loadUsersPage({
     .order('created_at', { ascending: false });
   if (keyError) throw keyError;
 
+  const { data: trashed, error: trashError } = await supabase
+    .from('trash_entries')
+    .select('id, entity_type, entity_id')
+    .eq('entity_type', 'user')
+    .is('restored_at', null);
+  if (trashError) throw trashError;
+  const trashById = new Map(
+    (trashed ?? []).map((row) => [row.entity_id, row.id]),
+  );
+
   const allKeys = keys ?? [];
   const stats = {
     total: allKeys.length,
@@ -53,10 +73,15 @@ export async function loadUsersPage({
       row.id.toLowerCase().includes(term)
     );
   };
-  const matchesStatus = (row) => status === 'All' || row.status === status;
-  const matchesVerified = (row) =>
-    verified === 'All' ||
-    (row.user_profiles?.verification_status ?? 'unverified') === verified;
+  const isTrashed = (row) => trashById.has(row.id);
+  const matchesStatus = (row) =>
+    status === 'All' ||
+    (status === 'Trashed' ? isTrashed(row) : row.status === status);
+  const matchesVerified = (row) => {
+    if (verified === 'All') return true;
+    const profile = asProfile(row);
+    return normalizeVerificationStatus(profile?.verification_status) === verified;
+  };
   const matched = allKeys.filter(
     (row) => (!term || matchesSearch(row)) && matchesStatus(row) && matchesVerified,
   );
@@ -77,7 +102,13 @@ export async function loadUsersPage({
 
   const byId = new Map((data ?? []).map((row) => [row.id, row]));
   return {
-    rows: pageIds.map((id) => mapUser(byId.get(id))).filter(Boolean),
+    rows: pageIds
+      .map((id) => {
+        const user = mapUser(byId.get(id));
+        if (!user) return null;
+        return { ...user, isTrashed: trashById.has(id), trashEntryId: trashById.get(id) ?? null };
+      })
+      .filter(Boolean),
     count,
     stats,
   };

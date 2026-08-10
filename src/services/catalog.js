@@ -43,6 +43,20 @@ export async function loadCatalog() {
   };
 }
 
+export async function loadTrashedEntries() {
+  const { data, error } = await supabase
+    .from('trash_entries')
+    .select('id, entity_type, entity_id')
+    .is('restored_at', null)
+    .in('entity_type', ['industry', 'skill']);
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    entityType: row.entity_type,
+    entityId: row.entity_id,
+  }));
+}
+
 export async function loadMostBookedService() {
   const { data, error } = await supabase.rpc('admin_most_booked_service');
   if (error) throw error;
@@ -65,16 +79,17 @@ export async function saveSkill(value, industries) {
   return data;
 }
 
-export async function hardDeleteSkill(id) {
-  const { data, error } = await supabase.rpc('admin_hard_delete_skill', { p_id: id });
+export async function moveSkillToTrash(id) {
+  const { data, error } = await supabase.rpc('admin_move_skill_to_trash', {
+    p_skill_id: id,
+  });
   if (error) throw error;
   return data;
 }
 
-export async function hardDeleteIndustry(id, skillIds) {
-  const { data, error } = await supabase.rpc('admin_hard_delete_industry', {
-    p_id: id,
-    p_skill_ids: skillIds,
+export async function moveIndustryToTrash(id) {
+  const { data, error } = await supabase.rpc('admin_move_industry_to_trash', {
+    p_industry_id: id,
   });
   if (error) throw error;
   return data;

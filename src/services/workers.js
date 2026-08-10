@@ -10,6 +10,15 @@ export async function loadWorkers() {
     .is('accounts.deleted_at', null)
     .order('created_at', { ascending: false });
   if (error) throw error;
+  const { data: trashed, error: trashError } = await supabase
+    .from('trash_entries')
+    .select('id, entity_type, entity_id')
+    .eq('entity_type', 'worker')
+    .is('restored_at', null);
+  if (trashError) throw trashError;
+  const trashById = new Map(
+    (trashed ?? []).map((row) => [row.entity_id, row.id]),
+  );
   const rows = data ?? [];
   const workerIds = rows.map((row) => row.account_id);
   const [
@@ -80,6 +89,8 @@ export async function loadWorkers() {
       earnings: walletByWorker.get(row.account_id) ?? 0,
       verificationStatus: verification?.status ?? row.approval_status,
       verificationId: verification?.id ?? null,
+      isTrashed: trashById.has(row.account_id),
+      trashEntryId: trashById.get(row.account_id) ?? null,
       matchingReady,
       matchingMissing,
     };

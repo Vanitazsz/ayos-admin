@@ -1,8 +1,11 @@
 import { Trash2, Search, RotateCcw, ShieldAlert, AlertCircle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import Pagination from '../../../components/ui/Pagination';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
+import AccountDeleteModal from '../../../components/admin/AccountDeleteModal';
 import { TRASH_TABS } from '../logic/TrashPageLogic';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 const tabs = TRASH_TABS;
 export function TrashView({ model }) {
   const {
@@ -19,12 +22,28 @@ export function TrashView({ model }) {
     filteredItems,
     totalPages,
     paginatedItems,
+    targetEntryId,
     handleRestore,
     handlePermanentDelete,
     handleRestoreAll,
     handleEmptyTrash,
     closeConfirm,
+    accountToDelete,
+    setAccountToDelete,
+    handleDeleteAccountFromTrash,
   } = model;
+
+  const scrolledRef = useRef(false);
+  const [highlightId, setHighlightId] = useState(null);
+  useEffect(() => {
+    if (!targetEntryId || scrolledRef.current) return;
+    const el = document.getElementById(`trash-entry-${targetEntryId}`);
+    if (!el) return;
+    scrolledRef.current = true;
+    el.scrollIntoView({ block: 'center' });
+    setHighlightId(targetEntryId);
+  }, [paginatedItems, targetEntryId]);
+
   return (
     <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -51,12 +70,6 @@ export function TrashView({ model }) {
           </div>
         )}
       </div>
-      {isLoading && (
-        <div className="flex justify-center py-8 text-foreground-lighter">
-          <div className="animate-spin h-6 w-6 border-2 border-border-strong border-t-brand-600 rounded-full mr-2" />{' '}
-          Loading...
-        </div>
-      )}
       {error && (
         <div
           role="alert"
@@ -127,9 +140,18 @@ export function TrashView({ model }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedItems.length > 0 ? (
+            {isLoading ? (
+              <TableSkeleton
+                rows={6}
+                columns={[{}, {}, {}, {}, { className: 'text-right' }]}
+              />
+            ) : paginatedItems.length > 0 ? (
               paginatedItems.map((item) => (
-                <TableRow key={item.id}>
+                <TableRow
+                  key={item.id}
+                  id={`trash-entry-${item.id}`}
+                  className={highlightId === item.id ? 'animate-trash-pulse' : ''}
+                >
                   <TableCell className="whitespace-nowrap">
                     <div className="text-sm font-medium text-foreground">{item.item}</div>
                     <div className="text-xs text-foreground-lighter">{item.id}</div>
@@ -148,14 +170,14 @@ export function TrashView({ model }) {
                   <TableCell className="whitespace-nowrap text-right font-medium">
                     <div className="flex justify-end space-x-2">
                       <button
-                        onClick={() => handleRestore(item.id)}
+                        onClick={() => handleRestore(item)}
                         className="text-foreground-lighter hover:text-success p-1 rounded hover:bg-success/10 transition-colors flex items-center border border-transparent hover:border-success/30"
                         title="Restore"
                       >
                         <RotateCcw size={16} className="mr-1" /> Restore
                       </button>
                       <button
-                        onClick={() => handlePermanentDelete(item.id)}
+                        onClick={() => handlePermanentDelete(item)}
                         className="text-foreground-lighter hover:text-destructive p-1 rounded hover:bg-destructive/10 transition-colors flex items-center border border-transparent hover:border-destructive/30"
                         title="Delete Permanently"
                       >
@@ -192,6 +214,31 @@ export function TrashView({ model }) {
         message={confirm.message}
         onConfirm={confirm.onConfirm}
         confirmLabel="Yes"
+        requireTypedText={confirm.requireTypedText}
+      >
+        {confirm.industrySkillCount > 0 && (
+          <label className="flex w-full items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-left text-sm font-medium text-destructive">
+            <input type="checkbox" checked disabled className="size-4 shrink-0 accent-destructive" />
+            <span>
+              Also permanently delete its {confirm.industrySkillCount} related{' '}
+              {confirm.industrySkillCount === 1 ? 'skill' : 'skills'} (required)
+            </span>
+          </label>
+        )}
+      </ConfirmModal>
+      <AccountDeleteModal
+        account={
+          accountToDelete
+            ? {
+                id: accountToDelete.id,
+                email: accountToDelete.email,
+                name: accountToDelete.name,
+              }
+            : null
+        }
+        onDelete={handleDeleteAccountFromTrash}
+        onDeleted={() => setAccountToDelete(null)}
+        onClose={() => setAccountToDelete(null)}
       />
     </div>
   );

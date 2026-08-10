@@ -50,8 +50,16 @@ export async function bulkSetWorkerStatus(ids, nextStatus) {
 }
 
 export async function softDeleteAccount(id) {
-  const { data, error } = await supabase.rpc('admin_soft_delete_account', {
+  const { data, error } = await supabase.rpc('admin_move_account_to_trash', {
     p_account_id: id,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function restoreAccountFromTrash(trashId) {
+  const { data, error } = await supabase.rpc('admin_restore_account_from_trash', {
+    p_trash_id: trashId,
   });
   if (error) throw error;
   return data;

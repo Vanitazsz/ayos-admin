@@ -3,7 +3,7 @@ import { AlertCircle } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useAccountDeletion } from '../../hooks/useAccountDeletion';
 
-const AccountDeleteModal = ({ account, onClose, onDeleted }) => {
+const AccountDeleteModal = ({ account, onClose, onDeleted, onDelete }) => {
   const {
     confirmation,
     confirmDelete,
@@ -13,7 +13,7 @@ const AccountDeleteModal = ({ account, onClose, onDeleted }) => {
     matches,
     preview,
     setConfirmation,
-  } = useAccountDeletion({ account, onClose, onDeleted });
+  } = useAccountDeletion({ account, onClose, onDeleted, onDelete });
 
   return (
     <Modal
