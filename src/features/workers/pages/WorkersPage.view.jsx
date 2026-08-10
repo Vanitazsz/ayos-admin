@@ -3,6 +3,7 @@ import {
   Filter,
   MoreVertical,
   CheckCircle,
+  ShieldCheck,
   Eye,
   Edit,
   Trash2,
@@ -48,6 +49,8 @@ export function WorkersView({ model }) {
     setSearchTerm,
     filterStatus,
     setFilterStatus,
+    filterVerified,
+    setFilterVerified,
     currentPage,
     setCurrentPage,
     selectedWorker,
@@ -135,17 +138,32 @@ export function WorkersView({ model }) {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="w-full sm:w-48">
-          <Select
-            icon={Filter}
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="All">All Statuses</option>
-            <option value="Active">Active</option>
-            <option value="Suspended">Suspended</option>
-            <option value="Pending">Pending</option>
-          </Select>
+        <div className="flex w-full sm:w-auto items-center gap-2">
+          <div className="w-full sm:w-44">
+            <Select
+              icon={ShieldCheck}
+              aria-label="Filter workers by verification status"
+              value={filterVerified}
+              onChange={(e) => setFilterVerified(e.target.value)}
+            >
+              <option value="All">All Verifications</option>
+              <option value="verified">Verified</option>
+              <option value="unverified">Unverified</option>
+            </Select>
+          </div>
+          <div className="w-full sm:w-40">
+            <Select
+              icon={Filter}
+              aria-label="Filter workers by account status"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Suspended">Suspended</option>
+              <option value="Pending">Pending</option>
+            </Select>
+          </div>
         </div>
       </div>
 

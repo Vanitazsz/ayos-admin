@@ -17,6 +17,7 @@ export function useWorkersPageController() {
   const [workers, setWorkers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [filterVerified, setFilterVerified] = useState('All');
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [workerToDelete, setWorkerToDelete] = useState(null);
@@ -92,12 +93,15 @@ export function useWorkersPageController() {
           w.category.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus =
           filterStatus === 'All' || w.status === filterStatus;
+        const matchesVerified =
+          filterVerified === 'All' ||
+          (filterVerified === 'verified' ? w.verified : !w.verified);
         const matchesTab =
           activeTab === 'all' ||
           (activeTab === 'review' && needsReview(w));
-        return matchesSearch && matchesStatus && matchesTab;
+        return matchesSearch && matchesStatus && matchesVerified && matchesTab;
       }),
-    [workers, searchTerm, filterStatus, activeTab, needsReview],
+    [workers, searchTerm, filterStatus, filterVerified, activeTab, needsReview],
   );
 
   const {
@@ -299,6 +303,8 @@ export function useWorkersPageController() {
       setSearchTerm,
       filterStatus,
       setFilterStatus,
+      filterVerified,
+      setFilterVerified,
       currentPage,
       setCurrentPage,
       selectedWorker,
@@ -346,6 +352,7 @@ export function useWorkersPageController() {
       workers,
       searchTerm,
       filterStatus,
+      filterVerified,
       currentPage,
       selectedWorker,
       isDrawerOpen,
@@ -381,6 +388,7 @@ export function useWorkersPageController() {
       openRemarksModal,
       submitRemarks,
       setFilterStatus,
+      setFilterVerified,
       setCurrentPage,
       setIsDrawerOpen,
       setWorkerToDelete,
