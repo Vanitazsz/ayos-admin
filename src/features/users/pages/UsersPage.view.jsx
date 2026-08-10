@@ -262,22 +262,24 @@ export function UsersView({ model }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead scope="col" className="w-12 text-center">
-                    <div className="flex justify-center">
-                      <Checkbox
-                        aria-label="Select all users"
-                        checked={
-                          currentUsers.length > 0 &&
-                          currentUsers.every((user) => selectedIds.has(user.id))
-                            ? true
-                            : selectedCount > 0
-                              ? 'indeterminate'
-                              : false
-                        }
-                        onCheckedChange={() => toggleSelectAll(currentUsers)}
-                      />
-                    </div>
-                  </TableHead>
+                  {isSelectionActive ? (
+                    <TableHead scope="col" className="w-12 text-center">
+                      <div className="flex justify-center">
+                        <Checkbox
+                          aria-label="Select all users"
+                          checked={
+                            currentUsers.length > 0 &&
+                            currentUsers.every((user) => selectedIds.has(user.id))
+                              ? true
+                              : selectedCount > 0
+                                ? 'indeterminate'
+                                : false
+                          }
+                          onCheckedChange={() => toggleSelectAll(currentUsers)}
+                        />
+                      </div>
+                    </TableHead>
+                  ) : null}
                   <TableHead scope="col">User Details</TableHead>
                   <TableHead scope="col" className="hidden lg:table-cell">Contact</TableHead>
                   <TableHead scope="col" className="hidden lg:table-cell">Registration Date</TableHead>
@@ -294,9 +296,11 @@ export function UsersView({ model }) {
                   // Skeleton Rows
                   Array.from({ length: 5 }).map((_, idx) => (
                     <TableRow key={idx}>
-                      <TableCell className="text-center">
-                        <Skeleton className="h-4 w-4 rounded" />
-                      </TableCell>
+                      {isSelectionActive ? (
+                        <TableCell className="text-center">
+                          <Skeleton className="h-4 w-4 rounded" />
+                        </TableCell>
+                      ) : null}
                       <TableCell>
                         <div className="flex items-center">
                           <Skeleton className="w-10 h-10 rounded-full mr-3 shrink-0" />
@@ -331,7 +335,7 @@ export function UsersView({ model }) {
                   ))
                 ) : currentUsers.length === 0 ? (
                   <TableRow hover={false}>
-                    <TableCell colSpan={8} className="h-64 text-center">
+                    <TableCell colSpan={isSelectionActive ? 8 : 7} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center text-foreground-lighter">
                         <Search className="h-12 w-12 text-foreground-muted mb-4" />
                         <p className="text-lg font-medium text-foreground">
@@ -352,15 +356,17 @@ export function UsersView({ model }) {
                       onClick={() => handleViewProfile(user)}
                       className="cursor-pointer"
                     >
-                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-center">
-                          <Checkbox
-                            aria-label={`Select ${user.name}`}
-                            checked={selectedIds.has(user.id)}
-                            onCheckedChange={() => toggleSelectUser(user.id)}
-                          />
-                        </div>
-                      </TableCell>
+                      {isSelectionActive ? (
+                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-center">
+                            <Checkbox
+                              aria-label={`Select ${user.name}`}
+                              checked={selectedIds.has(user.id)}
+                              onCheckedChange={() => toggleSelectUser(user.id)}
+                            />
+                          </div>
+                        </TableCell>
+                      ) : null}
                       <TableCell>
                         <div className="flex items-center">
                           <div className="w-10 h-10 rounded-full bg-brand-500/10 text-brand-600 flex items-center justify-center font-bold text-sm shrink-0 mr-3">
@@ -375,7 +381,10 @@ export function UsersView({ model }) {
                       <TableCell className="hidden lg:table-cell">
                         <div className="flex flex-col space-y-1">
                           <span className="flex items-center text-sm text-foreground-light">
-                            <Mail className="h-3.5 w-3.5 mr-1.5 text-foreground-muted" /> {user.email}
+                            <Mail className="h-3.5 w-3.5 mr-1.5 shrink-0 text-foreground-muted" />
+                            <span className="truncate max-w-[12rem] min-w-0" title={user.email}>
+                              {user.email}
+                            </span>
                           </span>
                           <span className="flex items-center text-sm text-foreground-light">
                             <Phone className="h-3.5 w-3.5 mr-1.5 text-foreground-muted" /> {user.phone}
