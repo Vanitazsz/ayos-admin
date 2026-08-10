@@ -16,6 +16,7 @@ import ConfirmModal from '../../../components/ui/ConfirmModal';
 import StatCard from '../../../components/ui/StatCard';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
+import Skeleton from '../../../components/ui/Skeleton';
 import {
   Table,
   TableHeader,
@@ -331,6 +332,60 @@ export function BookingsView({ model }) {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Customer attachments */}
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                Customer Attachments
+              </h4>
+              {selectedBooking.media === undefined ? (
+                <Skeleton className="h-24 w-full rounded-lg" />
+              ) : selectedBooking.media === null ? (
+                <p className="text-sm text-foreground-lighter">Couldn't load attachments.</p>
+              ) : selectedBooking.media.images.length === 0 &&
+                selectedBooking.media.audio.length === 0 ? (
+                <p className="text-sm text-foreground-lighter">
+                  No photos or voice notes attached.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {selectedBooking.media.images.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {selectedBooking.media.images.map((image) => (
+                        <a
+                          key={image.path}
+                          href={image.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block aspect-square rounded-lg overflow-hidden border border-border bg-surface-200"
+                        >
+                          <img
+                            src={image.url}
+                            alt="Customer attachment"
+                            className="h-full w-full object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  {selectedBooking.media.audio.length > 0 && (
+                    <div className="space-y-2">
+                      {selectedBooking.media.audio.map((clip) => (
+                        <audio
+                          key={clip.path}
+                          controls
+                          preload="none"
+                          className="w-full"
+                          src={clip.url}
+                        >
+                          Your browser does not support audio playback.
+                        </audio>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Booking event timeline */}

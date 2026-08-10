@@ -8,4 +8,4 @@ export {
   resolveUserAvatar,
   updateUser,
 } from '../../../services/users';
-export { loadBookingsForUser } from '../../../services/bookings';
+export { loadBookingsForUser, resolveBookingMedia } from '../../../services/bookings';

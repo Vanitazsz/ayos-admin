@@ -2,6 +2,7 @@ import {
   cancelBookingAsAdmin,
   loadBookingsPage,
   reassignBookingAsAdmin,
+  resolveBookingMedia,
   subscribe,
 } from '../logic/BookingsPageLogic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -95,10 +96,20 @@ export function useBookingsPageController() {
     setActionMenuOpenId((current) => (current === id ? null : id));
   }, []);
 
-  const handleViewDetails = useCallback((booking) => {
+  const handleViewDetails = useCallback(async (booking) => {
     setSelectedBooking(booking);
     setIsDrawerOpen(true);
     setActionMenuOpenId(null);
+    try {
+      const media = await resolveBookingMedia(booking);
+      setSelectedBooking((current) =>
+        current && current.id === booking.id ? { ...current, media } : current,
+      );
+    } catch {
+      setSelectedBooking((current) =>
+        current && current.id === booking.id ? { ...current, media: null } : current,
+      );
+    }
   }, []);
 
   const openAction = useCallback((type, booking) => {

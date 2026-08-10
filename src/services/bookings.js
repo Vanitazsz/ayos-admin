@@ -1,5 +1,57 @@
 import { supabase, status, identity } from './adminShared';
 
+const dedupeByPath = (items) => {
+  const seen = new Set();
+  const out = [];
+  items.forEach((item) => {
+    if (item.path && !seen.has(item.path)) {
+      seen.add(item.path);
+      out.push(item);
+    }
+  });
+  return out;
+};
+
+const MEDIA_CACHE_TTL_MS = 55 * 60 * 1000;
+const mediaCache = new Map();
+
+export async function resolveBookingMedia(booking) {
+  const paths = (booking.media ?? []).map((item) => item.path);
+  if (!paths.length) return { images: [], audio: [] };
+
+  const cached = mediaCache.get(booking.id);
+  if (cached && Date.now() - cached.signedAt < MEDIA_CACHE_TTL_MS) {
+    return cached.result;
+  }
+
+  const { data, error } = await supabase.storage
+    .from('request-media')
+    .createSignedUrls(paths, 3600);
+  if (error) throw error;
+
+  const urlByPath = new Map();
+  (data ?? []).forEach((item) => {
+    if (item?.path && item.signedUrl && !item.error) urlByPath.set(item.path, item.signedUrl);
+  });
+
+  const result = (booking.media ?? []).reduce(
+    (acc, item) => {
+      const url = urlByPath.get(item.path);
+      if (!url) return acc;
+      if (item.contentType?.startsWith('image/')) {
+        acc.images.push({ path: item.path, url, contentType: item.contentType });
+      } else {
+        acc.audio.push({ path: item.path, url, contentType: item.contentType });
+      }
+      return acc;
+    },
+    { images: [], audio: [] },
+  );
+
+  mediaCache.set(booking.id, { signedAt: Date.now(), result });
+  return result;
+}
+
 export const mapBooking = (row) => ({
   id: row.id,
   requestId: row.service_request_id,
@@ -34,10 +86,16 @@ export const mapBooking = (row) => ({
       name: item.worker_profiles?.display_name ?? item.worker_id,
       score: Number(item.score),
     })),
+  media: dedupeByPath(
+    (row.service_requests?.request_media ?? []).map((item) => ({
+      path: item.storage_path,
+      contentType: item.content_type,
+    })),
+  ),
 });
 
 const BOOKING_PAGE_SELECT =
-  'id,service_request_id,status,version,created_at,agreed_service_amount,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),service_requests(description,scheduled_at,addresses(line1,barangay,city),service_categories(name),match_candidates(worker_id,score,eligible,worker_profiles:worker_id(display_name))),payments(method,status,service_amount,homeowner_platform_charge,refunds(status,reason)),cancellations(reason,fee_amount,refund_amount,resolution_status),booking_status_events(from_status,to_status,reason,created_at)';
+  'id,service_request_id,status,version,created_at,agreed_service_amount,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),service_requests(description,scheduled_at,addresses(line1,barangay,city),service_categories(name),match_candidates(worker_id,score,eligible,worker_profiles:worker_id(display_name)),request_media(storage_path,content_type)),payments(method,status,service_amount,homeowner_platform_charge,refunds(status,reason)),cancellations(reason,fee_amount,refund_amount,resolution_status),booking_status_events(from_status,to_status,reason,created_at)';
 
 const BOOKING_KEY_SELECT =
   'id,status,created_at,user_profiles:user_account_id(display_name),service_requests(description,scheduled_at)';

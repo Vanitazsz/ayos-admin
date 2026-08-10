@@ -2,6 +2,7 @@ import {
   loadBookingsForUser,
   loadCustomerVerifications,
   loadUsersPage,
+  resolveBookingMedia,
   resolveUserAvatar,
   reviewCustomerVerification,
   setAccountStatus,
@@ -257,8 +258,18 @@ export function useUsersPageController() {
     [refresh, syncSelectedUser, toast],
   );
 
-  const handleViewBooking = useCallback((booking) => {
+  const handleViewBooking = useCallback(async (booking) => {
     setActiveBooking(booking);
+    try {
+      const media = await resolveBookingMedia(booking);
+      setActiveBooking((current) =>
+        current && current.id === booking.id ? { ...current, media } : current,
+      );
+    } catch {
+      setActiveBooking((current) =>
+        current && current.id === booking.id ? { ...current, media: null } : current,
+      );
+    }
   }, []);
 
   const handleToggleStatus = useCallback(
