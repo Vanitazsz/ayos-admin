@@ -81,6 +81,7 @@ export function UsersView({ model }) {
     closeConfirm,
     selectedUser,
     avatarUrl,
+    verificationDocs,
     userBookings,
     isBookingsLoading,
     activeBooking,
@@ -820,9 +821,12 @@ export function UsersView({ model }) {
                   />
                   <Input
                     label="Email"
-                    value={selectedUser.email}
-                    readOnly
-                    inputClassName="bg-surface-200 text-foreground-lighter"
+                    type="email"
+                    required
+                    value={editDraft.email}
+                    onChange={(event) =>
+                      setEditDraft({ ...editDraft, email: event.target.value })
+                    }
                   />
                   <Input
                     label="Phone"
@@ -857,6 +861,82 @@ export function UsersView({ model }) {
                   <div className="flex items-center text-sm text-foreground-light">
                     <Calendar size={16} className="mr-3 text-foreground-muted" /> Registered{' '}
                     {selectedUser.registeredAt}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                Identity Verification
+              </h4>
+              {verificationDocs === undefined ? (
+                <p className="text-sm text-foreground-lighter">
+                  Loading verification documents…
+                </p>
+              ) : verificationDocs === null ? (
+                <p className="text-sm text-foreground-lighter">
+                  Couldn't load verification documents.
+                </p>
+              ) : verificationDocs.frontUrl === '' && verificationDocs.backUrl === '' ? (
+                <p className="text-sm text-foreground-lighter">
+                  No verification submitted.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {verificationDocs.idType && (
+                      <Badge variant="outline">
+                        {verificationDocs.idType.replaceAll('_', ' ')}
+                      </Badge>
+                    )}
+                    <Badge
+                      variant={
+                        verificationDocs.status === 'approved' ? 'success' : 'warning'
+                      }
+                    >
+                      {verificationDocs.status.replaceAll('_', ' ')}
+                    </Badge>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="mb-2 text-sm font-medium text-foreground">Front</p>
+                      {verificationDocs.frontUrl ? (
+                        <a
+                          href={verificationDocs.frontUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block aspect-[4/3] overflow-hidden rounded-lg border border-border bg-surface-200"
+                        >
+                          <img
+                            src={verificationDocs.frontUrl}
+                            alt="Government ID front"
+                            className="h-full w-full object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <p className="text-sm text-foreground-lighter">No front image</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="mb-2 text-sm font-medium text-foreground">Back</p>
+                      {verificationDocs.backUrl ? (
+                        <a
+                          href={verificationDocs.backUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block aspect-[4/3] overflow-hidden rounded-lg border border-border bg-surface-200"
+                        >
+                          <img
+                            src={verificationDocs.backUrl}
+                            alt="Government ID back"
+                            className="h-full w-full object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <p className="text-sm text-foreground-lighter">No back image</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

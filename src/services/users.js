@@ -54,8 +54,9 @@ export async function loadUsersPage({
     );
   };
   const matchesStatus = (row) => status === 'All' || row.status === status;
-  const matchesVerified =
-    verified === 'All' || (row.user_profiles?.verification_status ?? 'unverified') === verified;
+  const matchesVerified = (row) =>
+    verified === 'All' ||
+    (row.user_profiles?.verification_status ?? 'unverified') === verified;
   const matched = allKeys.filter(
     (row) => (!term || matchesSearch(row)) && matchesStatus(row) && matchesVerified,
   );
@@ -140,6 +141,15 @@ export async function updateUser(id, displayName, mobile) {
   return data;
 }
 
+export async function updateUserEmail(id, email) {
+  const { data, error } = await supabase.rpc('admin_update_user_email', {
+    p_account_id: id,
+    p_email: email,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function setCustomerVerification(id, status) {
   const { data, error } = await supabase.rpc('admin_set_customer_verification', {
     p_account_id: id,
@@ -166,4 +176,29 @@ export async function resolveUserAvatar(path) {
     .createSignedUrl(path, 3600);
   if (error) throw error;
   return data.signedUrl;
+}
+
+export async function loadUserVerificationDocs(accountId) {
+  const { data, error } = await supabase
+    .from('customer_verifications')
+    .select('id,id_type,status,id_front_url,id_back_url')
+    .eq('customer_id', accountId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const [front, back] = await Promise.all([
+    supabase.storage.from('verification-documents').createSignedUrl(data.id_front_url, 900),
+    data.id_back_url
+      ? supabase.storage.from('verification-documents').createSignedUrl(data.id_back_url, 900)
+      : Promise.resolve({ data: null, error: null }),
+  ]);
+  return {
+    id: data.id,
+    status: data.status,
+    idType: data.id_type,
+    frontUrl: front.data?.signedUrl ?? '',
+    backUrl: back.data?.signedUrl ?? '',
+  };
 }

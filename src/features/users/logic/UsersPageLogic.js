@@ -4,9 +4,11 @@ export {
   bulkSetCustomerVerification,
   loadCustomerVerifications,
   loadUsersPage,
+  loadUserVerificationDocs,
   reviewCustomerVerification,
   setCustomerVerification,
   resolveUserAvatar,
   updateUser,
+  updateUserEmail,
 } from '../../../services/users';
 export { loadBookingsForUser, resolveBookingMedia } from '../../../services/bookings';

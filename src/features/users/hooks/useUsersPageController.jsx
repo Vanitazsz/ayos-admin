@@ -3,6 +3,7 @@ import {
   loadBookingsForUser,
   loadCustomerVerifications,
   loadUsersPage,
+  loadUserVerificationDocs,
   resolveBookingMedia,
   resolveUserAvatar,
   reviewCustomerVerification,
@@ -11,6 +12,7 @@ import {
   setCustomerVerification,
   subscribe,
   updateUser,
+  updateUserEmail,
 } from '../logic/UsersPageLogic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Badge from '../../../components/ui/Badge';
@@ -41,11 +43,12 @@ export function useUsersPageController() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [verificationDocs, setVerificationDocs] = useState(undefined);
   const [userBookings, setUserBookings] = useState([]);
   const [isBookingsLoading, setIsBookingsLoading] = useState(false);
   const [activeBooking, setActiveBooking] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editDraft, setEditDraft] = useState({ name: '', phone: '' });
+  const [editDraft, setEditDraft] = useState({ name: '', email: '', phone: '' });
   const [isSavingUser, setIsSavingUser] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -275,10 +278,19 @@ export function useUsersPageController() {
     setActiveBooking(null);
     setActionMenuOpenId(null);
     setAvatarUrl('');
+    setVerificationDocs(undefined);
     try {
       setAvatarUrl(await resolveUserAvatar(user.avatarPath));
     } catch {
       setAvatarUrl('');
+    }
+    try {
+      const docs = await loadUserVerificationDocs(user.id);
+      setVerificationDocs(
+        docs ?? { status: 'NOT_SUBMITTED', idType: '', frontUrl: '', backUrl: '' },
+      );
+    } catch {
+      setVerificationDocs(null);
     }
     setIsBookingsLoading(true);
     try {
@@ -292,27 +304,40 @@ export function useUsersPageController() {
 
   const enterEditMode = useCallback(() => {
     if (!selectedUser) return;
-    setEditDraft({ name: selectedUser.name, phone: selectedUser.phone });
+    setEditDraft({
+      name: selectedUser.name,
+      email: selectedUser.email,
+      phone: selectedUser.phone,
+    });
     setIsEditing(true);
   }, [selectedUser]);
 
   const cancelEdit = useCallback(() => {
     setIsEditing(false);
-    setEditDraft({ name: '', phone: '' });
+    setEditDraft({ name: '', email: '', phone: '' });
   }, []);
 
   const syncSelectedUser = useCallback((patch) => {
     setSelectedUser((current) => (current ? { ...current, ...patch } : current));
   }, []);
 
-  const handleSaveUser = useCallback(
-    async (event) => {
-      event.preventDefault();
+  const saveUser = useCallback(
+    async (includeEmail) => {
       if (!selectedUser) return;
       setIsSavingUser(true);
       try {
+        if (includeEmail) {
+          await updateUserEmail(
+            selectedUser.id,
+            editDraft.email.trim().toLowerCase(),
+          );
+        }
         await updateUser(selectedUser.id, editDraft.name, editDraft.phone);
-        syncSelectedUser({ name: editDraft.name.trim(), phone: editDraft.phone });
+        syncSelectedUser({
+          name: editDraft.name.trim(),
+          email: editDraft.email.trim(),
+          phone: editDraft.phone,
+        });
         await refresh();
         setIsEditing(false);
         toast.success('User updated', `${editDraft.name.trim()}'s profile was saved.`);
@@ -326,6 +351,26 @@ export function useUsersPageController() {
       }
     },
     [selectedUser, editDraft, refresh, syncSelectedUser, toast],
+  );
+
+  const handleSaveUser = useCallback(
+    (event) => {
+      event.preventDefault();
+      if (!selectedUser) return;
+      const normalizedEmail = editDraft.email.trim().toLowerCase();
+      const currentEmail = (selectedUser.email || '').trim().toLowerCase();
+      if (normalizedEmail !== currentEmail) {
+        setConfirm({
+          isOpen: true,
+          title: 'Change email address?',
+          message: `This will change the login email from ${currentEmail} to ${normalizedEmail}. The user must sign in with the new email going forward.`,
+          onConfirm: () => saveUser(true),
+        });
+        return;
+      }
+      void saveUser(false);
+    },
+    [selectedUser, editDraft.email, saveUser],
   );
 
   const handleToggleVerification = useCallback(
@@ -438,6 +483,7 @@ export function useUsersPageController() {
       closeConfirm,
       selectedUser,
       avatarUrl,
+      verificationDocs,
       userBookings,
       isBookingsLoading,
       activeBooking,
@@ -497,6 +543,7 @@ export function useUsersPageController() {
       confirm,
       selectedUser,
       avatarUrl,
+      verificationDocs,
       userBookings,
       isBookingsLoading,
       activeBooking,
