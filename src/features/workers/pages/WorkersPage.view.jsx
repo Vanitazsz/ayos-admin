@@ -255,7 +255,7 @@ export function WorkersView({ model }) {
       ) : null}
 
       {/* Table */}
-      <div className={`bg-card shadow-sm border border-border ${isSelectionActive ? 'rounded-b-xl' : 'rounded-t-xl'}`}>
+      <div className={`bg-card shadow-sm border border-border ${isSelectionActive ? 'rounded-b-xl' : 'rounded-none'}`}>
         <Table>
           <TableHeader>
             <TableRow>
