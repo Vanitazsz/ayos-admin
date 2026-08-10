@@ -31,6 +31,15 @@ export async function setAccountStatus(id, nextStatus) {
   return data;
 }
 
+export async function bulkSetAccountStatus(ids, nextStatus) {
+  const { data, error } = await supabase.rpc('admin_bulk_set_account_status', {
+    p_account_ids: ids,
+    p_next_status: nextStatus,
+  });
+  if (error) throw error;
+  return Number(data ?? 0);
+}
+
 export async function softDeleteAccount(id) {
   const { data, error } = await supabase.rpc('admin_soft_delete_account', {
     p_account_id: id,

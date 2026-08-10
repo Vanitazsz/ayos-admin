@@ -6,6 +6,9 @@ import {
   Trash2,
   Ban,
   ShieldCheck,
+  ShieldOff,
+  CheckSquare,
+  CheckCheck,
   Mail,
   Phone,
   Eye,
@@ -13,7 +16,9 @@ import {
   Calendar,
   Clock,
   User,
+  UserCheck,
   ArrowLeft,
+  X,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { formatDateTime, money } from '../../../services/adminShared';
@@ -89,6 +94,17 @@ export function UsersView({ model }) {
     actionLoadingId,
     deleteTarget,
     setDeleteTarget,
+    selectedIds,
+    selectedCount,
+    isSelectionActive,
+    bulkAction,
+    isBulkLoading,
+    toggleSelectUser,
+    selectUser,
+    toggleSelectAll,
+    clearSelection,
+    handleBulkStatus,
+    handleBulkVerification,
     toast,
     itemsPerPage,
     refresh,
@@ -188,13 +204,78 @@ export function UsersView({ model }) {
             </div>
           </CardHeader>
 
+          {isSelectionActive ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-brand-500/5 px-4 py-2.5">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-foreground">
+                  {selectedCount} selected
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSelection}
+                  disabled={isBulkLoading}
+                >
+                  <X size={14} className="mr-1.5" /> Clear
+                </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => void handleBulkStatus('SUSPENDED')}
+                  isLoading={isBulkLoading && bulkAction === 'SUSPENDED'}
+                  disabled={isBulkLoading && bulkAction !== 'SUSPENDED'}
+                >
+                  <Ban size={14} /> Suspend
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => void handleBulkStatus('ACTIVE')}
+                  isLoading={isBulkLoading && bulkAction === 'ACTIVE'}
+                  disabled={isBulkLoading && bulkAction !== 'ACTIVE'}
+                >
+                  <UserCheck size={14} /> Reactivate
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => void handleBulkVerification('verified')}
+                  isLoading={isBulkLoading && bulkAction === 'verified'}
+                  disabled={isBulkLoading && bulkAction !== 'verified'}
+                >
+                  <ShieldCheck size={14} /> Verify
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleBulkVerification('unverified')}
+                  isLoading={isBulkLoading && bulkAction === 'unverified'}
+                  disabled={isBulkLoading && bulkAction !== 'unverified'}
+                >
+                  <ShieldOff size={14} /> Unverify
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
           <div className="min-h-[400px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead scope="col" className="w-12 text-center">
                     <div className="flex justify-center">
-                      <Checkbox aria-label="Select all users" />
+                      <Checkbox
+                        aria-label="Select all users"
+                        checked={
+                          currentUsers.length > 0 &&
+                          currentUsers.every((user) => selectedIds.has(user.id))
+                            ? true
+                            : selectedCount > 0
+                              ? 'indeterminate'
+                              : false
+                        }
+                        onCheckedChange={() => toggleSelectAll(currentUsers)}
+                      />
                     </div>
                   </TableHead>
                   <TableHead scope="col">User Details</TableHead>
@@ -271,9 +352,13 @@ export function UsersView({ model }) {
                       onClick={() => handleViewProfile(user)}
                       className="cursor-pointer"
                     >
-                      <TableCell className="text-center">
+                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-center">
-                          <Checkbox aria-label={`Select ${user.name}`} />
+                          <Checkbox
+                            aria-label={`Select ${user.name}`}
+                            checked={selectedIds.has(user.id)}
+                            onCheckedChange={() => toggleSelectUser(user.id)}
+                          />
                         </div>
                       </TableCell>
                       <TableCell>
@@ -326,6 +411,18 @@ export function UsersView({ model }) {
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onSelect={() => selectUser(user.id)}
+                              className="cursor-pointer"
+                            >
+                              <CheckSquare className="mr-2" /> Select
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => toggleSelectAll(currentUsers)}
+                              className="cursor-pointer"
+                            >
+                              <CheckCheck className="mr-2" /> Select All
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onSelect={() => void handleViewProfile(user)}
                               className="cursor-pointer"

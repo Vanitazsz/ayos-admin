@@ -1,6 +1,7 @@
-export { setAccountStatus } from '../../../services/accounts';
+export { bulkSetAccountStatus, setAccountStatus } from '../../../services/accounts';
 export { subscribe } from '../../../services/realtime';
 export {
+  bulkSetCustomerVerification,
   loadCustomerVerifications,
   loadUsersPage,
   reviewCustomerVerification,

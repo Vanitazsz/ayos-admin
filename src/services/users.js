@@ -149,6 +149,15 @@ export async function setCustomerVerification(id, status) {
   return data;
 }
 
+export async function bulkSetCustomerVerification(ids, status) {
+  const { data, error } = await supabase.rpc('admin_bulk_set_customer_verification', {
+    p_account_ids: ids,
+    p_status: status,
+  });
+  if (error) throw error;
+  return Number(data ?? 0);
+}
+
 export async function resolveUserAvatar(path) {
   if (!path) return '';
   if (/^https?:\/\//i.test(path)) return path;
