@@ -1,9 +1,10 @@
 export {
   loadCatalog,
+  loadTrashedEntries,
   loadMostBookedService,
   saveIndustry,
   saveSkill,
-  hardDeleteSkill,
-  hardDeleteIndustry,
+  moveSkillToTrash,
+  moveIndustryToTrash,
 } from '../../../services/catalog';
 export { subscribe } from '../../../services/realtime';

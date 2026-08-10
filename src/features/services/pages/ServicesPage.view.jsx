@@ -14,8 +14,8 @@ import {
   Eye,
   AlertTriangle,
   Power,
+  ExternalLink,
 } from 'lucide-react';
-import Modal from '../../../components/ui/Modal';
 import Drawer from '../../../components/ui/Drawer';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import Button from '../../../components/ui/Button';
@@ -23,9 +23,15 @@ import Pagination from '../../../components/ui/Pagination';
 import StatCard from '../../../components/ui/StatCard';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from '../../../components/ui/Tooltip';
 import { moneyFromMinor } from '../../../services/adminShared';
 import {
-  DropdownMenu,
+  DropdownMenuNonModal,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -39,6 +45,7 @@ import {
   TableHead,
   TableCell,
 } from '../../../components/ui/Table';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 
 export function ServicesView({ model }) {
   const {
@@ -50,6 +57,7 @@ export function ServicesView({ model }) {
     setActiveTab,
     currentPage,
     setCurrentPage,
+    isLoading,
     isSkillModalOpen,
     setIsSkillModalOpen,
     isIndustryModalOpen,
@@ -73,7 +81,6 @@ export function ServicesView({ model }) {
     filteredIndustries,
     handleOpenAddSkillModal,
     handleOpenEditSkillModal,
-    handleHardDeleteSkill,
     handleDeactivateSkill,
     handleDuplicateSkill,
     handleSaveSkill,
@@ -81,13 +88,9 @@ export function ServicesView({ model }) {
     closeDetails,
     openSkillDetails,
     openIndustryDetails,
-    industryDelete,
-    closeIndustryDelete,
-    industrySkills,
-    openIndustryDelete,
-    toggleIndustrySkillSelection,
-    allIndustrySkillsSelected,
-    handleConfirmHardDeleteIndustry,
+    goToTrash,
+    handleMoveSkillToTrash,
+    handleMoveIndustryToTrash,
     handleOpenAddIndustryModal,
     handleOpenEditIndustryModal,
     handleDeactivateIndustry,
@@ -95,6 +98,7 @@ export function ServicesView({ model }) {
     handleSaveIndustry,
   } = model;
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
@@ -115,16 +119,16 @@ export function ServicesView({ model }) {
       {/* Tabs */}
       <div className="flex space-x-4 mb-6 border-b border-border">
         <button
-          className={`py-2 px-4 font-medium text-sm border-b-2 ${activeTab === 'skills' ? 'border-foreground text-foreground' : 'border-transparent text-foreground-lighter hover:text-foreground-light hover:border-border-strong'}`}
-          onClick={() => setActiveTab('skills')}
-        >
-          Manage Skills
-        </button>
-        <button
           className={`py-2 px-4 font-medium text-sm border-b-2 ${activeTab === 'industries' ? 'border-foreground text-foreground' : 'border-transparent text-foreground-lighter hover:text-foreground-light hover:border-border-strong'}`}
           onClick={() => setActiveTab('industries')}
         >
           Manage Industries
+        </button>
+        <button
+          className={`py-2 px-4 font-medium text-sm border-b-2 ${activeTab === 'skills' ? 'border-foreground text-foreground' : 'border-transparent text-foreground-lighter hover:text-foreground-light hover:border-border-strong'}`}
+          onClick={() => setActiveTab('skills')}
+        >
+          Manage Skills
         </button>
       </div>
 
@@ -179,98 +183,135 @@ export function ServicesView({ model }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedSkills.length > 0 ? (
-                  paginatedSkills.map((skill) => (
-                    <TableRow
-                      key={skill.id}
-                      onClick={() => openSkillDetails(skill)}
-                      className="cursor-pointer"
-                    >
-                      <TableCell className="whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 flex-shrink-0 bg-brand-500/10 rounded-lg flex items-center justify-center">
-                            <Wrench size={20} className="text-brand-600" />
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-foreground">
-                              {skill.name}
-                            </div>
-                            <div className="text-xs text-foreground-lighter">{skill.id}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-surface-200 text-foreground-light rounded-md">
-                          {skill.industry}
-                        </span>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <div className="text-sm text-foreground font-medium">
-                          {skill.maximumPriceMinor != null
-                            ? `${moneyFromMinor(skill.minimumPriceMinor)} – ${moneyFromMinor(skill.maximumPriceMinor)}`
-                            : `From ${moneyFromMinor(skill.minimumPriceMinor)}`}
-                        </div>
-                        <div className="text-xs text-foreground-lighter">
-                          {skill.workers} Active Workers
-                          {skill.isSafetyCritical && ' · Safety critical'}
-                        </div>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <span
-                          className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            skill.status === 'Active'
-                              ? 'bg-success/10 text-success-600 dark:text-success-400'
-                              : 'bg-surface-200 text-foreground'
-                          }`}
-                        >
-                          {skill.status}
-                        </span>
-                      </TableCell>
-                      <TableCell
-                        className="whitespace-nowrap text-right font-medium"
-                        onClick={(e) => e.stopPropagation()}
+                {isLoading ? (
+                  <TableSkeleton
+                    rows={6}
+                    columns={[{}, {}, {}, {}, { className: 'text-right' }]}
+                  />
+                ) : paginatedSkills.length > 0 ? (
+                  paginatedSkills.map((skill) => {
+                    const trashed = Boolean(skill.isTrashed);
+                    const row = (
+                      <TableRow
+                        key={skill.id}
+                        onClick={() =>
+                          trashed
+                            ? goToTrash('skill', skill.trashEntryId)
+                            : openSkillDetails(skill)
+                        }
+                        className={`cursor-pointer ${trashed ? 'opacity-55 grayscale' : ''}`}
                       >
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              aria-label={`Open actions for ${skill.name}`}
-                              className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
+                        <TableCell className="whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 flex-shrink-0 bg-brand-500/10 rounded-lg flex items-center justify-center">
+                              <Wrench size={20} className="text-brand-600" />
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-foreground">
+                                {skill.name}
+                              </div>
+                              <div className="text-xs text-foreground-lighter">{skill.id}</div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <span className="inline-flex px-2 py-1 text-xs font-medium bg-surface-200 text-foreground-light rounded-md">
+                            {skill.industry}
+                          </span>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <div className="text-sm text-foreground font-medium">
+                            {skill.maximumPriceMinor != null
+                              ? `${moneyFromMinor(skill.minimumPriceMinor)} – ${moneyFromMinor(skill.maximumPriceMinor)}`
+                              : `From ${moneyFromMinor(skill.minimumPriceMinor)}`}
+                          </div>
+                          <div className="text-xs text-foreground-lighter">
+                            {skill.workers} Active Workers
+                            {skill.isSafetyCritical && ' · Safety critical'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {trashed ? (
+                            <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning-600 dark:text-warning-400">
+                              In Trash
+                            </span>
+                          ) : (
+                            <span
+                              className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                skill.status === 'Active'
+                                  ? 'bg-success/10 text-success-600 dark:text-success-400'
+                                  : 'bg-surface-200 text-foreground'
+                              }`}
                             >
-                              <MoreVertical size={20} />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem
-                              onSelect={() => openSkillDetails(skill)}
-                              className="cursor-pointer"
-                            >
-                              <Eye className="mr-2" /> View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onSelect={() => handleOpenEditSkillModal(skill)}
-                              className="cursor-pointer"
-                            >
-                              <Edit2 className="mr-2" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onSelect={() => handleDuplicateSkill(skill)}
-                              className="cursor-pointer"
-                            >
-                              <Copy className="mr-2" /> Duplicate
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onSelect={() => handleDeactivateSkill(skill)}
-                              className="cursor-pointer"
-                            >
-                              <Power className="mr-2" />
-                              {skill.status === 'Active' ? 'Deactivate' : 'Activate'}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                              {skill.status}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell
+                          className="whitespace-nowrap text-right font-medium"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <DropdownMenuNonModal>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                aria-label={`Open actions for ${skill.name}`}
+                                className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
+                              >
+                                <MoreVertical size={20} />
+                              </button>
+                            </DropdownMenuTrigger>
+                            {trashed ? (
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem
+                                  onSelect={() => goToTrash('skill', skill.trashEntryId)}
+                                  className="cursor-pointer"
+                                >
+                                  <ExternalLink className="mr-2" /> View in Trash
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            ) : (
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem
+                                  onSelect={() => openSkillDetails(skill)}
+                                  className="cursor-pointer"
+                                >
+                                  <Eye className="mr-2" /> View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onSelect={() => handleOpenEditSkillModal(skill)}
+                                  className="cursor-pointer"
+                                >
+                                  <Edit2 className="mr-2" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onSelect={() => handleDuplicateSkill(skill)}
+                                  className="cursor-pointer"
+                                >
+                                  <Copy className="mr-2" /> Duplicate
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onSelect={() => handleDeactivateSkill(skill)}
+                                  className="cursor-pointer"
+                                >
+                                  <Power className="mr-2" />
+                                  {skill.status === 'Active' ? 'Deactivate' : 'Activate'}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            )}
+                          </DropdownMenuNonModal>
+                        </TableCell>
+                      </TableRow>
+                    );
+                    return trashed ? (
+                      <Tooltip key={skill.id} delayDuration={150}>
+                        <TooltipTrigger asChild>{row}</TooltipTrigger>
+                        <TooltipContent>In trash — click to open in Trash</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      row
+                    );
+                  })
                 ) : (
                   <TableRow hover={false}>
                     <TableCell colSpan="5" className="text-center">
@@ -338,109 +379,146 @@ export function ServicesView({ model }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredIndustries.length > 0 ? (
-                  filteredIndustries.map((industry) => (
-                  <TableRow
-                    key={industry.id}
-                    onClick={() => openIndustryDetails(industry)}
-                    className="cursor-pointer"
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 flex-shrink-0 bg-info/10 rounded-lg flex items-center justify-center">
-                          <Grid size={20} className="text-info" />
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-foreground">
-                            {industry.name}
+                {isLoading ? (
+                  <TableSkeleton
+                    rows={6}
+                    columns={[{}, {}, {}, {}, { className: 'text-right' }]}
+                  />
+                ) : filteredIndustries.length > 0 ? (
+                  filteredIndustries.map((industry) => {
+                    const trashed = Boolean(industry.isTrashed);
+                    const row = (
+                    <TableRow
+                      key={industry.id}
+                      onClick={() =>
+                        trashed
+                          ? goToTrash('industry', industry.trashEntryId)
+                          : openIndustryDetails(industry)
+                      }
+                      className={`cursor-pointer ${trashed ? 'opacity-55 grayscale' : ''}`}
+                    >
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 flex-shrink-0 bg-info/10 rounded-lg flex items-center justify-center">
+                            <Grid size={20} className="text-info" />
                           </div>
-                          <div className="text-xs text-foreground-lighter">{industry.id}</div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-foreground">
+                              {industry.name}
+                            </div>
+                            <div className="text-xs text-foreground-lighter">{industry.id}</div>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-xs">
-                      <div className="text-sm text-foreground-lighter line-clamp-2">
-                        {industry.description || '—'}
-                      </div>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <span className="text-sm text-foreground font-medium">
-                        {industry.skillsCount} Skills
-                      </span>
-                    </TableCell>
-                    <TableCell
-                      className="whitespace-nowrap"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        onClick={() => toggleIndustryStatus(industry.id)}
-                        className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                          industry.status === 'Enabled'
-                            ? 'bg-success/10 text-success-600 dark:text-success-400 hover:bg-success/20'
-                            : 'bg-surface-200 text-foreground hover:bg-surface-300'
-                        }`}
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                        <div className="text-sm text-foreground-lighter line-clamp-2">
+                          {industry.description || '—'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span className="text-sm text-foreground font-medium">
+                          {industry.skillsCount} Skills
+                        </span>
+                      </TableCell>
+                      <TableCell
+                        className="whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {industry.status === 'Enabled' ? (
-                          <ToggleRight size={16} />
+                        {trashed ? (
+                          <span className="inline-flex px-3 py-1.5 rounded-full text-xs font-medium bg-warning/10 text-warning-600 dark:text-warning-400">
+                            In Trash
+                          </span>
                         ) : (
-                          <ToggleLeft size={16} />
-                        )}
-                        <span>{industry.status}</span>
-                      </button>
-                    </TableCell>
-                    <TableCell
-                      className="whitespace-nowrap text-right font-medium"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
                           <button
-                            aria-label={`Open actions for ${industry.name}`}
-                            className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
+                            onClick={() => toggleIndustryStatus(industry.id)}
+                            className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                              industry.status === 'Enabled'
+                                ? 'bg-success/10 text-success-600 dark:text-success-400 hover:bg-success/20'
+                                : 'bg-surface-200 text-foreground hover:bg-surface-300'
+                            }`}
                           >
-                            <MoreVertical size={20} />
+                            {industry.status === 'Enabled' ? (
+                              <ToggleRight size={16} />
+                            ) : (
+                              <ToggleLeft size={16} />
+                            )}
+                            <span>{industry.status}</span>
                           </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem
-                            onSelect={() => openIndustryDetails(industry)}
-                            className="cursor-pointer"
-                          >
-                            <Eye className="mr-2" /> View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onSelect={() => handleOpenEditIndustryModal(industry)}
-                            className="cursor-pointer"
-                          >
-                            <Edit2 className="mr-2" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onSelect={() => handleDeactivateIndustry(industry)}
-                            className="cursor-pointer"
-                          >
-                            <Power className="mr-2" />
-                            {industry.status === 'Enabled' ? 'Deactivate' : 'Activate'}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                        )}
+                      </TableCell>
+                      <TableCell
+                        className="whitespace-nowrap text-right font-medium"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DropdownMenuNonModal>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              aria-label={`Open actions for ${industry.name}`}
+                              className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
+                            >
+                              <MoreVertical size={20} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          {trashed ? (
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem
+                                onSelect={() => goToTrash('industry', industry.trashEntryId)}
+                                className="cursor-pointer"
+                              >
+                                <ExternalLink className="mr-2" /> View in Trash
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          ) : (
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem
+                                onSelect={() => openIndustryDetails(industry)}
+                                className="cursor-pointer"
+                              >
+                                <Eye className="mr-2" /> View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onSelect={() => handleOpenEditIndustryModal(industry)}
+                                className="cursor-pointer"
+                              >
+                                <Edit2 className="mr-2" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onSelect={() => handleDeactivateIndustry(industry)}
+                                className="cursor-pointer"
+                              >
+                                <Power className="mr-2" />
+                                {industry.status === 'Enabled' ? 'Deactivate' : 'Activate'}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          )}
+                        </DropdownMenuNonModal>
+                      </TableCell>
+                    </TableRow>
+                    );
+                    return trashed ? (
+                      <Tooltip key={industry.id} delayDuration={150}>
+                        <TooltipTrigger asChild>{row}</TooltipTrigger>
+                        <TooltipContent>In trash — click to open in Trash</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      row
+                    );
+                  })
+                ) : (
+                  <TableRow hover={false}>
+                    <TableCell colSpan="5" className="text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <Box size={48} className="text-foreground-muted mb-4" />
+                        <h3 className="text-lg font-medium text-foreground">No industries found</h3>
+                        <p className="text-foreground-lighter mt-1">
+                          Try adjusting your search or filters.
+                        </p>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow hover={false}>
-                  <TableCell colSpan="5" className="text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <Box size={48} className="text-foreground-muted mb-4" />
-                      <h3 className="text-lg font-medium text-foreground">No industries found</h3>
-                      <p className="text-foreground-lighter mt-1">
-                        Try adjusting your search or filters.
-                      </p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
+                )}
+              </TableBody>
           </Table>
         </div>
         </>
@@ -670,9 +748,9 @@ export function ServicesView({ model }) {
               </Button>
               <Button
                 variant="danger"
-                onClick={() => handleHardDeleteSkill(details.item)}
+                onClick={() => handleMoveSkillToTrash(details.item)}
               >
-                <Trash2 /> Hard Delete
+                <Trash2 /> Move to Trash
               </Button>
             </>
           ) : null
@@ -758,9 +836,9 @@ export function ServicesView({ model }) {
               </Button>
               <Button
                 variant="danger"
-                onClick={() => openIndustryDelete(details.item)}
+                onClick={() => handleMoveIndustryToTrash(details.item)}
               >
-                <Trash2 /> Hard Delete
+                <Trash2 /> Move to Trash
               </Button>
             </>
           ) : null
@@ -815,75 +893,6 @@ export function ServicesView({ model }) {
         )}
       </Drawer>
 
-      {/* Industry Hard Delete Safety Dialog */}
-      <Modal
-        isOpen={industryDelete != null}
-        onClose={closeIndustryDelete}
-        title="Hard Delete Industry"
-        footer={
-          industryDelete ? (
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={closeIndustryDelete}>
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                disabled={!allIndustrySkillsSelected}
-                onClick={handleConfirmHardDeleteIndustry}
-              >
-                <Trash2 /> Delete {industryDelete.industry.name}
-              </Button>
-            </div>
-          ) : null
-        }
-      >
-        {industryDelete && (
-          <div className="space-y-4">
-            <p className="text-sm text-foreground-lighter leading-relaxed">
-              This permanently deletes{' '}
-              <span className="font-medium text-foreground">
-                {industryDelete.industry.name}
-              </span>{' '}
-              and every selected skill below — including all service requests,
-              bookings, payments, receipts, reviews and wallet transactions tied
-              to them. This{' '}
-              <span className="font-medium text-foreground">cannot be undone</span>.
-            </p>
-            <ul className="space-y-2">
-              {industrySkills.map((skill) => (
-                <li key={skill.id}>
-                  <label className="flex items-center gap-3 rounded-lg border border-border px-3 py-2 cursor-pointer hover:bg-accent transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(industryDelete.selected[skill.id])}
-                      onChange={() => toggleIndustrySkillSelection(skill.id)}
-                      className="h-4 w-4 accent-brand-600"
-                    />
-                    <span className="text-sm font-medium text-foreground">
-                      {skill.name}
-                    </span>
-                    <span className="ml-auto text-xs text-foreground-lighter">
-                      {skill.workers} workers
-                    </span>
-                  </label>
-                </li>
-              ))}
-              {industrySkills.length === 0 && (
-                <p className="text-sm text-foreground-lighter">
-                  This industry has no skills.
-                </p>
-              )}
-            </ul>
-            {!allIndustrySkillsSelected && industrySkills.length > 0 && (
-              <p className="text-xs text-destructive">
-                Select all {industrySkills.length} skills to delete this
-                industry.
-              </p>
-            )}
-          </div>
-        )}
-      </Modal>
-
       <ConfirmModal
         isOpen={confirm.isOpen}
         onClose={closeConfirm}
@@ -894,5 +903,6 @@ export function ServicesView({ model }) {
         variant="danger"
       />
     </div>
+    </TooltipProvider>
   );
 }

@@ -1,25 +1,28 @@
 import {
   loadCatalog,
+  loadTrashedEntries,
   loadMostBookedService,
   saveIndustry,
   saveSkill,
-  hardDeleteSkill,
-  hardDeleteIndustry,
+  moveSkillToTrash,
+  moveIndustryToTrash,
   subscribe,
 } from '../logic/ServicesPageLogic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Layers, ArrowUpRight, CheckCircle, Grid } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { usePagination } from '../../../hooks/usePagination';
 
 export function useServicesPageController() {
+  const navigate = useNavigate();
   const [skills, setSkills] = useState([]);
   const [industriesData, setIndustriesData] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('All Statuses');
   const [industrySearch, setIndustrySearch] = useState('');
   const [filterIndustryStatus, setFilterIndustryStatus] = useState('All');
-  const [activeTab, setActiveTab] = useState('skills');
+  const [activeTab, setActiveTab] = useState('industries');
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [isIndustryModalOpen, setIsIndustryModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add');
@@ -36,16 +39,36 @@ export function useServicesPageController() {
     [],
   );
   const [mostBooked, setMostBooked] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const toast = useToast();
 
   const refresh = useCallback(async () => {
-    const [value, booked] = await Promise.all([
-      loadCatalog(),
-      loadMostBookedService(),
-    ]);
-    setSkills(value.skills);
-    setIndustriesData(value.industries);
-    setMostBooked(booked);
+    setIsLoading(true);
+    try {
+      const [value, booked, trashed] = await Promise.all([
+        loadCatalog(),
+        loadMostBookedService(),
+        loadTrashedEntries(),
+      ]);
+      const trashById = new Map(
+        trashed.map((entry) => [`${entry.entityType}:${entry.entityId}`, entry.id]),
+      );
+      setSkills(
+        value.skills.map((skill) => {
+          const trashEntryId = trashById.get(`skill:${skill.id}`) ?? null;
+          return { ...skill, isTrashed: Boolean(trashEntryId), trashEntryId };
+        }),
+      );
+      setIndustriesData(
+        value.industries.map((industry) => {
+          const trashEntryId = trashById.get(`industry:${industry.id}`) ?? null;
+          return { ...industry, isTrashed: Boolean(trashEntryId), trashEntryId };
+        }),
+      );
+      setMostBooked(booked);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -156,20 +179,56 @@ export function useServicesPageController() {
   );
   const closeDetails = useCallback(() => setDetails(null), []);
 
-  const handleHardDeleteSkill = useCallback(
+  const goToTrash = useCallback(
+    (entityType, trashEntryId) => {
+      if (!trashEntryId) return;
+      navigate(
+        `/admin/trash?tab=${entityType === 'industry' ? 'Industries' : 'Skills'}&entry=${trashEntryId}`,
+      );
+    },
+    [navigate],
+  );
+
+  const handleMoveSkillToTrash = useCallback(
     (skill) => {
       setConfirm({
         isOpen: true,
-        title: 'Hard Delete Skill',
-        message: `Permanently delete "${skill.name}" and ALL data tied to it (${
-          skill.workers ?? 0
-        } worker assignments, service requests, bookings, payments, receipts, reviews, wallet transactions)? This CANNOT be undone.`,
-        confirmLabel: 'Hard Delete',
+        title: 'Move Skill to Trash',
+        message: `Move "${skill.name}" to trash? It will be disabled on the platform and listed in the Trash page until it is restored or permanently deleted.`,
+        confirmLabel: 'Move to Trash',
         onConfirm: async () => {
           try {
-            const result = await hardDeleteSkill(skill.id);
+            await moveSkillToTrash(skill.id);
+            toast.success(`Skill "${skill.name}" moved to trash`);
+            setDetails(null);
+            await refresh();
+          } catch (error) {
+            toast.error('Operation failed', error.message);
+          }
+        },
+      });
+    },
+    [moveSkillToTrash, refresh, toast],
+  );
+
+  const handleMoveIndustryToTrash = useCallback(
+    (industry) => {
+      const skillCount = skills.filter(
+        (skill) => skill.industry === industry.name,
+      ).length;
+      setConfirm({
+        isOpen: true,
+        title: 'Move Industry to Trash',
+        message:
+          skillCount > 0
+            ? `Move "${industry.name}" and its ${skillCount} skill${skillCount === 1 ? '' : 's'} to trash? They will be disabled on the platform and listed in the Trash page until restored or permanently deleted.`
+            : `Move "${industry.name}" to trash? It will be disabled on the platform and listed in the Trash page until restored or permanently deleted.`,
+        confirmLabel: 'Move to Trash',
+        onConfirm: async () => {
+          try {
+            const result = await moveIndustryToTrash(industry.id);
             toast.success(
-              `Skill "${result.name}" deleted (${result.bookings} bookings, ${result.service_requests} requests)`,
+              `Industry "${result.name}" moved to trash (${result.skills} skills)`,
             );
             setDetails(null);
             await refresh();
@@ -179,7 +238,7 @@ export function useServicesPageController() {
         },
       });
     },
-    [hardDeleteSkill, refresh, toast],
+    [moveIndustryToTrash, refresh, skills, toast],
   );
 
   const handleDeactivateSkill = useCallback(
@@ -251,63 +310,6 @@ export function useServicesPageController() {
     setIsIndustryModalOpen(true);
   }, []);
 
-  const [industryDelete, setIndustryDelete] = useState(null);
-  const industrySkills = useMemo(
-    () =>
-      industryDelete
-        ? skills.filter(
-            (skill) => skill.industry === industryDelete.industry.name,
-          )
-        : [],
-    [skills, industryDelete],
-  );
-  const openIndustryDelete = useCallback(
-    (industry) => {
-      const industrySkillIds = skills
-        .filter((skill) => skill.industry === industry.name)
-        .map((skill) => skill.id);
-      setIndustryDelete({
-        industry,
-        selected: Object.fromEntries(industrySkillIds.map((id) => [id, true])),
-      });
-    },
-    [skills],
-  );
-  const toggleIndustrySkillSelection = useCallback((skillId) => {
-    setIndustryDelete((cur) => {
-      if (!cur) return cur;
-      const selected = { ...cur.selected };
-      if (selected[skillId]) delete selected[skillId];
-      else selected[skillId] = true;
-      return { ...cur, selected };
-    });
-  }, []);
-  const allIndustrySkillsSelected = useMemo(
-    () =>
-      industryDelete !== null &&
-      industrySkills.length > 0 &&
-      Object.keys(industryDelete.selected).length === industrySkills.length,
-    [industryDelete, industrySkills],
-  );
-  const handleConfirmHardDeleteIndustry = useCallback(async () => {
-    if (!industryDelete) return;
-    try {
-      const result = await hardDeleteIndustry(
-        industryDelete.industry.id,
-        Object.keys(industryDelete.selected),
-      );
-      toast.success(
-        `Industry "${result.name}" deleted (${result.skills} skills, ${result.bookings} bookings)`,
-      );
-      setIndustryDelete(null);
-      setDetails(null);
-      await refresh();
-    } catch (error) {
-      toast.error('Operation failed', error.message);
-    }
-  }, [industryDelete, hardDeleteIndustry, refresh, toast]);
-  const closeIndustryDelete = useCallback(() => setIndustryDelete(null), []);
-
   const handleDeactivateIndustry = useCallback(
     (industry) => {
       const deactivating = industry.status === 'Enabled';
@@ -376,6 +378,7 @@ export function useServicesPageController() {
       setActiveTab,
       currentPage,
       setCurrentPage,
+      isLoading,
       isSkillModalOpen,
       setIsSkillModalOpen,
       isIndustryModalOpen,
@@ -391,15 +394,10 @@ export function useServicesPageController() {
       closeDetails,
       openSkillDetails,
       openIndustryDetails,
-      handleHardDeleteSkill,
+      goToTrash,
+      handleMoveSkillToTrash,
+      handleMoveIndustryToTrash,
       handleDeactivateSkill,
-      industryDelete,
-      closeIndustryDelete,
-      industrySkills,
-      openIndustryDelete,
-      toggleIndustrySkillSelection,
-      allIndustrySkillsSelected,
-      handleConfirmHardDeleteIndustry,
       industries,
       industriesData,
       filteredSkills,
@@ -428,6 +426,7 @@ export function useServicesPageController() {
       filterIndustryStatus,
       activeTab,
       currentPage,
+      isLoading,
       isSkillModalOpen,
       isIndustryModalOpen,
       modalMode,
@@ -442,28 +441,23 @@ export function useServicesPageController() {
       totalPages,
       paginatedSkills,
       stats,
-      industryDelete,
-      industrySkills,
-      allIndustrySkillsSelected,
       handleOpenAddSkillModal,
       handleOpenEditSkillModal,
-      handleHardDeleteSkill,
+      handleMoveSkillToTrash,
+      handleMoveIndustryToTrash,
       handleDeactivateSkill,
       handleDuplicateSkill,
       handleSaveSkill,
       handleOpenAddIndustryModal,
       handleOpenEditIndustryModal,
       handleDeactivateIndustry,
-      handleConfirmHardDeleteIndustry,
-      toggleIndustrySkillSelection,
       toggleIndustryStatus,
       handleSaveIndustry,
       closeConfirm,
       closeDetails,
-      closeIndustryDelete,
       openSkillDetails,
       openIndustryDetails,
-      openIndustryDelete,
+      goToTrash,
       setSearchTerm,
       setFilterIndustry,
       setIndustrySearch,
