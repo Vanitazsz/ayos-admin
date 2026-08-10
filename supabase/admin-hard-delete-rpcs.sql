@@ -9,10 +9,11 @@
 -- admin_hard_delete_industry(p_id, skills)   -> jsonb { name, skills, bookings, service_requests, worker_skills }
 --   skills must include EVERY skill of the industry, or the call is refused.
 
--- Internal: disable/enable all triggers on the affected tables so protection
--- triggers (e.g. prevent_wallet_transaction_mutation) cannot block a hard
--- delete. Runs in the caller's transaction, so any error rolls the trigger
--- state back with it. Not exposed to any role.
+-- Internal: disable/enable user-defined (protection) triggers on the affected
+-- tables so triggers like prevent_wallet_transaction_mutation cannot block a
+-- hard delete. RI/constraint triggers stay active; the delete order respects
+-- foreign keys. Runs in the caller's transaction, so any error rolls the
+-- trigger state back with it. Not exposed to any role.
 create or replace function public._admin_hard_delete_triggers(p_disable boolean)
 returns void
 language plpgsql
@@ -33,7 +34,7 @@ begin
     'worker_offerings', 'service_templates', 'services', 'worker_skills',
     'service_categories', 'industries'
   ]) loop
-    execute format('alter table public.%I %s trigger all', t, case when p_disable then 'disable' else 'enable' end);
+    execute format('alter table public.%I %s trigger user', t, case when p_disable then 'disable' else 'enable' end);
   end loop;
 end $$;
 
