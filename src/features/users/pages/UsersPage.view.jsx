@@ -745,9 +745,6 @@ export function UsersView({ model }) {
                               <User size={12} className="mr-1" /> {booking.worker || 'Unassigned'}
                             </span>
                             <span className="inline-flex items-center">
-                              <Calendar size={12} className="mr-1" /> {booking.date}
-                            </span>
-                            <span className="inline-flex items-center">
                               <Clock size={12} className="mr-1" /> {money(booking.price)}
                             </span>
                           </div>
