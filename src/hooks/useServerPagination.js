@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getPageWindow } from './usePagination';
 
-export function useServerPagination({ fetchPage, pageSize = 10 }) {
+export function useServerPagination({ fetchPage, pageSize = 10, filterKey = '' }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState([]);
   const [count, setCount] = useState(0);
@@ -13,6 +13,7 @@ export function useServerPagination({ fetchPage, pageSize = 10 }) {
   const mountedRef = useRef(true);
   const requestIdRef = useRef(0);
   const lastFetchedRef = useRef(null);
+  const lastFilterKeyRef = useRef(filterKey);
 
   const updatePage = useCallback((page) => {
     pageRef.current = page;
@@ -70,16 +71,25 @@ export function useServerPagination({ fetchPage, pageSize = 10 }) {
   }, [fetchPage, updatePage]);
 
   useEffect(() => {
+    if (lastFilterKeyRef.current === filterKey) return;
+    lastFilterKeyRef.current = filterKey;
+    requestIdRef.current += 1;
+    lastFetchedRef.current = null;
+    pageRef.current = 1;
+    updatePage(1);
+  }, [filterKey, updatePage]);
+
+  useEffect(() => {
     if (currentPage > totalPages) updatePage(totalPages);
   }, [currentPage, totalPages, updatePage]);
 
   useEffect(() => {
-    const key = fetchPage;
+    const key = `${filterKey}\u0000${fetchPage}`;
     const page = pageRef.current;
     if (lastFetchedRef.current?.key === key && lastFetchedRef.current?.page === page) return;
     lastFetchedRef.current = { key, page };
     void refresh();
-  }, [refresh, currentPage, fetchPage]);
+  }, [refresh, currentPage, fetchPage, filterKey]);
 
   return {
     rows,
