@@ -4,6 +4,8 @@ import {
   permanentlyDeleteTrash,
   restoreTrash,
   restoreAccountFromTrash,
+  restoreBookingFromTrash,
+  restorePaymentFromTrash,
   restoreIndustryFromTrash,
   restoreSkillFromTrash,
   hardDeleteAccountFromTrash,
@@ -68,6 +70,8 @@ export function useTrashPageController() {
     else if (item.type === 'Skill') await restoreSkillFromTrash(item.id);
     else if (item.type === 'User' || item.type === 'Worker')
       await restoreAccountFromTrash(item.id);
+    else if (item.type === 'Booking') await restoreBookingFromTrash(item.id);
+    else if (item.type === 'Payment') await restorePaymentFromTrash(item.id);
     else await restoreTrash(item.id);
   };
 

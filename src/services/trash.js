@@ -4,6 +4,7 @@ const TYPE_TABS = {
   user: 'Users',
   worker: 'Workers',
   booking: 'Bookings',
+  payment: 'Bookings',
   review: 'Reviews',
   industry: 'Industries',
   skill: 'Skills',
@@ -91,6 +92,22 @@ export async function loadTrash() {
 
 export async function restoreTrash(id) {
   const { data, error } = await supabase.rpc('restore_from_trash', { trash_id: id });
+  if (error) throw error;
+  return data;
+}
+
+export async function restoreBookingFromTrash(id) {
+  const { data, error } = await supabase.rpc('admin_restore_booking_from_trash', {
+    p_trash_id: id,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function restorePaymentFromTrash(id) {
+  const { data, error } = await supabase.rpc('admin_restore_payment_from_trash', {
+    p_trash_id: id,
+  });
   if (error) throw error;
   return data;
 }

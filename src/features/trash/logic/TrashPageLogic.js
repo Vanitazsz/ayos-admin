@@ -5,6 +5,8 @@ export {
   permanentlyDeleteTrash,
   restoreTrash,
   restoreAccountFromTrash,
+  restoreBookingFromTrash,
+  restorePaymentFromTrash,
   restoreIndustryFromTrash,
   restoreSkillFromTrash,
   hardDeleteAccountFromTrash,

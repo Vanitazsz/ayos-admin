@@ -146,7 +146,7 @@ export function useBookingsPageController() {
     if (!action || actionReason.trim().length < 3) return;
     if (action.type === 'reassign' && !replacementWorker) return;
     const label =
-      action.type === 'cancel' ? 'cancel this booking' : 'reassign this booking';
+      action.type === 'cancel' ? 'move this booking to trash' : 'reassign this booking';
     setConfirm({
       isOpen: true,
       title: 'Confirm Action',

@@ -6,6 +6,7 @@ import {
   MapPin,
   Clock,
   XCircle,
+  Trash2,
   Eye,
   User,
 } from 'lucide-react';
@@ -214,18 +215,20 @@ export function BookingsView({ model }) {
                         >
                           <Eye className="mr-2" /> View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => openAction('reassign', booking)}
-                          className="cursor-pointer"
-                        >
-                          <User className="mr-2" /> Reassign Worker
-                        </DropdownMenuItem>
+                        {!['Completed', 'Cancelled'].includes(booking.status) && (
+                          <DropdownMenuItem
+                            onSelect={() => openAction('reassign', booking)}
+                            className="cursor-pointer"
+                          >
+                            <User className="mr-2" /> Reassign Worker
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onSelect={() => openAction('cancel', booking)}
                           className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
                         >
-                          <XCircle className="mr-2" /> Cancel Booking
+                          <Trash2 className="mr-2" /> Move to Trash
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -264,20 +267,21 @@ export function BookingsView({ model }) {
         title={`Booking ${selectedBooking?.id}`}
         width="w-[500px]"
         footer={
-          selectedBooking &&
-          !['Completed', 'Cancelled'].includes(selectedBooking.status) ? (
+          selectedBooking ? (
             <>
-              <button
-                onClick={() => openAction('reassign', selectedBooking)}
-                className="px-4 py-2 border border-border-strong rounded-lg text-sm font-medium text-foreground-light"
-              >
-                Reassign Worker
-              </button>
+              {!['Completed', 'Cancelled'].includes(selectedBooking.status) && (
+                <button
+                  onClick={() => openAction('reassign', selectedBooking)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm font-medium text-foreground-light"
+                >
+                  Reassign Worker
+                </button>
+              )}
               <button
                 onClick={() => openAction('cancel', selectedBooking)}
                 className="px-4 py-2 rounded-lg bg-destructive text-sm font-medium text-white"
               >
-                Cancel Booking
+                Move to Trash
               </button>
             </>
           ) : null
@@ -444,7 +448,7 @@ export function BookingsView({ model }) {
       <Modal
         isOpen={Boolean(action)}
         onClose={() => !savingAction && setAction(null)}
-        title={action?.type === 'cancel' ? 'Cancel Booking' : 'Reassign Worker'}
+        title={action?.type === 'cancel' ? 'Move Booking to Trash' : 'Reassign Worker'}
       >
         {action && (
           <div className="space-y-4">

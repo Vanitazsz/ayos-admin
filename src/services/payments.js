@@ -29,13 +29,20 @@ export async function loadPaymentsPage({
   page = 1,
   pageSize = 10,
 } = {}) {
+  const { data: trashedData } = await supabase
+    .from('trash_entries')
+    .select('entity_id')
+    .eq('entity_type', 'payment')
+    .is('restored_at', null);
+  const trashedIds = new Set((trashedData ?? []).map((t) => t.entity_id));
+
   const { data: keys, error: keyError } = await supabase
     .from('payments')
     .select(PAYMENT_KEY_SELECT)
     .order('created_at', { ascending: false });
   if (keyError) throw keyError;
 
-  const rows = keys ?? [];
+  const rows = (keys ?? []).filter((row) => !trashedIds.has(row.id));
 
   const stats = {
     revenue: rows
@@ -90,4 +97,13 @@ export async function loadPaymentsPage({
     count,
     stats,
   };
+}
+
+export async function movePaymentToTrash(id, reason) {
+  const { data, error } = await supabase.rpc('admin_move_payment_to_trash', {
+    p_payment_id: id,
+    p_reason: reason,
+  });
+  if (error) throw error;
+  return data;
 }

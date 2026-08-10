@@ -24,7 +24,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '../../../components/ui/DropdownMenu';
+import { Trash2 } from 'lucide-react';
+import Modal from '../../../components/ui/Modal';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
 
 export function PaymentsView({ model }) {
   const {
@@ -47,6 +51,15 @@ export function PaymentsView({ model }) {
     stats,
     getStatusColor,
     handleViewDetails,
+    openAction,
+    action,
+    setAction,
+    actionReason,
+    setActionReason,
+    savingAction,
+    submitAction,
+    confirm,
+    closeConfirm,
   } = model;
   return (
     <div className="p-4 sm:p-6">
@@ -213,12 +226,19 @@ export function PaymentsView({ model }) {
                               <MoreVertical size={20} />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuContent align="end" className="w-52">
                             <DropdownMenuItem
                               onSelect={() => handleViewDetails(txn)}
                               className="cursor-pointer"
                             >
                               <Eye className="mr-2" /> View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onSelect={() => openAction('trash', txn)}
+                              className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
+                            >
+                              <Trash2 className="mr-2" /> Move to Trash
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -319,6 +339,16 @@ export function PaymentsView({ model }) {
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         title="Transaction Details"
+        footer={
+          selectedTxn ? (
+            <button
+              onClick={() => openAction('trash', selectedTxn)}
+              className="px-4 py-2 rounded-lg bg-destructive text-sm font-medium text-white"
+            >
+              Move to Trash
+            </button>
+          ) : null
+        }
       >
         {selectedTxn && (
           <div className="space-y-6">
@@ -397,6 +427,54 @@ export function PaymentsView({ model }) {
           </div>
         )}
       </Drawer>
+
+      <Modal
+        isOpen={Boolean(action)}
+        onClose={() => !savingAction && setAction(null)}
+        title="Move Transaction to Trash"
+      >
+        {action && (
+          <div className="space-y-4">
+            <p className="text-sm text-foreground-light">Transaction {action.txn.id}</p>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Admin reason</label>
+              <textarea
+                value={actionReason}
+                onChange={(e) => setActionReason(e.target.value)}
+                maxLength={1000}
+                placeholder="Specify the reason for trashing this transaction..."
+                className="min-h-24 w-full rounded-lg border border-border-strong p-3 text-sm focus:ring-ring focus:border-brand-500"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                disabled={savingAction}
+                onClick={() => setAction(null)}
+                className="rounded-lg border border-border-strong px-4 py-2 text-sm font-medium text-foreground-light hover:bg-surface-200"
+              >
+                Close
+              </button>
+              <button
+                disabled={savingAction || actionReason.trim().length < 3}
+                onClick={() => void submitAction()}
+                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-brand-700"
+              >
+                {savingAction ? 'Saving…' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <ConfirmModal
+        isOpen={confirm.isOpen}
+        onClose={closeConfirm}
+        title={confirm.title}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        confirmLabel="Yes"
+        variant="primary"
+      />
     </div>
   );
 }

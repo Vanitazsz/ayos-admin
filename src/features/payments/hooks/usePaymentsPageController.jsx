@@ -1,19 +1,34 @@
-import { loadPaymentsPage } from '../logic/PaymentsPageLogic';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { loadPaymentsPage, movePaymentToTrash } from '../logic/PaymentsPageLogic';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DollarSign, TrendingUp, CreditCard, ArrowDownRight } from 'lucide-react';
 import { money } from '../../../services/adminShared';
 import { subscribe } from '../../../services/realtime';
 import { PAYMENT_STATUS_BADGE, badgeFor } from '../../../services/statusMeta';
 import { useServerPagination } from '../../../hooks/useServerPagination';
-import { useState } from 'react';
+import { useToast } from '../../../context/ToastContext';
 
 export function usePaymentsPageController() {
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('All');
   const [selectedTxn, setSelectedTxn] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [activeTab, setActiveTab] = useState('transactions');
+  const [action, setAction] = useState(null);
+  const [actionReason, setActionReason] = useState('');
+  const [savingAction, setSavingAction] = useState(false);
+  const [confirm, setConfirm] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const closeConfirm = useCallback(
+    () => setConfirm((s) => ({ ...s, isOpen: false })),
+    [],
+  );
 
   const fetchPayments = useCallback(
     ({ page, pageSize }) =>
@@ -83,6 +98,41 @@ export function usePaymentsPageController() {
     setIsDrawerOpen(true);
     setActionMenuOpenId(null);
   };
+
+  const openAction = useCallback((type, txn) => {
+    setAction({ type, txn });
+    setActionReason('');
+    setActionMenuOpenId(null);
+  }, []);
+
+  const executeAction = useCallback(async () => {
+    if (!action || actionReason.trim().length < 3) return;
+    setSavingAction(true);
+    try {
+      if (action.type === 'trash') {
+        await movePaymentToTrash(action.txn.id, actionReason.trim());
+        toast.success('Transaction moved to trash');
+      }
+      setAction(null);
+      await refresh();
+      setIsDrawerOpen(false);
+    } catch (err) {
+      toast.error('Action failed', err.message);
+    } finally {
+      setSavingAction(false);
+    }
+  }, [action, actionReason, refresh, toast]);
+
+  const submitAction = useCallback(() => {
+    if (!action || actionReason.trim().length < 3) return;
+    setConfirm({
+      isOpen: true,
+      title: 'Confirm Action',
+      message: 'Confirm that you want to move this transaction to trash?',
+      onConfirm: executeAction,
+    });
+  }, [action, actionReason, executeAction]);
+
   return {
     isLoading,
     error,
@@ -105,5 +155,14 @@ export function usePaymentsPageController() {
     stats,
     getStatusColor,
     handleViewDetails,
+    openAction,
+    action,
+    setAction,
+    actionReason,
+    setActionReason,
+    savingAction,
+    submitAction,
+    confirm,
+    closeConfirm,
   };
 }
