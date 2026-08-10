@@ -4,6 +4,7 @@ import {
   MoreVertical,
   CheckCircle,
   ShieldCheck,
+  ShieldOff,
   Eye,
   Edit,
   Trash2,
@@ -15,6 +16,11 @@ import {
   Phone,
   Mail,
   Calendar,
+  Ban,
+  CheckSquare,
+  CheckCheck,
+  X,
+  Coins,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
@@ -24,6 +30,7 @@ import Select from '../../../components/ui/Select';
 import Textarea from '../../../components/ui/Textarea';
 import Button from '../../../components/ui/Button';
 import Checkbox from '../../../components/ui/Checkbox';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
 import StatCard from '../../../components/ui/StatCard';
 import { Badge } from '../../../components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
@@ -32,7 +39,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '../../../components/ui/Tabs';
-import { money } from '../../../services/adminShared';
+import { money, moneyFromMinor } from '../../../services/adminShared';
 import AccountDeleteModal from '../../../components/admin/AccountDeleteModal';
 import {
   DropdownMenu,
@@ -70,9 +77,11 @@ export function WorkersView({ model }) {
     isEditDrawerOpen,
     setIsEditDrawerOpen,
     isSavingWorker,
+    actionLoadingId,
     industryGroups,
     toggleSkill,
     toggleIndustry,
+    setWorkerRate,
     isLoading,
     loadError,
     refresh,
@@ -86,9 +95,24 @@ export function WorkersView({ model }) {
     handleSaveWorker,
     handleDeleteClick,
     toggleStatus,
+    toggleWorkerVerification,
     approveWorker,
     openRemarksModal,
     submitRemarks,
+    selectedIds,
+    selectedCount,
+    isSelectionActive,
+    bulkAction,
+    isBulkLoading,
+    toggleSelectWorker,
+    selectWorker,
+    toggleSelectAll,
+    clearSelection,
+    handleBulkStatus,
+    handleBulkVerification,
+    verificationDocs,
+    confirm,
+    closeConfirm,
   } = model;
   return (
     <div className="p-4 sm:p-6">
@@ -176,11 +200,83 @@ export function WorkersView({ model }) {
         </div>
       ) : null}
 
+      {isSelectionActive ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-xl border-x border-t border-border bg-brand-500/5 px-4 py-2.5">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-foreground">
+              {selectedCount} selected
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearSelection}
+              disabled={isBulkLoading}
+            >
+              <X size={14} className="mr-1.5" /> Clear
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => void handleBulkStatus('SUSPENDED')}
+              isLoading={isBulkLoading && bulkAction === 'SUSPENDED'}
+              disabled={isBulkLoading && bulkAction !== 'SUSPENDED'}
+            >
+              <Ban size={14} /> Suspend
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => void handleBulkStatus('ACTIVE')}
+              isLoading={isBulkLoading && bulkAction === 'ACTIVE'}
+              disabled={isBulkLoading && bulkAction !== 'ACTIVE'}
+            >
+              <UserCheck size={14} /> Reactivate
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => void handleBulkVerification('verified')}
+              isLoading={isBulkLoading && bulkAction === 'verified'}
+              disabled={isBulkLoading && bulkAction !== 'verified'}
+            >
+              <ShieldCheck size={14} /> Verify
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleBulkVerification('unverified')}
+              isLoading={isBulkLoading && bulkAction === 'unverified'}
+              disabled={isBulkLoading && bulkAction !== 'unverified'}
+            >
+              <ShieldOff size={14} /> Unverify
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {/* Table */}
-      <div className="bg-card shadow-sm border border-border">
+      <div className={`bg-card shadow-sm border border-border ${isSelectionActive ? 'rounded-b-xl' : 'rounded-t-xl'}`}>
         <Table>
           <TableHeader>
             <TableRow>
+              {isSelectionActive ? (
+                <TableHead scope="col" className="w-12 text-center">
+                  <div className="flex justify-center">
+                    <Checkbox
+                      aria-label="Select all workers"
+                      checked={
+                        paginatedWorkers.length > 0 &&
+                        paginatedWorkers.every((worker) => selectedIds.has(worker.id))
+                          ? true
+                          : selectedCount > 0
+                            ? 'indeterminate'
+                            : false
+                      }
+                      onCheckedChange={() => toggleSelectAll(paginatedWorkers)}
+                    />
+                  </div>
+                </TableHead>
+              ) : null}
               <TableHead scope="col">
                 Worker
               </TableHead>
@@ -207,7 +303,7 @@ export function WorkersView({ model }) {
           <TableBody>
             {isLoading ? (
               <TableRow hover={false}>
-                <TableCell colSpan="7" className="text-center text-foreground-lighter">
+                <TableCell colSpan={isSelectionActive ? 8 : 7} className="text-center text-foreground-lighter">
                   Loading workers…
                 </TableCell>
               </TableRow>
@@ -218,6 +314,17 @@ export function WorkersView({ model }) {
                   onClick={() => handleViewDetails(worker)}
                   className="cursor-pointer"
                 >
+                  {isSelectionActive ? (
+                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-center">
+                        <Checkbox
+                          aria-label={`Select ${worker.name}`}
+                          checked={selectedIds.has(worker.id)}
+                          onCheckedChange={() => toggleSelectWorker(worker.id)}
+                        />
+                      </div>
+                    </TableCell>
+                  ) : null}
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 flex-shrink-0">
@@ -232,7 +339,12 @@ export function WorkersView({ model }) {
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    <div className="text-sm text-foreground">{worker.category}</div>
+                    <div
+                      className="max-w-[14rem] truncate text-sm text-foreground"
+                      title={(worker.categories ?? []).join(', ')}
+                    >
+                      {(worker.categories ?? []).join(', ') || '—'}
+                    </div>
                     <div className="text-sm text-foreground-lighter">{worker.experience} yrs exp</div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
@@ -297,6 +409,18 @@ export function WorkersView({ model }) {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-52">
                         <DropdownMenuItem
+                          onSelect={() => selectWorker(worker.id)}
+                          className="cursor-pointer"
+                        >
+                          <CheckSquare className="mr-2" /> Select
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => toggleSelectAll(paginatedWorkers)}
+                          className="cursor-pointer"
+                        >
+                          <CheckCheck className="mr-2" /> Select All
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           onSelect={() => handleViewDetails(worker)}
                           className="cursor-pointer"
                         >
@@ -352,7 +476,7 @@ export function WorkersView({ model }) {
               ))
             ) : (
               <TableRow hover={false}>
-                <TableCell colSpan="7" className="text-center">
+                <TableCell colSpan={isSelectionActive ? 8 : 7} className="text-center">
                   <div className="flex flex-col items-center justify-center">
                     <UserX size={48} className="text-foreground-muted mb-4" />
                     <h3 className="text-lg font-medium text-foreground">No workers found</h3>
@@ -402,6 +526,27 @@ export function WorkersView({ model }) {
               </div>
             </div>
 
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={selectedWorker.verified ? 'outline' : 'primary'}
+                onClick={() => void toggleWorkerVerification(selectedWorker)}
+                isLoading={actionLoadingId === `${selectedWorker.id}:verification`}
+              >
+                <ShieldCheck size={15} />
+                {selectedWorker.verified ? 'Unverify' : 'Verify'}
+              </Button>
+              <Button
+                size="sm"
+                variant={selectedWorker.status === 'Active' ? 'warning' : 'primary'}
+                onClick={() => void toggleStatus(selectedWorker)}
+                isLoading={actionLoadingId === `${selectedWorker.id}:status`}
+              >
+                <Ban size={15} />
+                {selectedWorker.status === 'Active' ? 'Suspend' : 'Reactivate'}
+              </Button>
+            </div>
+
             <div className="border-t border-border pt-6">
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
                 Contact Information
@@ -429,10 +574,6 @@ export function WorkersView({ model }) {
               </h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-surface-200 p-4 rounded-lg">
-                  <p className="text-xs text-foreground-lighter mb-1">Category</p>
-                  <p className="font-semibold text-foreground">{selectedWorker.category}</p>
-                </div>
-                <div className="bg-surface-200 p-4 rounded-lg">
                   <p className="text-xs text-foreground-lighter mb-1">Experience</p>
                   <p className="font-semibold text-foreground">{selectedWorker.experience} Years</p>
                 </div>
@@ -447,6 +588,92 @@ export function WorkersView({ model }) {
                   </p>
                 </div>
               </div>
+              {(selectedWorker.categories?.length ?? 0) > 0 && (
+                <div className="mt-4">
+                  <p className="mb-2 text-xs text-foreground-lighter">Categories</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedWorker.categories.map((category) => (
+                      <span
+                        key={category}
+                        className="rounded-full bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-700 dark:text-brand-300"
+                      >
+                        {category}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(selectedWorker.skills?.length ?? 0) > 0 && (
+                <div className="mt-4">
+                  <p className="mb-2 text-xs text-foreground-lighter">Skills & Rates</p>
+                  <div className="space-y-2">
+                    {selectedWorker.skills.map((skill) => (
+                      <div
+                        key={skill.id}
+                        className="flex items-center justify-between gap-3 rounded-lg bg-surface-200 px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">{skill.name}</p>
+                          <p className="text-xs text-foreground-lighter">{skill.years} yrs exp</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-foreground">
+                          <Coins size={14} className="text-foreground-muted" />
+                          {skill.rateMinor != null ? moneyFromMinor(skill.rateMinor) : 'No rate set'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                Identity Verification
+              </h4>
+              {verificationDocs === undefined ? (
+                <p className="text-sm text-foreground-lighter">Loading verification documents…</p>
+              ) : verificationDocs === null ? (
+                <p className="text-sm text-foreground-lighter">
+                  Couldn't load verification documents.
+                </p>
+              ) : verificationDocs.documents.length === 0 ? (
+                <p className="text-sm text-foreground-lighter">No verification submitted.</p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {verificationDocs.idType && (
+                      <Badge variant="outline">
+                        {verificationDocs.idType.replaceAll('_', ' ')}
+                      </Badge>
+                    )}
+                    <Badge
+                      variant={
+                        verificationDocs.status === 'APPROVED' ? 'success' : 'warning'
+                      }
+                    >
+                      {verificationDocs.status.replaceAll('_', ' ')}
+                    </Badge>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {verificationDocs.documents.map((url, index) => (
+                      <a
+                        key={url}
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block aspect-[4/3] overflow-hidden rounded-lg border border-border bg-surface-200"
+                      >
+                        <img
+                          src={url}
+                          alt={`Submitted ID document ${index + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -484,9 +711,10 @@ export function WorkersView({ model }) {
             />
             <Input
               label="Email"
+              type="email"
               value={editWorker.email}
-              readOnly
-              inputClassName="bg-surface-200 text-foreground-lighter"
+              onChange={(e) => setEditWorker({ ...editWorker, email: e.target.value })}
+              placeholder="worker@example.com"
             />
             <Input
               label="Phone"
@@ -520,15 +748,46 @@ export function WorkersView({ model }) {
                           </span>
                         </div>
                         <div className="space-y-1.5 pt-1.5">
-                          {group.skills.map((skill) => (
-                            <Checkbox
-                              key={skill.id}
-                              label={skill.name}
-                              className="pl-5"
-                              checked={editWorker.skillIds.includes(skill.id)}
-                              onCheckedChange={() => toggleSkill(skill.id)}
-                            />
-                          ))}
+                          {group.skills.map((skill) => {
+                            const isSelected = editWorker.skillIds.includes(skill.id);
+                            const rateMinor = editWorker.rates?.[skill.id] ?? null;
+                            return (
+                              <div
+                                key={skill.id}
+                                className="flex items-center justify-between gap-3"
+                              >
+                                <Checkbox
+                                  label={skill.name}
+                                  className="pl-5"
+                                  checked={isSelected}
+                                  onCheckedChange={() => toggleSkill(skill.id)}
+                                />
+                                {isSelected && (
+                                  <div className="flex shrink-0 items-center gap-1.5">
+                                    <span className="text-xs text-foreground-lighter">₱</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      step={0.01}
+                                      aria-label={`Rate for ${skill.name}`}
+                                      value={
+                                        rateMinor != null ? (rateMinor / 100).toFixed(2) : ''
+                                      }
+                                      placeholder="Rate"
+                                      onChange={(e) => {
+                                        const pesos = parseFloat(e.target.value);
+                                        setWorkerRate(
+                                          skill.id,
+                                          Number.isFinite(pesos) ? Math.round(pesos * 100) : null,
+                                        );
+                                      }}
+                                      className="w-24 rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground focus-ring"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -572,6 +831,16 @@ export function WorkersView({ model }) {
         onDeleted={async () => {
           await refresh();
         }}
+      />
+
+      <ConfirmModal
+        isOpen={confirm.isOpen}
+        onClose={closeConfirm}
+        title={confirm.title}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        confirmLabel="Yes"
+        variant="danger"
       />
 
       {/* Request Docs Remarks Modal */}

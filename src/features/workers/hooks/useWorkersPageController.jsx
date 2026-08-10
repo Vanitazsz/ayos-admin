@@ -1,8 +1,12 @@
 import {
+  bulkSetWorkerStatus,
+  bulkSetWorkerVerification,
+  loadWorkerVerificationDocs,
   loadWorkers,
   reviewWorker,
   setAccountStatus,
   updateWorker,
+  updateWorkerEmail,
   loadCatalog,
 } from '../logic/WorkersPageLogic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -29,10 +33,21 @@ export function useWorkersPageController() {
   const [editWorker, setEditWorker] = useState(null);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [isSavingWorker, setIsSavingWorker] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
   const [industries, setIndustries] = useState([]);
   const [skills, setSkills] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkAction, setBulkAction] = useState(null);
+  const [verificationDocs, setVerificationDocs] = useState(null);
+  const [confirm, setConfirm] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+  const isBulkLoading = bulkAction !== null;
   const { schedule, mark } = useDebouncedRefresh();
 
   const refresh = useCallback(async () => {
@@ -87,10 +102,11 @@ export function useWorkersPageController() {
   const filteredWorkers = useMemo(
     () =>
       workers.filter((w) => {
-        const matchesSearch =
-          w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          w.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          w.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      w.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (w.categories ?? []).join(' ').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      w.category.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus =
           filterStatus === 'All' || w.status === filterStatus;
         const matchesVerified =
@@ -141,10 +157,121 @@ export function useWorkersPageController() {
     setActionMenuOpenId((current) => (current === id ? null : id));
   }, []);
 
-  const handleViewDetails = useCallback((worker) => {
+  const closeConfirm = useCallback(
+    () => setConfirm((s) => ({ ...s, isOpen: false })),
+    [],
+  );
+
+  const toggleSelectWorker = useCallback((id) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectWorker = useCallback((id) => {
+    setActionMenuOpenId(null);
+    setSelectedIds((current) => {
+      if (current.has(id)) return current;
+      const next = new Set(current);
+      next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback((workers) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      const allSelected = workers.length > 0 && workers.every((worker) => next.has(worker.id));
+      workers.forEach((worker) => {
+        if (allSelected) next.delete(worker.id);
+        else next.add(worker.id);
+      });
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [searchTerm, filterStatus, filterVerified, activeTab]);
+
+  const handleBulkStatus = useCallback(
+    async (nextStatus) => {
+      if (!selectedIds.size) return;
+      const ids = [...selectedIds];
+      setBulkAction(nextStatus);
+      try {
+        await bulkSetWorkerStatus(ids, nextStatus);
+        clearSelection();
+        await refresh();
+        toast.success(
+          nextStatus === 'SUSPENDED' ? 'Workers suspended' : 'Workers reactivated',
+          `${ids.length} worker${ids.length === 1 ? '' : 's'} ${
+            nextStatus === 'SUSPENDED' ? 'suspended' : 'reactivated'
+          }.`,
+        );
+      } catch (error) {
+        toast.error(
+          'Bulk status update failed',
+          error instanceof Error ? error.message : 'Unable to update statuses.',
+        );
+      } finally {
+        setBulkAction(null);
+      }
+    },
+    [selectedIds, refresh, clearSelection, toast],
+  );
+
+  const handleBulkVerification = useCallback(
+    async (nextStatus) => {
+      if (!selectedIds.size) return;
+      const ids = [...selectedIds];
+      setBulkAction(nextStatus);
+      try {
+        await bulkSetWorkerVerification(ids, nextStatus);
+        clearSelection();
+        await refresh();
+        toast.success(
+          nextStatus === 'verified' ? 'Workers verified' : 'Verification removed',
+          `${ids.length} worker${ids.length === 1 ? '' : 's'} now ${
+            nextStatus === 'verified' ? 'verified' : 'unverified'
+          }.`,
+        );
+      } catch (error) {
+        toast.error(
+          'Bulk verification update failed',
+          error instanceof Error ? error.message : 'Unable to update verification.',
+        );
+      } finally {
+        setBulkAction(null);
+      }
+    },
+    [selectedIds, refresh, clearSelection, toast],
+  );
+
+  const handleViewDetails = useCallback(async (worker) => {
     setSelectedWorker(worker);
     setIsDrawerOpen(true);
     setActionMenuOpenId(null);
+    setVerificationDocs(undefined);
+    try {
+      const docs = await loadWorkerVerificationDocs(worker.id);
+      setVerificationDocs(
+        docs ?? { status: 'NOT_SUBMITTED', idType: '', documents: [] },
+      );
+    } catch {
+      setVerificationDocs(null);
+    }
+  }, []);
+
+  const syncSelectedWorker = useCallback((patch) => {
+    setSelectedWorker((current) => (current ? { ...current, ...patch } : current));
   }, []);
 
   const handleEditWorker = useCallback((worker) => {
@@ -152,10 +279,17 @@ export function useWorkersPageController() {
       id: worker.id,
       name: worker.name,
       email: worker.email,
+      originalEmail: worker.email,
       phone: worker.phone,
       bio: worker.bio ?? '',
       serviceArea: worker.location ?? '',
       skillIds: Array.isArray(worker.skillIds) ? [...worker.skillIds] : [],
+      rates: Object.fromEntries(
+        (worker.skills ?? []).map((skill) => [
+          skill.id,
+          skill.rateMinor != null ? skill.rateMinor : null,
+        ]),
+      ),
       experience: worker.experience ?? '',
     });
     setIsEditDrawerOpen(true);
@@ -209,20 +343,24 @@ export function useWorkersPageController() {
       .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
   }, [industries, skills]);
 
-  const handleSaveWorker = useCallback(
-    async (event) => {
-      event.preventDefault();
+  const setWorkerRate = useCallback((skillId, rateMinor) => {
+    setEditWorker((current) =>
+      current ? { ...current, rates: { ...current.rates, [skillId]: rateMinor } } : current,
+    );
+  }, []);
+
+  const saveWorker = useCallback(
+    async (includeEmail) => {
       if (!editWorker) return;
-      if (!Array.isArray(editWorker.skillIds) || editWorker.skillIds.length === 0) {
-        toast.error('Skills required', 'Select at least one skill.');
-        return;
-      }
       setIsSavingWorker(true);
       try {
+        if (includeEmail) {
+          await updateWorkerEmail(editWorker.id, editWorker.email.trim().toLowerCase());
+        }
         await updateWorker(editWorker.id, editWorker);
         await refresh();
         setIsEditDrawerOpen(false);
-        toast.success('Worker updated', `${editWorker.name}'s profile was saved.`);
+        toast.success('Worker updated', `${editWorker.name.trim()}'s profile was saved.`);
       } catch (error) {
         toast.error(
           'Update failed',
@@ -235,6 +373,30 @@ export function useWorkersPageController() {
     [editWorker, refresh, toast],
   );
 
+  const handleSaveWorker = useCallback(
+    (event) => {
+      event.preventDefault();
+      if (!editWorker) return;
+      if (!Array.isArray(editWorker.skillIds) || editWorker.skillIds.length === 0) {
+        toast.error('Skills required', 'Select at least one skill.');
+        return;
+      }
+      const normalizedEmail = (editWorker.email || '').trim().toLowerCase();
+      const currentEmail = (editWorker.originalEmail || '').trim().toLowerCase();
+      if (normalizedEmail !== currentEmail) {
+        setConfirm({
+          isOpen: true,
+          title: 'Change email address?',
+          message: `This will change the login email from ${currentEmail} to ${normalizedEmail}. The worker must sign in with the new email going forward.`,
+          onConfirm: () => saveWorker(true),
+        });
+        return;
+      }
+      void saveWorker(false);
+    },
+    [editWorker, saveWorker, toast],
+  );
+
   const handleDeleteClick = useCallback((worker) => {
     setWorkerToDelete(worker);
     setActionMenuOpenId(null);
@@ -242,19 +404,52 @@ export function useWorkersPageController() {
 
   const toggleStatus = useCallback(
     async (worker) => {
+      const nextStatus = worker.status === 'Active' ? 'SUSPENDED' : 'ACTIVE';
+      setActionLoadingId(`${worker.id}:status`);
       try {
-        await setAccountStatus(
-          worker.id,
-          worker.status === 'Active' ? 'SUSPENDED' : 'ACTIVE',
-        );
+        await setAccountStatus(worker.id, nextStatus);
+        syncSelectedWorker({ status: nextStatus === 'SUSPENDED' ? 'Suspended' : 'Active' });
         await refresh();
+        toast.success(
+          nextStatus === 'SUSPENDED' ? 'Worker suspended' : 'Worker reactivated',
+          `${worker.name} is now ${nextStatus === 'SUSPENDED' ? 'suspended' : 'active'}.`,
+        );
       } catch (error) {
         toast.error('Status update failed', error.message);
       } finally {
+        setActionLoadingId(null);
         setActionMenuOpenId(null);
       }
     },
-    [refresh, toast],
+    [refresh, syncSelectedWorker, toast],
+  );
+
+  const toggleWorkerVerification = useCallback(
+    async (worker) => {
+      const nextStatus = worker.verified ? 'unverified' : 'verified';
+      setActionLoadingId(`${worker.id}:verification`);
+      try {
+        await bulkSetWorkerVerification([worker.id], nextStatus);
+        syncSelectedWorker({
+          verified: nextStatus === 'verified',
+          verificationStatus: nextStatus === 'verified' ? 'APPROVED' : 'PENDING',
+        });
+        await refresh();
+        toast.success(
+          nextStatus === 'verified' ? 'Worker verified' : 'Verification removed',
+          `${worker.name} is now ${nextStatus === 'verified' ? 'verified' : 'unverified'}.`,
+        );
+      } catch (error) {
+        toast.error(
+          'Verification update failed',
+          error instanceof Error ? error.message : 'Unable to update verification.',
+        );
+      } finally {
+        setActionLoadingId(null);
+        setActionMenuOpenId(null);
+      }
+    },
+    [refresh, syncSelectedWorker, toast],
   );
 
   const approveWorker = useCallback(
@@ -325,11 +520,13 @@ export function useWorkersPageController() {
       isEditDrawerOpen,
       setIsEditDrawerOpen,
       isSavingWorker,
+      actionLoadingId,
       industries,
       skills,
       industryGroups,
       toggleSkill,
       toggleIndustry,
+      setWorkerRate,
       isLoading,
       loadError,
       refresh,
@@ -344,9 +541,24 @@ export function useWorkersPageController() {
       handleSaveWorker,
       handleDeleteClick,
       toggleStatus,
+      toggleWorkerVerification,
       approveWorker,
       openRemarksModal,
       submitRemarks,
+      selectedIds,
+      selectedCount: selectedIds.size,
+      isSelectionActive: selectedIds.size > 0,
+      bulkAction,
+      isBulkLoading,
+      toggleSelectWorker,
+      selectWorker,
+      toggleSelectAll,
+      clearSelection,
+      handleBulkStatus,
+      handleBulkVerification,
+      verificationDocs,
+      confirm,
+      closeConfirm,
     }),
     [
       workers,
@@ -365,11 +577,13 @@ export function useWorkersPageController() {
       editWorker,
       isEditDrawerOpen,
       isSavingWorker,
+      actionLoadingId,
       industries,
       skills,
       industryGroups,
       toggleSkill,
       toggleIndustry,
+      setWorkerRate,
       isLoading,
       loadError,
       refresh,
@@ -384,9 +598,24 @@ export function useWorkersPageController() {
       handleSaveWorker,
       handleDeleteClick,
       toggleStatus,
+      toggleWorkerVerification,
       approveWorker,
       openRemarksModal,
       submitRemarks,
+      toggleSelectWorker,
+      selectWorker,
+      toggleSelectAll,
+      clearSelection,
+      handleBulkStatus,
+      handleBulkVerification,
+      setEditWorker,
+      setIsEditDrawerOpen,
+      selectedIds,
+      bulkAction,
+      isBulkLoading,
+      verificationDocs,
+      confirm,
+      closeConfirm,
       setFilterStatus,
       setFilterVerified,
       setCurrentPage,
@@ -395,8 +624,6 @@ export function useWorkersPageController() {
       setActiveTab,
       setIsRemarksModalOpen,
       setRemarks,
-      setEditWorker,
-      setIsEditDrawerOpen,
       toast,
     ],
   );
