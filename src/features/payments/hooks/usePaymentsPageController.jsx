@@ -26,7 +26,7 @@ export function usePaymentsPageController() {
     count,
     meta,
     error,
-    isInitialLoading: isLoading,
+    isLoading,
     refresh,
     currentPage,
     setCurrentPage,

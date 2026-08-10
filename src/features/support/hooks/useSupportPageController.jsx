@@ -20,14 +20,20 @@ export function useSupportPageController() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [safetyCases, setSafetyCases] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const [rows, cases] = await Promise.all([loadSupport(), loadSafetyCases()]);
-    setTickets(rows);
-    setSafetyCases(cases);
-    setSelectedTicket((current) =>
-      current ? (rows.find((row) => row.id === current.id) ?? null) : null,
-    );
+    setIsLoading(true);
+    try {
+      const [rows, cases] = await Promise.all([loadSupport(), loadSafetyCases()]);
+      setTickets(rows);
+      setSafetyCases(cases);
+      setSelectedTicket((current) =>
+        current ? (rows.find((row) => row.id === current.id) ?? null) : null,
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
   useEffect(() => {
     void refresh();
@@ -132,6 +138,7 @@ export function useSupportPageController() {
     currentPage,
     setCurrentPage,
     selectedTicket,
+    isLoading,
     isDrawerOpen,
     setIsDrawerOpen,
     replyText,

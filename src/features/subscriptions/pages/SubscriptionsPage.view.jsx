@@ -3,6 +3,7 @@ import Modal from '../../../components/ui/Modal';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import { moneyFromMinor, formatDate } from '../../../services/adminShared';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 const blankPlan = { id: '', name: '', price: 0, duration_days: 30, is_active: true };
 export function SubscriptionsView({ model }) {
   const {
@@ -59,12 +60,6 @@ export function SubscriptionsView({ model }) {
           )}
         </div>
       </div>
-      {isLoading && (
-        <div className="flex justify-center py-8 text-foreground-lighter">
-          <div className="animate-spin h-6 w-6 border-2 border-border-strong border-t-brand-600 rounded-full mr-2" />{' '}
-          Loading...
-        </div>
-      )}
       {error && (
         <div
           role="alert"
@@ -86,13 +81,13 @@ export function SubscriptionsView({ model }) {
           </p>
         </section>
       ) : null}
-      {!unavailable && data && (<>
+      {!unavailable && (data || isLoading) && (<>
         <section className="rounded-xl border bg-card">
         <div className="border-b p-4">
           <h2 className="font-semibold">Plans</h2>
         </div>
         <div className="grid gap-4 p-4 md:grid-cols-3">
-          {data.plans.map((item) => (
+          {data && data.plans.map((item) => (
             <button
               key={item.id}
               onClick={() => setPlan({ ...item, price: Number(item.amount) / 100 })}
@@ -123,35 +118,45 @@ export function SubscriptionsView({ model }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.subscriptions.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell className="font-medium">
-                  {row.worker_profiles?.display_name ?? row.worker_id}
-                </TableCell>
-                <TableCell>{row.plan_name}</TableCell>
-                <TableCell>{formatDate(row.starts_at)}</TableCell>
-                <TableCell>{formatDate(row.expires_at)}</TableCell>
-                <TableCell className="capitalize">{row.status}</TableCell>
-                <TableCell>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => {
-                        setExtendDays('30');
-                        setExtendModal({ isOpen: true, row });
-                      }}
-                      className="text-brand-600"
-                    >
-                      Extend
-                    </button>
-                    {row.status === 'active' && (
-                      <button onClick={() => void cancel(row)} className="text-destructive">
-                        Cancel
+            {isLoading ? (
+              <TableSkeleton rows={6} columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]} />
+            ) : data.subscriptions.length > 0 ? (
+              data.subscriptions.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="font-medium">
+                    {row.worker_profiles?.display_name ?? row.worker_id}
+                  </TableCell>
+                  <TableCell>{row.plan_name}</TableCell>
+                  <TableCell>{formatDate(row.starts_at)}</TableCell>
+                  <TableCell>{formatDate(row.expires_at)}</TableCell>
+                  <TableCell className="capitalize">{row.status}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          setExtendDays('30');
+                          setExtendModal({ isOpen: true, row });
+                        }}
+                        className="text-brand-600"
+                      >
+                        Extend
                       </button>
-                    )}
-                  </div>
+                      {row.status === 'active' && (
+                        <button onClick={() => void cancel(row)} className="text-destructive">
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow hover={false}>
+                <TableCell colSpan="6" className="text-center text-foreground-lighter">
+                  No subscriptions yet.
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </section>

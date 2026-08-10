@@ -17,6 +17,7 @@ import StatCard from '../../../components/ui/StatCard';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Skeleton from '../../../components/ui/Skeleton';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 import {
   Table,
   TableHeader,
@@ -55,6 +56,7 @@ export function BookingsView({ model }) {
     confirm,
     closeConfirm,
     error,
+    isLoading,
     count,
     totalPages,
     paginatedBookings,
@@ -132,7 +134,19 @@ export function BookingsView({ model }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedBookings.length > 0 ? (
+            {isLoading ? (
+              <TableSkeleton
+                rows={6}
+                columns={[
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  { className: 'text-right' },
+                ]}
+              />
+            ) : paginatedBookings.length > 0 ? (
               paginatedBookings.map((booking) => (
                 <TableRow
                   key={booking.id}

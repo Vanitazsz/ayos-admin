@@ -7,6 +7,7 @@ import { usePagination } from '../../../hooks/usePagination';
 export function useReviewsPageController() {
   const toast = useToast();
   const [reviews, setReviews] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRating, setFilterRating] = useState('All');
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
@@ -18,7 +19,14 @@ export function useReviewsPageController() {
   });
   const closeConfirm = () => setConfirm((s) => ({ ...s, isOpen: false }));
 
-  const refresh = async () => setReviews(await loadReviews());
+  const refresh = async () => {
+    setIsLoading(true);
+    try {
+      setReviews(await loadReviews());
+    } finally {
+      setIsLoading(false);
+    }
+  };
   useEffect(() => {
     void refresh();
     return subscribe('reviews', refresh);
@@ -106,6 +114,7 @@ export function useReviewsPageController() {
     setFilterRating,
     currentPage,
     setCurrentPage,
+    isLoading,
     actionMenuOpenId,
     setActionMenuOpenId,
     confirm,

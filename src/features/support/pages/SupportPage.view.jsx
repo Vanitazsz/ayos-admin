@@ -3,6 +3,7 @@ import Drawer from '../../../components/ui/Drawer';
 import Pagination from '../../../components/ui/Pagination';
 import { formatDateTime } from '../../../services/adminShared';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 
 export function SupportView({ model }) {
   const {
@@ -13,6 +14,7 @@ export function SupportView({ model }) {
     currentPage,
     setCurrentPage,
     selectedTicket,
+    isLoading,
     isDrawerOpen,
     setIsDrawerOpen,
     replyText,
@@ -80,7 +82,9 @@ export function SupportView({ model }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {safetyCases.length ? (
+            {isLoading ? (
+              <TableSkeleton rows={4} columns={[{}, {}, {}, {}, {}]} />
+            ) : safetyCases.length ? (
               safetyCases.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium text-foreground">{item.kind}</TableCell>
@@ -157,7 +161,9 @@ export function SupportView({ model }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedTickets.length > 0 ? (
+            {isLoading ? (
+              <TableSkeleton rows={6} columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]} />
+            ) : paginatedTickets.length > 0 ? (
               paginatedTickets.map((ticket) => (
                 <TableRow
                   key={ticket.id}

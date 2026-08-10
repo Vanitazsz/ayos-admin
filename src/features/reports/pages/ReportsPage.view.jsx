@@ -11,6 +11,7 @@ import {
   Star,
 } from 'lucide-react';
 import Pagination from '../../../components/ui/Pagination';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 import {
   Table,
   TableHeader,
@@ -54,12 +55,6 @@ export function ReportsView({ model }) {
           <FileText size={18} className="mr-2" /> Generate Custom Report
         </button>
       </div>
-      {isLoading && (
-        <div className="flex justify-center py-8 text-foreground-lighter">
-          <div className="animate-spin h-6 w-6 border-2 border-border-strong border-t-brand-600 rounded-full mr-2" />{' '}
-          Loading...
-        </div>
-      )}
       {error && (
         <div
           role="alert"
@@ -208,7 +203,9 @@ export function ReportsView({ model }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedReports.length > 0 ? (
+            {isLoading ? (
+              <TableSkeleton rows={6} columns={[{}, {}, {}, { className: 'text-right' }]} />
+            ) : paginatedReports.length > 0 ? (
               paginatedReports.map((report) => (
                 <TableRow key={report.id}>
                   <TableCell className="whitespace-nowrap">

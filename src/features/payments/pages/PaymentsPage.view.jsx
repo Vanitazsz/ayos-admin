@@ -9,6 +9,7 @@ import {
 import Drawer from '../../../components/ui/Drawer';
 import Pagination from '../../../components/ui/Pagination';
 import StatCard from '../../../components/ui/StatCard';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 import { money } from '../../../services/adminShared';
 import {
   Table,
@@ -57,12 +58,6 @@ export function PaymentsView({ model }) {
           </p>
         </div>
       </div>
-      {isLoading && (
-        <div className="flex justify-center py-8 text-foreground-lighter">
-          <div className="animate-spin h-6 w-6 border-2 border-border-strong border-t-brand-600 rounded-full mr-2" />{' '}
-          Loading...
-        </div>
-      )}
       {error && (
         <div
           role="alert"
@@ -162,7 +157,12 @@ export function PaymentsView({ model }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedTxns.length > 0 ? (
+                {isLoading ? (
+                  <TableSkeleton
+                    rows={6}
+                    columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]}
+                  />
+                ) : paginatedTxns.length > 0 ? (
                   paginatedTxns.map((txn) => (
                     <TableRow key={txn.id}>
                       <TableCell className="whitespace-nowrap">

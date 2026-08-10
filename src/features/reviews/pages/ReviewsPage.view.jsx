@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import Pagination from '../../../components/ui/Pagination';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 import {
   Table,
   TableHeader,
@@ -38,6 +39,7 @@ export function ReviewsView({ model }) {
     setFilterRating,
     currentPage,
     setCurrentPage,
+    isLoading,
     confirm,
     closeConfirm,
     filteredReviews,
@@ -119,7 +121,9 @@ export function ReviewsView({ model }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedReviews.length > 0 ? (
+            {isLoading ? (
+              <TableSkeleton rows={6} columns={[{}, {}, {}, { className: 'text-right' }]} />
+            ) : paginatedReviews.length > 0 ? (
               paginatedReviews.map((review) => (
                 <TableRow
                   key={review.id}

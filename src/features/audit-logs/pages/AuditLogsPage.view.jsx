@@ -1,5 +1,6 @@
 import { Search, Filter, Monitor, Smartphone, Globe, CheckCircle, XCircle } from 'lucide-react';
 import Pagination from '../../../components/ui/Pagination';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 import {
   Table,
   TableHeader,
@@ -32,12 +33,6 @@ export function AuditLogsView({ model }) {
           <p className="text-foreground-lighter mt-1">Track and monitor all administrator activities</p>
         </div>
       </div>
-      {isLoading && (
-        <div className="flex justify-center py-8 text-foreground-lighter">
-          <div className="animate-spin h-6 w-6 border-2 border-border-strong border-t-brand-600 rounded-full mr-2" />{' '}
-          Loading...
-        </div>
-      )}
       {error && (
         <div
           role="alert"
@@ -105,7 +100,12 @@ export function AuditLogsView({ model }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedLogs.length > 0 ? (
+            {isLoading ? (
+              <TableSkeleton
+                rows={6}
+                columns={[{}, {}, {}, {}, { className: 'hidden lg:table-cell' }, { className: 'hidden lg:table-cell' }, { className: 'text-right' }]}
+              />
+            ) : paginatedLogs.length > 0 ? (
               paginatedLogs.map((log) => (
                 <TableRow key={log.id}>
                   <TableCell className="whitespace-nowrap text-foreground-lighter">{log.timestamp}</TableCell>

@@ -1,6 +1,7 @@
 import { Bell, Send, Filter, Search, Trash2 } from 'lucide-react';
 import Modal from '../../../components/ui/Modal';
 import Pagination from '../../../components/ui/Pagination';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 import {
   Table,
   TableHeader,
@@ -47,12 +48,6 @@ export function NotificationsView({ model }) {
           <Bell size={18} className="mr-2" /> Create Notification
         </button>
       </div>
-      {isLoading && (
-        <div className="flex justify-center py-8 text-foreground-lighter">
-          <div className="animate-spin h-6 w-6 border-2 border-border-strong border-t-brand-600 rounded-full mr-2" />{' '}
-          Loading...
-        </div>
-      )}
       {error && (
         <div
           role="alert"
@@ -118,7 +113,12 @@ export function NotificationsView({ model }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedNotifs.length > 0 ? (
+            {isLoading ? (
+              <TableSkeleton
+                rows={6}
+                columns={[{}, {}, {}, {}, { className: 'text-right' }]}
+              />
+            ) : paginatedNotifs.length > 0 ? (
               paginatedNotifs.map((n) => (
                 <TableRow key={n.id}>
                   <TableCell className="whitespace-nowrap">

@@ -3,6 +3,7 @@ import Button from '../../../components/ui/Button';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import Modal from '../../../components/ui/Modal';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 import SubdivisionMapPicker from '../../../components/SubdivisionMapPicker';
 export function SubdivisionsView({ model }) {
   const {
@@ -34,12 +35,6 @@ export function SubdivisionsView({ model }) {
           <Plus className="mr-2 h-4 w-4" /> Add Subdivision
         </Button>
       </div>
-      {isLoading && (
-        <div className="flex justify-center py-8 text-foreground-lighter">
-          <div className="animate-spin h-6 w-6 border-2 border-border-strong border-t-brand-600 rounded-full mr-2" />{' '}
-          Loading...
-        </div>
-      )}
       {error && (
         <div
           role="alert"
@@ -60,7 +55,9 @@ export function SubdivisionsView({ model }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((row) => (
+            {isLoading ? (
+              <TableSkeleton rows={6} columns={[{}, {}, {}, {}, { className: 'text-right' }]} />
+            ) : rows.map((row) => (
               <TableRow key={row.id}>
                 <TableCell className="font-medium text-foreground">{row.name}</TableCell>
                 <TableCell className="text-foreground-light">
@@ -97,7 +94,7 @@ export function SubdivisionsView({ model }) {
                 </TableCell>
               </TableRow>
             ))}
-            {!rows.length ? (
+            {!isLoading && !rows.length ? (
               <TableRow hover={false}>
                 <TableCell colSpan="5" className="text-center text-foreground-lighter">
                   No subdivisions configured.
