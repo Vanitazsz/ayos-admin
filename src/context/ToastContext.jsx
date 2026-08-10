@@ -30,9 +30,9 @@ export const ToastProvider = ({ children }) => {
   }, [removeToast]);
 
   const success = useCallback((title, description, duration) => addToast({ title, description, type: 'success', duration }), [addToast]);
-  const error = useCallback((title, description, duration) => addToast({ title, description, type: 'error', duration }), [addToast]);
+  const error = useCallback((title, description, duration = Infinity) => addToast({ title, description, type: 'error', duration }), [addToast]);
   const info = useCallback((title, description, duration) => addToast({ title, description, type: 'info', duration }), [addToast]);
-  const warning = useCallback((title, description, duration) => addToast({ title, description, type: 'warning', duration }), [addToast]);
+  const warning = useCallback((title, description, duration = Infinity) => addToast({ title, description, type: 'warning', duration }), [addToast]);
 
   return (
     <ToastContext.Provider value={{ addToast, removeToast, success, error, info, warning }}>

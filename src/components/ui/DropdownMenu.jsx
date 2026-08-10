@@ -4,6 +4,8 @@ import { Check, ChevronRight, Circle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const DropdownMenu = DropdownMenuPrimitive.Root;
+
+const DropdownMenuNonModal = (props) => <DropdownMenuPrimitive.Root modal={false} {...props} />;
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 const DropdownMenuGroup = DropdownMenuPrimitive.Group;
 const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
@@ -152,6 +154,7 @@ DropdownMenuSubContent.displayName = DropdownMenuPrimitive.SubContent.displayNam
 
 export {
   DropdownMenu,
+  DropdownMenuNonModal,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
