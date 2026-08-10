@@ -30,9 +30,9 @@ export const ToastProvider = ({ children }) => {
   }, [removeToast]);
 
   const success = useCallback((title, description, duration) => addToast({ title, description, type: 'success', duration }), [addToast]);
-  const error = useCallback((title, description, duration) => addToast({ title, description, type: 'error', duration }), [addToast]);
+  const error = useCallback((title, description, duration = Infinity) => addToast({ title, description, type: 'error', duration }), [addToast]);
   const info = useCallback((title, description, duration) => addToast({ title, description, type: 'info', duration }), [addToast]);
-  const warning = useCallback((title, description, duration) => addToast({ title, description, type: 'warning', duration }), [addToast]);
+  const warning = useCallback((title, description, duration = Infinity) => addToast({ title, description, type: 'warning', duration }), [addToast]);
 
   return (
     <ToastContext.Provider value={{ addToast, removeToast, success, error, info, warning }}>
@@ -58,22 +58,22 @@ const ToastItem = ({ toast, onRemove }) => {
   };
 
   const icons = {
-    success: <CheckCircle className="h-5 w-5 text-green-500" />,
-    error: <AlertCircle className="h-5 w-5 text-red-500" />,
-    info: <Info className="h-5 w-5 text-blue-500" />,
-    warning: <AlertTriangle className="h-5 w-5 text-amber-500" />
+    success: <CheckCircle className="h-5 w-5 text-success" />,
+    error: <AlertCircle className="h-5 w-5 text-destructive" />,
+    info: <Info className="h-5 w-5 text-brand-500" />,
+    warning: <AlertTriangle className="h-5 w-5 text-warning" />
   };
 
   const bgColors = {
-    success: 'bg-green-50 border-green-200',
-    error: 'bg-red-50 border-red-200',
-    info: 'bg-blue-50 border-blue-200',
-    warning: 'bg-amber-50 border-amber-200'
+    success: 'bg-success/10 border-success/30',
+    error: 'bg-destructive/10 border-destructive/30',
+    info: 'bg-brand-500/10 border-brand-500/30',
+    warning: 'bg-warning/10 border-warning/30'
   };
 
   return (
     <div 
-      className={`pointer-events-auto flex items-start p-4 bg-white border shadow-lg rounded-xl min-w-[300px] max-w-sm transition-all duration-300 transform 
+      className={`pointer-events-auto flex items-start p-4 bg-card border shadow-lg rounded-xl min-w-[300px] max-w-sm transition-all duration-300 transform 
         ${isLeaving ? 'opacity-0 translate-x-full scale-95' : 'animate-slide-in-right opacity-100 translate-x-0 scale-100'}
       `}
     >
@@ -81,14 +81,14 @@ const ToastItem = ({ toast, onRemove }) => {
         {icons[toast.type]}
       </div>
       <div className="flex-1 min-w-0 mr-2 pt-0.5">
-        <p className="text-sm font-bold text-gray-900 truncate">{toast.title}</p>
+        <p className="text-sm font-bold text-foreground truncate">{toast.title}</p>
         {toast.description && (
-          <p className="text-sm text-gray-500 mt-0.5 break-words">{toast.description}</p>
+          <p className="text-sm text-foreground-lighter mt-0.5 break-words">{toast.description}</p>
         )}
       </div>
       <button 
         onClick={handleClose}
-        className="shrink-0 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+        className="shrink-0 p-1 text-foreground-muted hover:text-foreground-light hover:bg-surface-200 rounded-md transition-colors"
       >
         <X className="h-4 w-4" />
       </button>

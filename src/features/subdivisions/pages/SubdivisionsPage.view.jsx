@@ -2,6 +2,8 @@ import { Edit, MapPin, Plus, Power } from 'lucide-react';
 import Button from '../../../components/ui/Button';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import Modal from '../../../components/ui/Modal';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 import SubdivisionMapPicker from '../../../components/SubdivisionMapPicker';
 export function SubdivisionsView({ model }) {
   const {
@@ -21,11 +23,11 @@ export function SubdivisionsView({ model }) {
     toggle,
   } = model;
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Subdivisions</h1>
-          <p className="mt-1 text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">Subdivisions</h1>
+          <p className="mt-1 text-foreground-lighter">
             Manage the service areas used for customer and worker matching.
           </p>
         </div>
@@ -33,82 +35,74 @@ export function SubdivisionsView({ model }) {
           <Plus className="mr-2 h-4 w-4" /> Add Subdivision
         </Button>
       </div>
-      {isLoading && (
-        <div className="flex justify-center py-8 text-gray-500">
-          <div className="animate-spin h-6 w-6 border-2 border-gray-300 border-t-blue-600 rounded-full mr-2" />{' '}
-          Loading...
-        </div>
-      )}
       {error && (
         <div
           role="alert"
-          className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
           {error}
         </div>
       )}
-      <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
+      <div className="rounded-xl border border-border bg-card shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
               {['Name', 'Center', 'Radius', 'Status', 'Actions'].map((label) => (
-                <th
-                  key={label}
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500"
-                >
+                <TableHead key={label} scope="col">
                   {label}
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td className="px-6 py-4 font-medium text-gray-900">{row.name}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableSkeleton rows={6} columns={[{}, {}, {}, {}, { className: 'text-right' }]} />
+            ) : rows.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell className="font-medium text-foreground">{row.name}</TableCell>
+                <TableCell className="text-foreground-light">
                   <MapPin className="mr-1 inline h-4 w-4" />
                   {Number(row.center_lat).toFixed(6)}, {Number(row.center_lng).toFixed(6)}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600">
+                </TableCell>
+                <TableCell className="text-foreground-light">
                   {Number(row.radius_meters).toLocaleString()} m
-                </td>
-                <td className="px-6 py-4">
+                </TableCell>
+                <TableCell>
                   <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${row.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}
+                    className={`rounded-full px-2 py-1 text-xs font-medium ${row.is_active ? 'bg-success/10 text-success-600 dark:text-success-400' : 'bg-surface-200 text-foreground-light'}`}
                   >
                     {row.is_active ? 'Active' : 'Inactive'}
                   </span>
-                </td>
-                <td className="px-6 py-4">
+                </TableCell>
+                <TableCell>
                   <div className="flex gap-2">
                     <button
                       onClick={() => edit(row)}
-                      className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"
+                      className="rounded-lg p-2 text-brand-600 hover:bg-brand-500/10"
                       aria-label={`Edit ${row.name}`}
                     >
                       <Edit size={17} />
                     </button>
                     <button
                       onClick={() => void toggle(row)}
-                      className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
+                      className="rounded-lg p-2 text-foreground-light hover:bg-surface-200"
                       aria-label={`${row.is_active ? 'Deactivate' : 'Activate'} ${row.name}`}
                     >
                       <Power size={17} />
                     </button>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-            {!rows.length ? (
-              <tr>
-                <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+            {!isLoading && !rows.length ? (
+              <TableRow hover={false}>
+                <TableCell colSpan="5" className="text-center text-foreground-lighter">
                   No subdivisions configured.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : null}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
       <Modal
         isOpen={open}
@@ -122,7 +116,7 @@ export function SubdivisionsView({ model }) {
             <input
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+              className="w-full rounded-lg border border-border-strong px-3 py-2"
               required
             />
           </div>
@@ -134,7 +128,7 @@ export function SubdivisionsView({ model }) {
                 step="any"
                 value={form.center_lat}
                 onChange={(event) => setForm({ ...form, center_lat: event.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                className="w-full rounded-lg border border-border-strong px-3 py-2"
                 required
               />
             </div>
@@ -145,7 +139,7 @@ export function SubdivisionsView({ model }) {
                 step="any"
                 value={form.center_lng}
                 onChange={(event) => setForm({ ...form, center_lng: event.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                className="w-full rounded-lg border border-border-strong px-3 py-2"
                 required
               />
             </div>
@@ -157,7 +151,7 @@ export function SubdivisionsView({ model }) {
                 max="50000"
                 value={form.radius_meters}
                 onChange={(event) => setForm({ ...form, radius_meters: event.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                className="w-full rounded-lg border border-border-strong px-3 py-2"
                 required
               />
             </div>
@@ -169,7 +163,7 @@ export function SubdivisionsView({ model }) {
               setForm((current) => ({ ...current, center_lat: latitude, center_lng: longitude }))
             }
           />
-          {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+          {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
               Cancel

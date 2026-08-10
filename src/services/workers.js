@@ -4,23 +4,42 @@ export async function loadWorkers() {
   const { data, error } = await supabase
     .from('worker_profiles')
     .select(
-      'account_id,display_name,bio,experience,service_area,service_origin,service_radius_meters,approval_status,is_available,created_at,accounts!worker_profiles_account_id_fkey!inner(email,mobile,status,role,deleted_at),worker_skills!worker_skills_worker_id_fkey(years,service_categories!worker_skills_category_id_fkey(name)),worker_verifications!worker_verifications_worker_id_fkey(id,status),bookings!bookings_worker_account_id_fkey(count),reviews!reviews_worker_account_id_fkey(stars)',
+      'account_id,display_name,bio,experience,service_area,service_origin,service_radius_meters,approval_status,is_available,created_at,accounts!worker_profiles_account_id_fkey!inner(email,mobile,status,role,deleted_at),worker_skills!worker_skills_worker_id_fkey(years,rate_minor,category_id,service_categories!worker_skills_category_id_fkey(id,name)),worker_verifications!worker_verifications_worker_id_fkey(id,status),bookings!bookings_worker_account_id_fkey(count)',
     )
     .eq('accounts.role', 'WORKER')
     .is('accounts.deleted_at', null)
     .order('created_at', { ascending: false });
   if (error) throw error;
+  const { data: trashed, error: trashError } = await supabase
+    .from('trash_entries')
+    .select('id, entity_type, entity_id')
+    .eq('entity_type', 'worker')
+    .is('restored_at', null);
+  if (trashError) throw trashError;
+  const trashById = new Map(
+    (trashed ?? []).map((row) => [row.entity_id, row.id]),
+  );
   const rows = data ?? [];
   const workerIds = rows.map((row) => row.account_id);
-  const { data: walletBalances, error: walletBalancesError } = workerIds.length
-    ? await supabase.rpc('get_worker_wallet_balances', { p_worker_ids: workerIds })
-    : { data: [], error: null };
+  const [
+    { data: walletBalances, error: walletBalancesError },
+    { data: ratings, error: ratingsError },
+  ] = workerIds.length
+    ? await Promise.all([
+        supabase.rpc('get_worker_wallet_balances', { p_worker_ids: workerIds }),
+        supabase.rpc('get_worker_rating_stats', { p_worker_ids: workerIds }),
+      ])
+    : [{ data: [], error: null }, { data: [], error: null }];
   if (walletBalancesError) throw walletBalancesError;
+  if (ratingsError) throw ratingsError;
   const walletByWorker = new Map(
     (walletBalances ?? []).map((wallet) => [
       wallet.worker_id,
       Number(wallet.available_amount ?? 0),
     ]),
+  );
+  const ratingByWorker = new Map(
+    (ratings ?? []).map((rating) => [rating.worker_id, Number(rating.avg_rating ?? 0)]),
   );
 
   return rows.map((row) => {
@@ -41,25 +60,37 @@ export async function loadWorkers() {
       !serviceAreaReady ? 'service area' : null,
       !row.is_available ? 'online status' : null,
     ].filter(Boolean);
+    const skills = (row.worker_skills ?? [])
+      .map((skill) => ({
+        id: skill.category_id,
+        name: skill.service_categories?.name ?? '',
+        years: skill.years ?? 0,
+        rateMinor: skill.rate_minor != null ? Number(skill.rate_minor) : null,
+      }))
+      .filter((skill) => skill.id);
     return {
       id: row.account_id,
       name: identity(row.display_name, 'Worker'),
       email: row.accounts?.email ?? '',
       phone: row.accounts?.mobile ?? '',
-      category: row.worker_skills?.[0]?.service_categories?.name ?? '',
-      rating: row.reviews?.length
-        ? (row.reviews.reduce((sum, item) => sum + item.stars, 0) / row.reviews.length).toFixed(1)
-        : '0.0',
+      bio: row.bio ?? '',
+      category: skills[0]?.name ?? '',
+      categoryId: skills[0]?.id ?? null,
+      categories: [...new Set(skills.map((skill) => skill.name).filter(Boolean))],
+      skills,
+      skillIds: skills.map((skill) => skill.id),
+      rating: ratingByWorker.get(row.account_id)?.toFixed(1) ?? '0.0',
       jobsCompleted: row.bookings?.[0]?.count ?? 0,
-      experience: Math.max(...(row.worker_skills ?? []).map((item) => item.years), 0),
+      experience: Math.max(...skills.map((skill) => skill.years), 0),
       status: status(row.accounts?.status),
       verified: row.approval_status === 'APPROVED',
       location: row.service_area ?? '',
       registeredDate: row.created_at ? new Date(row.created_at).toLocaleDateString() : '',
       earnings: walletByWorker.get(row.account_id) ?? 0,
-      availability: row.is_available ? 'Online' : 'Offline',
       verificationStatus: verification?.status ?? row.approval_status,
       verificationId: verification?.id ?? null,
+      isTrashed: trashById.has(row.account_id),
+      trashEntryId: trashById.get(row.account_id) ?? null,
       matchingReady,
       matchingMissing,
     };
@@ -76,18 +107,66 @@ export async function reviewWorker(verificationId, decision, notes) {
   return data;
 }
 
-export async function setWorkerAvailability(id, available) {
-  const { data, error } = await supabase.rpc('admin_set_worker_availability', {
+export async function updateWorker(id, value) {
+  const skillIds = Array.isArray(value.skillIds) ? value.skillIds : [];
+  const rateMinors = skillIds.map((skillId) =>
+    value.rates?.[skillId] != null ? Math.round(Number(value.rates[skillId])) : null,
+  );
+  const { data, error } = await supabase.rpc('admin_update_worker', {
     p_worker_id: id,
-    p_available: available,
+    p_display_name: value.name,
+    p_mobile: value.phone || null,
+    p_bio: value.bio || null,
+    p_service_area: value.serviceArea || null,
+    p_category_ids: skillIds,
+    p_experience:
+      value.experience != null && value.experience !== '' ? Number(value.experience) : null,
+    p_rate_minors: rateMinors,
   });
-  if (error) {
-    if (error.message === 'WORKER_NOT_READY') {
-      throw new Error(
-        'This worker needs approval, skills, and a service area before going online.',
-      );
-    }
-    throw error;
-  }
+  if (error) throw error;
   return data;
+}
+
+export async function bulkSetWorkerVerification(ids, status) {
+  const { data, error } = await supabase.rpc('admin_bulk_set_worker_verification', {
+    p_worker_ids: ids,
+    p_status: status,
+  });
+  if (error) throw error;
+  return Number(data ?? 0);
+}
+
+export async function updateWorkerEmail(id, email) {
+  const { data, error } = await supabase.rpc('admin_update_worker_email', {
+    p_worker_id: id,
+    p_email: email,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function loadWorkerVerificationDocs(workerId) {
+  const { data, error } = await supabase
+    .from('worker_verifications')
+    .select('id,status,identity_data,document_paths')
+    .eq('worker_id', workerId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const paths = Array.isArray(data.document_paths) ? data.document_paths : [];
+  const signed = await Promise.all(
+    paths.map((path) =>
+      supabase.storage.from('verification-documents').createSignedUrl(path, 900),
+    ),
+  );
+  return {
+    id: data.id,
+    status: data.status,
+    idType: data.identity_data?.idType ?? '',
+    documents: signed
+      .map((result) => result.data?.signedUrl ?? '')
+      .filter(Boolean),
+  };
 }

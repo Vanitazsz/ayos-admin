@@ -1,153 +1,192 @@
 import {
   TrendingUp,
   Users,
-  Activity,
   DollarSign,
-  ArrowUpRight,
-  ArrowDownRight,
+  CheckCircle2,
+  BarChart3,
+  Repeat,
+  Wallet,
 } from 'lucide-react';
 import { money } from '../../../services/adminShared';
+import StatCard from '../../../components/ui/StatCard';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../../components/ui/Card';
+import Select from '../../../components/ui/Select';
+import { ChartTooltip, chartTick, chartGridStroke, chartCursor } from '../../../components/ui/ChartTooltip';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+
+const kpiIcons = [CheckCircle2, DollarSign, BarChart3, Repeat];
 
 export function AnalyticsView({ model }) {
   const { kpis, monthlyRevenue, topServices, totalRevenue, mau, avgWorkerEarnings } = model;
   return (
-    <div className="p-6">
-      <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Business Analytics</h1>
-          <p className="text-gray-500 mt-1">High-level metrics and growth trends</p>
+          <h1 className="text-2xl font-bold text-foreground">Business Analytics</h1>
+          <p className="text-foreground-lighter mt-1">High-level metrics and growth trends</p>
         </div>
-        <div className="mt-4 sm:mt-0 flex gap-2">
-          <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
-            <option>Last 12 Months</option>
-            <option>Last 6 Months</option>
-            <option>This Year</option>
-            <option>All Time</option>
-          </select>
-        </div>
+        <Select className="w-44" defaultValue="last-12">
+          <option value="last-12">Last 12 Months</option>
+          <option value="last-6">Last 6 Months</option>
+          <option value="this-year">This Year</option>
+          <option value="all-time">All Time</option>
+        </Select>
       </div>
 
       {/* Primary Metrics (KPIs) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi, index) => (
-          <div
+          <StatCard
             key={index}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col justify-between"
-          >
-            <p className="text-sm text-gray-500 font-medium mb-2">{kpi.label}</p>
-            <div className="flex items-end justify-between">
-              <h3 className="text-3xl font-bold text-gray-900">{kpi.value}</h3>
-              <div
-                className={`flex items-center text-sm font-medium ${kpi.positive ? 'text-green-600' : 'text-red-600'}`}
-              >
-                {kpi.trend}
-                {kpi.positive ? (
-                  <ArrowUpRight size={16} className="ml-1" />
-                ) : (
-                  <ArrowDownRight size={16} className="ml-1" />
-                )}
-              </div>
-            </div>
-          </div>
+            title={kpi.label}
+            value={kpi.value}
+            icon={kpiIcons[index] ?? TrendingUp}
+            trend={kpi.positive ? 'up' : 'down'}
+            trendValue={kpi.trend}
+          />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Main Chart (Revenue Trend) */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:col-span-2">
-          <div className="flex justify-between items-center mb-6">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex-row items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold text-gray-900 flex items-center">
-                <TrendingUp size={20} className="text-blue-500 mr-2" />
-                Revenue Trend
-              </h3>
-              <p className="text-sm text-gray-500">Gross revenue over the selected period</p>
+              <CardTitle>Revenue Trend</CardTitle>
+              <CardDescription>Gross revenue over the selected period</CardDescription>
             </div>
-            <h2 className="text-2xl font-bold text-blue-600">{money(totalRevenue)}</h2>
-          </div>
-
-          {/* CSS-rendered bar chart */}
-          <div className="h-64 flex items-end justify-between gap-2 mt-4 pt-4 border-t border-gray-100">
-            {monthlyRevenue.map((data, index) => (
-              <div key={index} className="flex flex-col items-center flex-1 group">
-                {/* Tooltip (visible on hover) */}
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity mb-2 text-xs font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded">
-                  {money(data.value)}k
-                </div>
-                {/* Bar */}
-                <div
-                  className="w-full bg-blue-100 rounded-t-md group-hover:bg-blue-600 transition-colors relative"
-                  style={{ height: `${(data.value / 125) * 100}%` }}
-                >
-                  <div
-                    className="absolute bottom-0 w-full bg-blue-500 rounded-t-md opacity-20"
-                    style={{ height: '100%' }}
-                  ></div>
-                </div>
-                {/* Label */}
-                <span className="text-xs text-gray-500 mt-3 font-medium">{data.month}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+            <h2 className="text-xl font-medium text-foreground">{money(totalRevenue)}</h2>
+          </CardHeader>
+          <CardContent>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyRevenue} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke={chartGridStroke} />
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={8}
+                    tick={chartTick}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    width={40}
+                    tickMargin={8}
+                    tick={chartTick}
+                  />
+                  <Tooltip
+                    cursor={chartCursor}
+                    content={<ChartTooltip formatter={(value) => `₱${value}k`} />}
+                  />
+                  <Bar
+                    dataKey="value"
+                    name="Revenue"
+                    fill="var(--chart-1)"
+                    radius={[2, 2, 1, 1]}
+                    maxBarSize={48}
+                    animationDuration={300}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Secondary Chart (Top Services) */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="text-lg font-bold text-gray-900 flex items-center mb-6">
-            <Activity size={20} className="text-indigo-500 mr-2" />
-            Top Services
-          </h3>
-
-          <div className="space-y-6">
-            {topServices.map((service, index) => (
-              <div key={index}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="font-medium text-gray-700">{service.name}</span>
-                  <span className="text-gray-500 font-bold">{service.percentage}%</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2.5">
-                  <div
-                    className="bg-indigo-500 h-2.5 rounded-full"
-                    style={{ width: `${service.percentage}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Services</CardTitle>
+            <CardDescription>Most requested services</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={topServices}
+                  layout="vertical"
+                  margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
+                >
+                  <XAxis type="number" hide />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    width={110}
+                    tick={chartTick}
+                  />
+                  <Tooltip
+                    cursor={chartCursor}
+                    content={<ChartTooltip formatter={(value) => `${value}%`} />}
+                  />
+                  <Bar
+                    dataKey="percentage"
+                    name="Requests"
+                    fill="var(--info)"
+                    radius={[0, 2, 2, 0]}
+                    maxBarSize={16}
+                    animationDuration={300}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Extra Analytics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center">
-          <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mr-6 shrink-0">
-            <Users size={32} className="text-green-600" />
-          </div>
-          <div>
-            <h4 className="text-gray-500 font-medium">Monthly Active Users (MAU)</h4>
-            <div className="flex items-baseline gap-3 mt-1">
-              <span className="text-3xl font-bold text-gray-900">{mau ?? '—'}</span>
-              <span className="text-sm font-medium text-green-600">Live</span>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Monthly Active Users (MAU)</CardTitle>
+            <CardDescription>Compared to previous month</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-success/10">
+              <Users className="size-6 text-success" />
             </div>
-            <p className="text-sm text-gray-400 mt-1">Compared to previous month</p>
-          </div>
-        </div>
+            <div className="flex items-baseline gap-3">
+              <span className="text-2xl font-normal leading-tight text-foreground">
+                {mau ?? '—'}
+              </span>
+              <span className="text-xs font-medium text-success">Live</span>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center">
-          <div className="h-16 w-16 rounded-full bg-orange-100 flex items-center justify-center mr-6 shrink-0">
-            <DollarSign size={32} className="text-orange-600" />
-          </div>
-          <div>
-            <h4 className="text-gray-500 font-medium">Avg. Worker Earnings / Mo</h4>
-            <div className="flex items-baseline gap-3 mt-1">
-              <span className="text-3xl font-bold text-gray-900">
+        <Card>
+          <CardHeader>
+            <CardTitle>Avg. Worker Earnings / Mo</CardTitle>
+            <CardDescription>Across all verified workers</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-warning/10">
+              <Wallet className="size-6 text-warning-600 dark:text-warning-400" />
+            </div>
+            <div className="flex items-baseline gap-3">
+              <span className="text-2xl font-normal leading-tight text-foreground">
                 {avgWorkerEarnings != null ? money(avgWorkerEarnings) : '—'}
               </span>
-              <span className="text-sm font-medium text-green-600">Annual avg</span>
+              <span className="text-xs font-medium text-success">Annual avg</span>
             </div>
-            <p className="text-sm text-gray-400 mt-1">Across all verified workers</p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

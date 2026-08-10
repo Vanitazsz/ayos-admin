@@ -76,6 +76,14 @@ export async function uploadAdminAvatar(file) {
   return loadAdminProfile();
 }
 
+export async function verifyCurrentPassword(currentPassword) {
+  const { data, error } = await supabase.rpc('verify_current_password', {
+    p_password: currentPassword,
+  });
+  if (error) throw error;
+  return data === true;
+}
+
 export async function changeAdminPassword(password) {
   const { error } = await supabase.auth.updateUser({ password });
   if (error) throw error;

@@ -6,266 +6,330 @@ import {
   Trash2,
   Copy,
   Wrench,
-  Box,
   Grid,
   ToggleLeft,
   ToggleRight,
+  Box,
+  MoreVertical,
+  Eye,
+  AlertTriangle,
+  Power,
+  ExternalLink,
 } from 'lucide-react';
-import Modal from '../../../components/ui/Modal';
+import Drawer from '../../../components/ui/Drawer';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
+import Button from '../../../components/ui/Button';
 import Pagination from '../../../components/ui/Pagination';
+import StatCard from '../../../components/ui/StatCard';
+import Input from '../../../components/ui/Input';
+import Select from '../../../components/ui/Select';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from '../../../components/ui/Tooltip';
+import { moneyFromMinor } from '../../../services/adminShared';
+import {
+  DropdownMenuNonModal,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '../../../components/ui/DropdownMenu';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../../../components/ui/Table';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 
 export function ServicesView({ model }) {
   const {
     searchTerm,
     setSearchTerm,
-    filterCategory,
-    setFilterCategory,
-    currentPage,
-    setCurrentPage,
-    isModalOpen,
-    setIsModalOpen,
-    modalMode,
-    currentService,
-    setCurrentService,
+    filterIndustry,
+    setFilterIndustry,
     activeTab,
     setActiveTab,
-    categoriesData,
-    isCategoryModalOpen,
-    setIsCategoryModalOpen,
-    currentCategory,
-    setCurrentCategory,
+    currentPage,
+    setCurrentPage,
+    isLoading,
+    isSkillModalOpen,
+    setIsSkillModalOpen,
+    isIndustryModalOpen,
+    setIsIndustryModalOpen,
+    modalMode,
+    currentSkill,
+    setCurrentSkill,
+    currentIndustry,
+    setCurrentIndustry,
     confirm,
     closeConfirm,
-    categories,
-    filteredServices,
+    industries,
+    filteredSkills,
     totalPages,
-    paginatedServices,
+    paginatedSkills,
     stats,
-    handleOpenAddModal,
-    handleOpenEditModal,
-    handleDelete,
-    handleOpenAddCategoryModal,
-    handleOpenEditCategoryModal,
-    handleDeleteCategory,
-    toggleCategoryStatus,
-    handleDuplicate,
-    handleSave,
-    handleSaveCategory,
+    industrySearch,
+    setIndustrySearch,
+    filterIndustryStatus,
+    setFilterIndustryStatus,
+    filteredIndustries,
+    handleOpenAddSkillModal,
+    handleOpenEditSkillModal,
+    handleDeactivateSkill,
+    handleDuplicateSkill,
+    handleSaveSkill,
+    details,
+    closeDetails,
+    openSkillDetails,
+    openIndustryDetails,
+    goToTrash,
+    handleMoveSkillToTrash,
+    handleMoveIndustryToTrash,
+    handleOpenAddIndustryModal,
+    handleOpenEditIndustryModal,
+    handleDeactivateIndustry,
+    toggleIndustryStatus,
+    handleSaveIndustry,
   } = model;
   return (
-    <div className="p-6">
+    <TooltipProvider delayDuration={200}>
+    <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Services Catalog</h1>
-          <p className="text-gray-500 mt-1">
-            Manage the services offered by workers on the platform
+          <h1 className="text-2xl font-bold text-foreground">Industries &amp; Skills</h1>
+          <p className="text-foreground-lighter mt-1">
+            Manage the industries and skills offered by workers on the platform
           </p>
         </div>
         <button
-          onClick={activeTab === 'services' ? handleOpenAddModal : handleOpenAddCategoryModal}
-          className="mt-4 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center"
+          onClick={activeTab === 'skills' ? handleOpenAddSkillModal : handleOpenAddIndustryModal}
+          className="mt-4 sm:mt-0 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center"
         >
           <Plus size={18} className="mr-2" /> Add{' '}
-          {activeTab === 'services' ? 'Service' : 'Category'}
+          {activeTab === 'skills' ? 'Skill' : 'Industry'}
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-4 mb-6 border-b border-gray-200">
+      <div className="flex space-x-4 mb-6 border-b border-border">
         <button
-          className={`py-2 px-4 font-medium text-sm border-b-2 ${activeTab === 'services' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-          onClick={() => setActiveTab('services')}
+          className={`py-2 px-4 font-medium text-sm border-b-2 ${activeTab === 'industries' ? 'border-foreground text-foreground' : 'border-transparent text-foreground-lighter hover:text-foreground-light hover:border-border-strong'}`}
+          onClick={() => setActiveTab('industries')}
         >
-          Manage Services
+          Manage Industries
         </button>
         <button
-          className={`py-2 px-4 font-medium text-sm border-b-2 flex items-center ${activeTab === 'categories' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-          onClick={() => setActiveTab('categories')}
+          className={`py-2 px-4 font-medium text-sm border-b-2 ${activeTab === 'skills' ? 'border-foreground text-foreground' : 'border-transparent text-foreground-lighter hover:text-foreground-light hover:border-border-strong'}`}
+          onClick={() => setActiveTab('skills')}
         >
-          Manage Categories
+          Manage Skills
         </button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat, index) => (
-          <div
-            key={index}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center"
-          >
-            <div className={`p-4 rounded-lg ${stat.bg} mr-4`}>{stat.icon}</div>
-            <div>
-              <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
-              <h3 className="text-xl font-bold text-gray-900">{stat.value}</h3>
-            </div>
-          </div>
+          <StatCard key={index} title={stat.label} value={stat.value} icon={stat.icon} />
         ))}
       </div>
 
-      {/* Filters and Search */}
-      <div className="bg-white rounded-t-xl shadow-sm border-x border-t border-gray-100 p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="relative w-full sm:w-96">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
-          </div>
-          <input
-            type="text"
-            aria-label="Search services by name or ID..."
-            placeholder="Search services by name or ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
-          />
-        </div>
-        <div className="flex w-full sm:w-auto items-center gap-2">
-          <Filter size={18} className="text-gray-500" />
-          <select
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-          >
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Content Area */}
-      {activeTab === 'services' ? (
+      {activeTab === 'skills' ? (
         <>
-          {/* Table */}
-          <div className="bg-white shadow-sm border border-gray-100 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Service
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Category
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Pricing & Time
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Popularity
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Status
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedServices.length > 0 ? (
-                  paginatedServices.map((service) => (
-                    <tr key={service.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 flex-shrink-0 bg-blue-50 rounded-lg flex items-center justify-center">
-                            <Wrench size={20} className="text-blue-600" />
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{service.name}</div>
-                            <div className="text-xs text-gray-500">{service.id}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-md">
-                          {service.category}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 font-medium">
-                          Starts at ${service.price}
-                        </div>
-                        <div className="text-xs text-gray-500">Est. {service.duration}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{service.bookings} Bookings</div>
-                        <div className="text-xs text-gray-500">
-                          {service.workers} Active Workers
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            service.status === 'Active'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {service.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => handleDuplicate(service)}
-                            className="text-gray-400 hover:text-blue-600 p-1 rounded-lg hover:bg-blue-50 transition-colors"
-                            title="Duplicate"
-                          >
-                            <Copy size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleOpenEditModal(service)}
-                            className="text-gray-400 hover:text-indigo-600 p-1 rounded-lg hover:bg-indigo-50 transition-colors"
-                            title="Edit"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(service.id)}
-                            className="text-gray-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <Box size={48} className="text-gray-300 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900">No services found</h3>
-                        <p className="text-gray-500 mt-1">Add a new service to get started.</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          {/* Filters and Search */}
+          <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="w-full sm:w-96">
+              <Input
+                icon={Search}
+                aria-label="Search skills by name or ID..."
+                placeholder="Search skills by name or ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="w-full sm:w-56">
+              <Select
+                icon={Filter}
+                aria-label="Filter skills by industry"
+                value={filterIndustry}
+                onChange={(e) => setFilterIndustry(e.target.value)}
+              >
+                {industries.map((industry) => (
+                  <option key={industry} value={industry}>
+                    {industry}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
 
-          {filteredServices.length > 0 && (
+          {/* Skills Table */}
+          <div className="bg-card shadow-sm border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead scope="col">Skill</TableHead>
+                  <TableHead scope="col">Industry</TableHead>
+                  <TableHead scope="col">Pricing</TableHead>
+                  <TableHead scope="col">Status</TableHead>
+                  <TableHead scope="col" className="text-right">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableSkeleton
+                    rows={6}
+                    columns={[{}, {}, {}, {}, { className: 'text-right' }]}
+                  />
+                ) : paginatedSkills.length > 0 ? (
+                  paginatedSkills.map((skill) => {
+                    const trashed = Boolean(skill.isTrashed);
+                    const row = (
+                      <TableRow
+                        key={skill.id}
+                        onClick={() =>
+                          trashed
+                            ? goToTrash('skill', skill.trashEntryId)
+                            : openSkillDetails(skill)
+                        }
+                        className={`cursor-pointer ${trashed ? 'opacity-55 grayscale' : ''}`}
+                      >
+                        <TableCell className="whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 flex-shrink-0 bg-brand-500/10 rounded-lg flex items-center justify-center">
+                              <Wrench size={20} className="text-brand-600" />
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-foreground">
+                                {skill.name}
+                              </div>
+                              <div className="text-xs text-foreground-lighter">{skill.id}</div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <span className="inline-flex px-2 py-1 text-xs font-medium bg-surface-200 text-foreground-light rounded-md">
+                            {skill.industry}
+                          </span>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <div className="text-sm text-foreground font-medium">
+                            {skill.maximumPriceMinor != null
+                              ? `${moneyFromMinor(skill.minimumPriceMinor)} – ${moneyFromMinor(skill.maximumPriceMinor)}`
+                              : `From ${moneyFromMinor(skill.minimumPriceMinor)}`}
+                          </div>
+                          <div className="text-xs text-foreground-lighter">
+                            {skill.workers} Active Workers
+                            {skill.isSafetyCritical && ' · Safety critical'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {trashed ? (
+                            <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning-600 dark:text-warning-400">
+                              In Trash
+                            </span>
+                          ) : (
+                            <span
+                              className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                skill.status === 'Active'
+                                  ? 'bg-success/10 text-success-600 dark:text-success-400'
+                                  : 'bg-surface-200 text-foreground'
+                              }`}
+                            >
+                              {skill.status}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell
+                          className="whitespace-nowrap text-right font-medium"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <DropdownMenuNonModal>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                aria-label={`Open actions for ${skill.name}`}
+                                className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
+                              >
+                                <MoreVertical size={20} />
+                              </button>
+                            </DropdownMenuTrigger>
+                            {trashed ? (
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem
+                                  onSelect={() => goToTrash('skill', skill.trashEntryId)}
+                                  className="cursor-pointer"
+                                >
+                                  <ExternalLink className="mr-2" /> View in Trash
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            ) : (
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem
+                                  onSelect={() => openSkillDetails(skill)}
+                                  className="cursor-pointer"
+                                >
+                                  <Eye className="mr-2" /> View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onSelect={() => handleOpenEditSkillModal(skill)}
+                                  className="cursor-pointer"
+                                >
+                                  <Edit2 className="mr-2" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onSelect={() => handleDuplicateSkill(skill)}
+                                  className="cursor-pointer"
+                                >
+                                  <Copy className="mr-2" /> Duplicate
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onSelect={() => handleDeactivateSkill(skill)}
+                                  className="cursor-pointer"
+                                >
+                                  <Power className="mr-2" />
+                                  {skill.status === 'Active' ? 'Deactivate' : 'Activate'}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            )}
+                          </DropdownMenuNonModal>
+                        </TableCell>
+                      </TableRow>
+                    );
+                    return trashed ? (
+                      <Tooltip key={skill.id} delayDuration={150}>
+                        <TooltipTrigger asChild>{row}</TooltipTrigger>
+                        <TooltipContent>In trash — click to open in Trash</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      row
+                    );
+                  })
+                ) : (
+                  <TableRow hover={false}>
+                    <TableCell colSpan="5" className="text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <Box size={48} className="text-foreground-muted mb-4" />
+                        <h3 className="text-lg font-medium text-foreground">No skills found</h3>
+                        <p className="text-foreground-lighter mt-1">
+                          Add a new skill to get started.
+                        </p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {filteredSkills.length > 0 && (
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
@@ -274,141 +338,239 @@ export function ServicesView({ model }) {
           )}
         </>
       ) : (
-        <div className="bg-white shadow-sm border border-gray-100 overflow-x-auto rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Category
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Total Services
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {categoriesData.map((cat) => (
-                <tr key={cat.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 flex-shrink-0 bg-indigo-50 rounded-lg flex items-center justify-center">
-                        <Grid size={20} className="text-indigo-600" />
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{cat.name}</div>
-                        <div className="text-xs text-gray-500">{cat.id}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900 font-medium">
-                      {cat.servicesCount} Services
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => toggleCategoryStatus(cat.id)}
-                      className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                        cat.status === 'Enabled'
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                      }`}
+        <>
+          {/* Filters and Search */}
+          <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="w-full sm:w-96">
+              <Input
+                icon={Search}
+                aria-label="Search industries by name or ID..."
+                placeholder="Search industries by name or ID..."
+                value={industrySearch}
+                onChange={(e) => setIndustrySearch(e.target.value)}
+              />
+            </div>
+            <div className="w-full sm:w-48">
+              <Select
+                icon={Filter}
+                aria-label="Filter industries by status"
+                value={filterIndustryStatus}
+                onChange={(e) => setFilterIndustryStatus(e.target.value)}
+              >
+                <option value="All">All Statuses</option>
+                <option value="Enabled">Enabled</option>
+                <option value="Disabled">Disabled</option>
+              </Select>
+            </div>
+          </div>
+
+          {/* Industries Table */}
+          <div className="bg-card shadow-sm border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead scope="col">Industry</TableHead>
+                  <TableHead scope="col">Description</TableHead>
+                  <TableHead scope="col">Total Skills</TableHead>
+                  <TableHead scope="col">Status</TableHead>
+                  <TableHead scope="col" className="text-right">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableSkeleton
+                    rows={6}
+                    columns={[{}, {}, {}, {}, { className: 'text-right' }]}
+                  />
+                ) : filteredIndustries.length > 0 ? (
+                  filteredIndustries.map((industry) => {
+                    const trashed = Boolean(industry.isTrashed);
+                    const row = (
+                    <TableRow
+                      key={industry.id}
+                      onClick={() =>
+                        trashed
+                          ? goToTrash('industry', industry.trashEntryId)
+                          : openIndustryDetails(industry)
+                      }
+                      className={`cursor-pointer ${trashed ? 'opacity-55 grayscale' : ''}`}
                     >
-                      {cat.status === 'Enabled' ? (
-                        <ToggleRight size={16} />
-                      ) : (
-                        <ToggleLeft size={16} />
-                      )}
-                      <span>{cat.status}</span>
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2">
-                      <button
-                        onClick={() => handleOpenEditCategoryModal(cat)}
-                        className="text-gray-400 hover:text-indigo-600 p-1 rounded-lg hover:bg-indigo-50 transition-colors"
-                        title="Edit"
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 flex-shrink-0 bg-info/10 rounded-lg flex items-center justify-center">
+                            <Grid size={20} className="text-info" />
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-foreground">
+                              {industry.name}
+                            </div>
+                            <div className="text-xs text-foreground-lighter">{industry.id}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                        <div className="text-sm text-foreground-lighter line-clamp-2">
+                          {industry.description || '—'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span className="text-sm text-foreground font-medium">
+                          {industry.skillsCount} Skills
+                        </span>
+                      </TableCell>
+                      <TableCell
+                        className="whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCategory(cat.id)}
-                        className="text-gray-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 transition-colors"
-                        title="Delete"
+                        {trashed ? (
+                          <span className="inline-flex px-3 py-1.5 rounded-full text-xs font-medium bg-warning/10 text-warning-600 dark:text-warning-400">
+                            In Trash
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => toggleIndustryStatus(industry.id)}
+                            className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                              industry.status === 'Enabled'
+                                ? 'bg-success/10 text-success-600 dark:text-success-400 hover:bg-success/20'
+                                : 'bg-surface-200 text-foreground hover:bg-surface-300'
+                            }`}
+                          >
+                            {industry.status === 'Enabled' ? (
+                              <ToggleRight size={16} />
+                            ) : (
+                              <ToggleLeft size={16} />
+                            )}
+                            <span>{industry.status}</span>
+                          </button>
+                        )}
+                      </TableCell>
+                      <TableCell
+                        className="whitespace-nowrap text-right font-medium"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        <DropdownMenuNonModal>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              aria-label={`Open actions for ${industry.name}`}
+                              className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
+                            >
+                              <MoreVertical size={20} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          {trashed ? (
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem
+                                onSelect={() => goToTrash('industry', industry.trashEntryId)}
+                                className="cursor-pointer"
+                              >
+                                <ExternalLink className="mr-2" /> View in Trash
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          ) : (
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem
+                                onSelect={() => openIndustryDetails(industry)}
+                                className="cursor-pointer"
+                              >
+                                <Eye className="mr-2" /> View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onSelect={() => handleOpenEditIndustryModal(industry)}
+                                className="cursor-pointer"
+                              >
+                                <Edit2 className="mr-2" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onSelect={() => handleDeactivateIndustry(industry)}
+                                className="cursor-pointer"
+                              >
+                                <Power className="mr-2" />
+                                {industry.status === 'Enabled' ? 'Deactivate' : 'Activate'}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          )}
+                        </DropdownMenuNonModal>
+                      </TableCell>
+                    </TableRow>
+                    );
+                    return trashed ? (
+                      <Tooltip key={industry.id} delayDuration={150}>
+                        <TooltipTrigger asChild>{row}</TooltipTrigger>
+                        <TooltipContent>In trash — click to open in Trash</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      row
+                    );
+                  })
+                ) : (
+                  <TableRow hover={false}>
+                    <TableCell colSpan="5" className="text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <Box size={48} className="text-foreground-muted mb-4" />
+                        <h3 className="text-lg font-medium text-foreground">No industries found</h3>
+                        <p className="text-foreground-lighter mt-1">
+                          Try adjusting your search or filters.
+                        </p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+          </Table>
         </div>
+        </>
       )}
 
-      {/* Add/Edit Service Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={modalMode === 'add' ? 'Add New Service' : 'Edit Service'}
+      {/* Add/Edit Skill Drawer */}
+      <Drawer
+        isOpen={isSkillModalOpen}
+        onClose={() => setIsSkillModalOpen(false)}
+        title={modalMode === 'add' ? 'Add New Skill' : 'Edit Skill'}
+        width="w-[500px]"
       >
-        <form onSubmit={handleSave} className="space-y-4">
+        <form onSubmit={handleSaveSkill} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Service Name</label>
+            <label className="block text-sm font-medium text-foreground-light mb-1">Skill Name</label>
             <input
               type="text"
               required
-              value={currentService?.name || ''}
-              onChange={(e) => setCurrentService({ ...currentService, name: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+              value={currentSkill?.name || ''}
+              onChange={(e) => setCurrentSkill({ ...currentSkill, name: e.target.value })}
+              className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
               placeholder="e.g. Toilet Repair"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <label className="block text-sm font-medium text-foreground-light mb-1">
+                Industry
+              </label>
               <select
                 required
-                value={currentService?.category || ''}
-                onChange={(e) => setCurrentService({ ...currentService, category: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                value={currentSkill?.industry || ''}
+                onChange={(e) => setCurrentSkill({ ...currentSkill, industry: e.target.value })}
+                className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
               >
-                <option value="">Select Category</option>
-                {categories
-                  .filter((c) => c !== 'All')
-                  .map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
+                <option value="">Select Industry</option>
+                {industries
+                  .filter((industry) => industry !== 'All')
+                  .map((industry) => (
+                    <option key={industry} value={industry}>
+                      {industry}
                     </option>
                   ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <label className="block text-sm font-medium text-foreground-light mb-1">Status</label>
               <select
-                value={currentService?.status || 'Active'}
-                onChange={(e) => setCurrentService({ ...currentService, status: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                value={currentSkill?.status || 'Active'}
+                onChange={(e) => setCurrentSkill({ ...currentSkill, status: e.target.value })}
+                className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
@@ -416,122 +578,331 @@ export function ServicesView({ model }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Starting Price ($)
+              <label className="block text-sm font-medium text-foreground-light mb-1">
+                Min Price (₱)
               </label>
               <input
                 type="number"
-                required
                 min="0"
-                value={currentService?.price || ''}
-                onChange={(e) =>
-                  setCurrentService({ ...currentService, price: Number(e.target.value) })
+                step="0.01"
+                value={
+                  currentSkill?.minimumPriceMinor != null
+                    ? currentSkill.minimumPriceMinor / 100
+                    : ''
                 }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) =>
+                  setCurrentSkill({
+                    ...currentSkill,
+                    minimumPriceMinor:
+                      e.target.value === '' ? null : Math.round(Number(e.target.value) * 100),
+                  })
+                }
+                className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
                 placeholder="0.00"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Est. Duration</label>
+              <label className="block text-sm font-medium text-foreground-light mb-1">
+                Max Price (₱)
+              </label>
               <input
-                type="text"
-                required
-                value={currentService?.duration || ''}
-                onChange={(e) => setCurrentService({ ...currentService, duration: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g. 2 hours"
+                type="number"
+                min="0"
+                step="0.01"
+                value={
+                  currentSkill?.maximumPriceMinor != null
+                    ? currentSkill.maximumPriceMinor / 100
+                    : ''
+                }
+                onChange={(e) =>
+                  setCurrentSkill({
+                    ...currentSkill,
+                    maximumPriceMinor:
+                      e.target.value === '' ? null : Math.round(Number(e.target.value) * 100),
+                  })
+                }
+                className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
+                placeholder="0.00"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description (Optional)
-            </label>
-            <textarea
-              rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Brief description of what this service entails..."
-            ></textarea>
-          </div>
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={Boolean(currentSkill?.isSafetyCritical)}
+              onChange={(e) =>
+                setCurrentSkill({ ...currentSkill, isSafetyCritical: e.target.checked })
+              }
+              className="h-4 w-4 accent-brand-600"
+            />
+            <span className="text-sm text-foreground-light">Safety critical</span>
+          </label>
 
-          <div className="pt-4 flex justify-end space-x-3 border-t border-gray-200">
+          <div className="pt-4 flex justify-end space-x-3 border-t border-border">
             <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              onClick={() => setIsSkillModalOpen(false)}
+              className="px-4 py-2 border border-border-strong rounded-lg text-sm font-medium text-foreground-light hover:bg-surface-200"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 rounded-lg text-sm font-medium text-white hover:bg-blue-700"
+              className="px-4 py-2 bg-brand-600 rounded-lg text-sm font-medium text-white hover:bg-brand-700"
             >
-              {modalMode === 'add' ? 'Create Service' : 'Save Changes'}
+              {modalMode === 'add' ? 'Create Skill' : 'Save Changes'}
             </button>
           </div>
         </form>
-      </Modal>
+      </Drawer>
 
-      {/* Add/Edit Category Modal */}
-      <Modal
-        isOpen={isCategoryModalOpen}
-        onClose={() => setIsCategoryModalOpen(false)}
-        title={modalMode === 'add' ? 'Add New Category' : 'Edit Category'}
+      {/* Add/Edit Industry Drawer */}
+      <Drawer
+        isOpen={isIndustryModalOpen}
+        onClose={() => setIsIndustryModalOpen(false)}
+        title={modalMode === 'add' ? 'Add New Industry' : 'Edit Industry'}
+        width="w-[500px]"
       >
-        <form onSubmit={handleSaveCategory} className="space-y-4">
+        <form onSubmit={handleSaveIndustry} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label>
+            <label className="block text-sm font-medium text-foreground-light mb-1">
+              Industry Name
+            </label>
             <input
               type="text"
               required
-              value={currentCategory?.name || ''}
-              onChange={(e) => setCurrentCategory({ ...currentCategory, name: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+              value={currentIndustry?.name || ''}
+              onChange={(e) => setCurrentIndustry({ ...currentIndustry, name: e.target.value })}
+              className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
               placeholder="e.g. Landscaping"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label className="block text-sm font-medium text-foreground-light mb-1">
+              Description (Optional)
+            </label>
+            <textarea
+              rows={3}
+              value={currentIndustry?.description || ''}
+              onChange={(e) =>
+                setCurrentIndustry({ ...currentIndustry, description: e.target.value })
+              }
+              className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
+              placeholder="Brief description of this industry..."
+            ></textarea>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground-light mb-1">Status</label>
             <select
-              value={currentCategory?.status || 'Enabled'}
-              onChange={(e) => setCurrentCategory({ ...currentCategory, status: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+              value={currentIndustry?.status || 'Enabled'}
+              onChange={(e) =>
+                setCurrentIndustry({ ...currentIndustry, status: e.target.value })
+              }
+              className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
             >
               <option value="Enabled">Enabled</option>
               <option value="Disabled">Disabled</option>
             </select>
           </div>
 
-          <div className="pt-4 flex justify-end space-x-3 border-t border-gray-200">
+          <div className="pt-4 flex justify-end space-x-3 border-t border-border">
             <button
               type="button"
-              onClick={() => setIsCategoryModalOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              onClick={() => setIsIndustryModalOpen(false)}
+              className="px-4 py-2 border border-border-strong rounded-lg text-sm font-medium text-foreground-light hover:bg-surface-200"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 rounded-lg text-sm font-medium text-white hover:bg-blue-700"
+              className="px-4 py-2 bg-brand-600 rounded-lg text-sm font-medium text-white hover:bg-brand-700"
             >
-              {modalMode === 'add' ? 'Create Category' : 'Save Changes'}
+              {modalMode === 'add' ? 'Create Industry' : 'Save Changes'}
             </button>
           </div>
         </form>
-      </Modal>
+      </Drawer>
+
+      {/* Skill Details Drawer */}
+      <Drawer
+        isOpen={details?.type === 'skill'}
+        onClose={closeDetails}
+        title="Skill Details"
+        width="w-[500px]"
+        footer={
+          details?.type === 'skill' ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  closeDetails();
+                  handleOpenEditSkillModal(details.item);
+                }}
+              >
+                <Edit2 /> Edit
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => handleMoveSkillToTrash(details.item)}
+              >
+                <Trash2 /> Move to Trash
+              </Button>
+            </>
+          ) : null
+        }
+      >
+        {details?.type === 'skill' && details.item && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 flex-shrink-0 bg-brand-500/10 rounded-lg flex items-center justify-center">
+                <Wrench size={20} className="text-brand-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  {details.item.name}
+                </h3>
+                <p className="text-xs text-foreground-lighter font-mono">
+                  {details.item.id}
+                </p>
+              </div>
+            </div>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <dt className="text-foreground-lighter">Industry</dt>
+                <dd className="mt-0.5 font-medium text-foreground">
+                  {details.item.industry}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-foreground-lighter">Status</dt>
+                <dd className="mt-0.5">
+                  <span
+                    className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      details.item.status === 'Active'
+                        ? 'bg-success/10 text-success-600 dark:text-success-400'
+                        : 'bg-surface-200 text-foreground'
+                    }`}
+                  >
+                    {details.item.status}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-foreground-lighter">Pricing</dt>
+                <dd className="mt-0.5 font-medium text-foreground">
+                  {details.item.maximumPriceMinor != null
+                    ? `${moneyFromMinor(details.item.minimumPriceMinor)} – ${moneyFromMinor(details.item.maximumPriceMinor)}`
+                    : `From ${moneyFromMinor(details.item.minimumPriceMinor)}`}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-foreground-lighter">Active Workers</dt>
+                <dd className="mt-0.5 font-medium text-foreground">
+                  {details.item.workers}
+                </dd>
+              </div>
+            </dl>
+            {details.item.isSafetyCritical && (
+              <div className="inline-flex items-center gap-1.5 rounded-md bg-warning/10 px-2 py-1 text-xs font-medium text-warning-700 dark:text-warning-500">
+                <AlertTriangle size={14} /> Safety critical
+              </div>
+            )}
+          </div>
+        )}
+      </Drawer>
+
+      {/* Industry Details Drawer */}
+      <Drawer
+        isOpen={details?.type === 'industry'}
+        onClose={closeDetails}
+        title="Industry Details"
+        width="w-[500px]"
+        footer={
+          details?.type === 'industry' ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  closeDetails();
+                  handleOpenEditIndustryModal(details.item);
+                }}
+              >
+                <Edit2 /> Edit
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => handleMoveIndustryToTrash(details.item)}
+              >
+                <Trash2 /> Move to Trash
+              </Button>
+            </>
+          ) : null
+        }
+      >
+        {details?.type === 'industry' && details.item && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 flex-shrink-0 bg-info/10 rounded-lg flex items-center justify-center">
+                <Grid size={20} className="text-info" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  {details.item.name}
+                </h3>
+                <p className="text-xs text-foreground-lighter font-mono">
+                  {details.item.id}
+                </p>
+              </div>
+            </div>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <dt className="text-foreground-lighter">Status</dt>
+                <dd className="mt-0.5">
+                  <span
+                    className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      details.item.status === 'Enabled'
+                        ? 'bg-success/10 text-success-600 dark:text-success-400'
+                        : 'bg-surface-200 text-foreground'
+                    }`}
+                  >
+                    {details.item.status}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-foreground-lighter">Total Skills</dt>
+                <dd className="mt-0.5 font-medium text-foreground">
+                  {details.item.skillsCount}
+                </dd>
+              </div>
+            </dl>
+            {details.item.description && (
+              <div>
+                <dt className="text-sm text-foreground-lighter">Description</dt>
+                <p className="mt-1 text-sm text-foreground leading-relaxed">
+                  {details.item.description}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </Drawer>
+
       <ConfirmModal
         isOpen={confirm.isOpen}
         onClose={closeConfirm}
         title={confirm.title}
         message={confirm.message}
         onConfirm={confirm.onConfirm}
-        confirmLabel="Delete"
+        confirmLabel={confirm.confirmLabel || 'Delete'}
         variant="danger"
       />
     </div>
+    </TooltipProvider>
   );
 }

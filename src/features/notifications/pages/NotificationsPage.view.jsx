@@ -1,6 +1,15 @@
 import { Bell, Send, Filter, Search, Trash2 } from 'lucide-react';
 import Modal from '../../../components/ui/Modal';
 import Pagination from '../../../components/ui/Pagination';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../../../components/ui/Table';
 
 export function NotificationsView({ model }) {
   const {
@@ -26,29 +35,23 @@ export function NotificationsView({ model }) {
     saveCampaign,
   } = model;
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notifications Engine</h1>
-          <p className="text-gray-500 mt-1">Manage email, SMS, and push notification campaigns</p>
+          <h1 className="text-2xl font-bold text-foreground">Notifications Engine</h1>
+          <p className="text-foreground-lighter mt-1">Manage email, SMS, and push notification campaigns</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="mt-4 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center"
+          className="mt-4 sm:mt-0 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center"
         >
           <Bell size={18} className="mr-2" /> Create Notification
         </button>
       </div>
-      {isLoading && (
-        <div className="flex justify-center py-8 text-gray-500">
-          <div className="animate-spin h-6 w-6 border-2 border-gray-300 border-t-blue-600 rounded-full mr-2" />{' '}
-          Loading...
-        </div>
-      )}
       {error && (
         <div
           role="alert"
-          className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
           {error}
         </div>
@@ -58,21 +61,21 @@ export function NotificationsView({ model }) {
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center"
+            className="bg-card rounded-xl shadow-sm border border-border p-6 flex items-center"
           >
             <div className={`p-4 rounded-lg ${stat.bg} mr-4`}>{stat.icon}</div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
-              <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
+              <p className="text-sm text-foreground-lighter font-medium">{stat.label}</p>
+              <h3 className="text-2xl font-bold text-foreground">{stat.value}</h3>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="bg-white rounded-t-xl shadow-sm border-x border-t border-gray-100 p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="relative w-full sm:w-96">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
+            <Search size={18} className="text-foreground-muted" />
           </div>
           <input
             type="text"
@@ -80,13 +83,13 @@ export function NotificationsView({ model }) {
             placeholder="Search campaigns..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus:ring-ring focus:border-brand-500 text-sm"
           />
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
-          <Filter size={18} className="text-gray-500" />
+          <Filter size={18} className="text-foreground-lighter" />
           <select
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+            className="w-full flex-1 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
           >
@@ -98,94 +101,74 @@ export function NotificationsView({ model }) {
         </div>
       </div>
 
-      <div className="bg-white shadow-sm border border-gray-100 overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Campaign Details
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Target Audience
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Channel
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Status / Date
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {paginatedNotifs.length > 0 ? (
+      <div className="bg-card shadow-sm border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">Campaign Details</TableHead>
+              <TableHead scope="col">Target Audience</TableHead>
+              <TableHead scope="col">Channel</TableHead>
+              <TableHead scope="col">Status / Date</TableHead>
+              <TableHead scope="col" className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableSkeleton
+                rows={6}
+                columns={[{}, {}, {}, {}, { className: 'text-right' }]}
+              />
+            ) : paginatedNotifs.length > 0 ? (
               paginatedNotifs.map((n) => (
-                <tr key={n.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-bold text-gray-900">{n.title}</div>
-                    <div className="text-xs text-gray-500">{n.id}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{n.audience}</div>
+                <TableRow key={n.id}>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="text-sm font-bold text-foreground">{n.title}</div>
+                    <div className="text-xs text-foreground-lighter">{n.id}</div>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="text-sm text-foreground">{n.audience}</div>
                     {n.status === 'Sent' && (
-                      <div className="text-xs text-green-600 font-medium">
+                      <div className="text-xs text-success font-medium">
                         Open Rate: {n.openRate}
                       </div>
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-700 bg-gray-50 px-2 py-1 rounded inline-flex">
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="flex items-center text-sm text-foreground-light bg-surface-200 px-2 py-1 rounded inline-flex">
                       {getTypeIcon(n.type)}
                       <span className="ml-2 font-medium">{n.type}</span>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <span
                       className={`inline-flex px-2 py-0.5 rounded text-xs font-medium mb-1 ${getStatusColor(n.status)}`}
                     >
                       {n.status}
                     </span>
-                    <div className="text-xs text-gray-500">{n.date}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="text-xs text-foreground-lighter">{n.date}</div>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right font-medium">
                     <div className="flex justify-end space-x-2">
                       <button
                         onClick={() => handleDelete(n.id)}
-                        className="text-gray-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 transition-colors"
+                        className="text-foreground-muted hover:text-destructive p-1 rounded-lg hover:bg-destructive/10 transition-colors"
                         title="Delete"
                       >
                         <Trash2 size={18} />
                       </button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             ) : (
-              <tr>
-                <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+              <TableRow hover={false}>
+                <TableCell colSpan="5" className="py-12 text-center text-foreground-lighter">
                   No notifications found.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {filteredNotifs.length > 0 && (
@@ -204,24 +187,24 @@ export function NotificationsView({ model }) {
       >
         <form className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Campaign Title</label>
+            <label className="block text-sm font-medium text-foreground-light mb-1">Campaign Title</label>
             <input
               type="text"
               value={campaign.title}
               onChange={(event) => setCampaign({ ...campaign, title: event.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500"
+              className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring"
               placeholder="e.g. Service update"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground-light mb-1">
                 Target Audience
               </label>
               <select
                 value={campaign.audience}
                 onChange={(event) => setCampaign({ ...campaign, audience: event.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                className="w-full border border-border-strong rounded-lg px-3 py-2"
               >
                 <option value="EVERYONE">All Users</option>
                 <option value="WORKERS">Workers Only</option>
@@ -229,8 +212,8 @@ export function NotificationsView({ model }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Channel</label>
-              <select className="w-full border border-gray-300 rounded-lg px-3 py-2">
+              <label className="block text-sm font-medium text-foreground-light mb-1">Channel</label>
+              <select className="w-full border border-border-strong rounded-lg px-3 py-2">
                 <option>In-App</option>
                 <option disabled>Push (Unavailable)</option>
                 <option disabled>SMS (Unavailable)</option>
@@ -238,34 +221,34 @@ export function NotificationsView({ model }) {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Message Content</label>
+            <label className="block text-sm font-medium text-foreground-light mb-1">Message Content</label>
             <textarea
               rows={4}
               value={campaign.message}
               onChange={(event) => setCampaign({ ...campaign, message: event.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500"
+              className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring"
               placeholder="Type your message here..."
             ></textarea>
           </div>
-          <div className="pt-4 border-t border-gray-200 flex justify-end gap-3">
+          <div className="pt-4 border-t border-border flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700"
+              className="px-4 py-2 border border-border-strong rounded-lg text-sm font-medium text-foreground-light"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={() => void saveCampaign(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700"
+              className="px-4 py-2 border border-border-strong rounded-lg text-sm font-medium text-foreground-light"
             >
               Save as Draft
             </button>
             <button
               type="button"
               onClick={() => void saveCampaign(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center"
+              className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium flex items-center"
             >
               <Send size={16} className="mr-2" /> Send Now
             </button>

@@ -1,49 +1,566 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  /* A-yos Custom Colors */
-  --color-primary: #0B63D6;
-  --color-navy: #0E2A47;
-  --color-background: #F8FAFC;
-  --color-cards: #FFFFFF;
-  --color-border: #E5E7EB;
-  
-  /* Status Colors */
-  --color-success: #22C55E;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
-  --color-info: #3B82F6;
-  
-  /* Typography */
-  --font-sans: 'Inter', sans-serif;
-  --font-display: 'Poppins', sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-heading: var(--font-display);
+  --font-mono: 'Source Code Pro', ui-monospace, 'SFMono-Regular', 'SF Mono', Menlo, Consolas, monospace;
 
-  /* Animations */
-  --animate-fade-in: fade-in 0.3s ease-out;
-  --animate-fade-in-up: fade-in-up 0.4s ease-out;
+  /* Supabase Inter-optimized type scale */
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1rem;
+  --text-xl: 1.125rem;
+  --text-2xl: 1.375rem;
+  --text-3xl: 1.75rem;
+  --text-4xl: 2.125rem;
+  --text-5xl: 2.875rem;
+  --text-6xl: 3.625rem;
+  --text-7xl: 4.375rem;
+  --text-8xl: 5.875rem;
+  --text-9xl: 7.875rem;
+  --font-weight-normal: 450;
 
-  @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+  --spacing-content: 21px;
+  --radius: 0.5rem;
+
+  /* Supabase card padding scale */
+  --card-padding-x: 1rem;
+  --card-padding-x-md: 1.5rem;
+}
+
+:root {
+  /* ── Supabase semantic inputs (light) ─────────────────────────────
+     Neutral geometry copied verbatim from Supabase (light.css /
+     semantic.css). Only --primary-hue is overridden: green → blue. */
+  --hue: 159;
+  --surface-hue: 34;
+  --primary-hue: 262.9;
+  --chroma: 0;
+  --surface: 0.995;
+  --elevation-step: 0.024;
+  --contrast: 0.53;
+  --foreground-lightness: 0.1;
+  --muted-foreground-level: 0.65;
+  --tertiary-foreground-level: 0.5;
+
+  --warning-lightness: 0.68;
+  --destructive-lightness: 0.52;
+  --info-lightness: 0.54;
+  --expressive-chroma: 0.14;
+
+  --tone-span: calc(var(--foreground-lightness) - var(--surface));
+  --contrast-delta: calc((var(--contrast) - 0.5) / 0.5);
+  --contrast-up: max(0, var(--contrast-delta));
+  --contrast-down: max(0, calc(var(--contrast-delta) * -1));
+  --contrast-text: calc(1 - (1 - 0.9) * var(--contrast-down));
+  --contrast-border: calc((0.05 + 0.95 * var(--contrast)) * (0.05 + 0.95 * var(--contrast)));
+  --surface-overlay-unit: calc(
+    var(--elevation-step) / max(var(--tone-span), calc(var(--tone-span) * -1))
+  );
+  --muted-alpha: calc(var(--surface-overlay-unit) * 1);
+  --accent-alpha: calc(var(--surface-overlay-unit) * 1.5);
+  --tertiary-alpha: calc(var(--surface-overlay-unit) * 2);
+
+  --background: oklch(var(--surface) calc(var(--chroma) * 0.5) var(--surface-hue));
+  --foreground: oklch(
+    calc(var(--surface) + var(--tone-span) * var(--contrast-text)) calc(var(--chroma) * 0.55)
+      var(--surface-hue)
+  );
+  --foreground-contrast: oklch(var(--surface) calc(var(--chroma) * 0.55) var(--surface-hue));
+
+  --card: oklch(from var(--background) calc(l + var(--elevation-step) * 1) c h);
+  --popover: oklch(from var(--background) calc(l + var(--elevation-step) * 1.5) c h);
+  --secondary: oklch(from var(--background) calc(l + var(--elevation-step) * 2) c h);
+
+  --muted: oklch(from var(--foreground) l c h / var(--muted-alpha));
+  --accent: oklch(from var(--foreground) l c h / var(--accent-alpha));
+  --tertiary: oklch(from var(--foreground) l c h / var(--tertiary-alpha));
+
+  --muted-foreground: oklch(
+    calc(
+      var(--surface) + var(--tone-span) *
+        (var(--muted-foreground-level) + (1 - var(--muted-foreground-level)) * var(--contrast-up) -
+          var(--muted-foreground-level) * 0.5 * var(--contrast-down))
+    ) calc(var(--chroma) * 0.55) var(--surface-hue)
+  );
+  --tertiary-foreground: oklch(
+    calc(
+      var(--surface) + var(--tone-span) *
+        (var(--tertiary-foreground-level) + (1 - var(--tertiary-foreground-level)) * var(--contrast-up) -
+          var(--tertiary-foreground-level) * 0.5 * var(--contrast-down))
+    ) calc(var(--chroma) * 0.55) var(--surface-hue)
+  );
+
+  --border: oklch(
+    from var(--foreground) l calc(c * 0.54) h / calc(2% + 20% * var(--contrast-border))
+  );
+  --input: oklch(
+    from var(--foreground) l calc(c * 0.5) h / calc(3% + 38% * var(--contrast-border))
+  );
+  --ring: oklch(from var(--primary) l c h / 55%);
+
+  --warning: oklch(var(--warning-lightness) var(--expressive-chroma) 75);
+  --destructive: oklch(var(--destructive-lightness) var(--expressive-chroma) 25);
+  --info: oklch(var(--info-lightness) var(--expressive-chroma) 258);
+  --warning-foreground: #ffffff;
+  --destructive-foreground: #ffffff;
+  --success-foreground: #ffffff;
+  --info-foreground: #ffffff;
+
+  /* ── Supabase-compat / legacy aliases ───────────────────────────── */
+  --background-surface-75: oklch(from var(--background) calc(l + var(--elevation-step) * 0.75) c h);
+  --background-surface-100: var(--card);
+  --background-surface-200: var(--muted);
+  --background-surface-300: var(--secondary);
+  --background-surface-400: var(--tertiary);
+  --background-alternative-200: var(--muted);
+  --background-alternative-400: var(--tertiary);
+  --background-overlay: var(--popover);
+  --background-selection: var(--accent);
+  --overlay: var(--popover);
+  --overlay-hover: var(--tertiary);
+  --control: var(--accent);
+  --control-hover: var(--tertiary);
+  --control-strong: oklch(from var(--foreground) l c h / 8%);
+
+  --foreground-light: var(--muted-foreground);
+  --foreground-lighter: var(--tertiary-foreground);
+  --foreground-muted: var(--tertiary-foreground);
+
+  --border-muted: var(--border);
+  --border-secondary: var(--border-muted);
+  --border-strong: var(--input);
+  --border-stronger: oklch(from var(--foreground) l c h / 24%);
+  --border-control: var(--input);
+  --border-overlay: oklch(from var(--foreground) l c h / 16%);
+  --border-button: oklch(from var(--foreground) l c h / 13%);
+
+  --dash-sidebar: var(--background);
+  --dash-canvas: var(--background);
+
+  /* ── Brand scale — Supabase geometry, blue primary ──────────────── */
+  --brand-200: oklch(0.932 0.032 255.6);
+  --brand-300: oklch(0.809 0.096 251.8);
+  --brand-400: oklch(0.714 0.143 254.6);
+  --brand-500: oklch(0.623 0.188 259.8);
+  --brand-600: oklch(0.546 0.215 262.9);
+  --brand-700: oklch(0.488 0.217 264.4);
+  --brand-link: oklch(0.488 0.217 264.4);
+  --brand-default: oklch(0.546 0.215 262.9);
+
+  --primary: oklch(0.546 0.215 262.9);
+  --primary-foreground: #ffffff;
+
+  /* ── Status scales ──────────────────────────────────────────────── */
+  --success: #22c55e;
+  --success-200: oklch(0.9 0.11 155);
+  --success-300: oklch(0.85 0.14 155);
+  --success-400: oklch(0.78 0.16 155);
+  --success-500: oklch(0.72 0.19 155);
+  --success-600: oklch(0.6 0.16 155);
+
+  --warning: #f59e0b;
+  --warning-200: oklch(0.92 0.12 75);
+  --warning-300: oklch(0.87 0.14 75);
+  --warning-400: oklch(0.8 0.16 75);
+  --warning-500: oklch(0.74 0.17 70);
+  --warning-600: oklch(0.62 0.15 60);
+
+  --destructive: #ef4444;
+  --destructive-200: oklch(0.9 0.1 25);
+  --destructive-300: oklch(0.85 0.13 25);
+  --destructive-400: oklch(0.75 0.19 25);
+  --destructive-500: oklch(0.635 0.23 25);
+  --destructive-600: oklch(0.53 0.2 25);
+
+  --info: #3b82f6;
+  --info-200: oklch(0.92 0.06 258);
+  --info-300: oklch(0.86 0.1 258);
+  --info-400: oklch(0.75 0.15 258);
+  --info-500: oklch(0.62 0.18 258);
+  --info-600: oklch(0.52 0.17 258);
+
+  --card-foreground: var(--foreground);
+  --popover-foreground: var(--foreground);
+  --secondary-foreground: var(--foreground);
+  --accent-foreground: var(--foreground);
+
+  /* ── Chart tokens (Supabase globals) ────────────────────────────── */
+  --chart-1: oklch(0.546 0.215 262.9);
+  --chart-2: 173 58% 39%;
+  --chart-3: 197 37% 24%;
+  --chart-4: 43 74% 66%;
+  --chart-5: 27 87% 67%;
+  --chart-blue: 217 91% 60%;
+}
+
+.dark {
+  /* ── Supabase semantic inputs (dark) ────────────────────────────── */
+  --hue: 159;
+  --surface-hue: 159;
+  --primary-hue: 262.9;
+  --chroma: 0.005;
+  --surface: 0.19;
+  --elevation-step: 0.025;
+  --contrast: 0.5;
+  --foreground-lightness: 0.95;
+  --muted-foreground-level: 0.8;
+  --tertiary-foreground-level: 0.65;
+
+  --warning-lightness: 0.8;
+  --destructive-lightness: 0.75;
+  --info-lightness: 0.7;
+
+  /* Brand scale — dark-readable steps (blue) */
+  --brand-200: oklch(0.88 0.06 262.9);
+  --brand-300: oklch(0.8 0.11 262.9);
+  --brand-400: oklch(0.7 0.16 262.9);
+  --brand-500: oklch(0.62 0.18 262.9);
+  --brand-600: oklch(0.55 0.2 262.9);
+  --brand-700: oklch(0.45 0.18 262.9);
+  --brand-link: oklch(0.72 0.15 262.9);
+  --brand-default: oklch(0.546 0.215 262.9);
+
+  /* ── Status scales ──────────────────────────────────────────────── */
+  --success: #22c55e;
+  --success-200: oklch(0.75 0.13 155);
+  --success-300: oklch(0.72 0.16 155);
+  --success-400: oklch(0.66 0.17 155);
+  --success-500: oklch(0.6 0.17 155);
+  --success-600: oklch(0.52 0.15 155);
+
+  --warning: #f59e0b;
+  --warning-200: oklch(0.8 0.13 75);
+  --warning-300: oklch(0.76 0.15 75);
+  --warning-400: oklch(0.7 0.16 75);
+  --warning-500: oklch(0.64 0.15 70);
+  --warning-600: oklch(0.54 0.13 60);
+
+  --destructive: #ef4444;
+  --destructive-200: oklch(0.72 0.13 25);
+  --destructive-300: oklch(0.68 0.17 25);
+  --destructive-400: oklch(0.62 0.2 25);
+  --destructive-500: oklch(0.55 0.21 25);
+  --destructive-600: oklch(0.46 0.18 25);
+
+  --info: #3b82f6;
+  --info-200: oklch(0.82 0.09 258);
+  --info-300: oklch(0.75 0.13 258);
+  --info-400: oklch(0.68 0.16 258);
+  --info-500: oklch(0.6 0.17 258);
+  --info-600: oklch(0.5 0.15 258);
+
+  /* ── Chart tokens (Supabase globals, dark) ──────────────────────── */
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
+  --chart-blue: 217 91% 65%;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface-75: var(--background-surface-75);
+  --color-surface-100: var(--background-surface-100);
+  --color-surface-200: var(--background-surface-200);
+  --color-surface-300: var(--background-surface-300);
+  --color-surface-400: var(--background-surface-400);
+  --color-alternative-200: var(--background-alternative-200);
+  --color-alternative-400: var(--background-alternative-400);
+  --color-overlay: var(--overlay);
+  --color-overlay-hover: var(--overlay-hover);
+  --color-control: var(--control);
+  --color-control-hover: var(--control-hover);
+  --color-control-strong: var(--control-strong);
+  --color-selection: var(--background-selection);
+
+  /* Supabase shorthand surface scale (bg-100/bg-200/...) */
+  --color-100: var(--background-surface-100);
+  --color-200: var(--background-surface-200);
+  --color-300: var(--background-surface-300);
+  --color-400: var(--background-surface-400);
+
+  --color-foreground: var(--foreground);
+  --color-foreground-light: var(--foreground-light);
+  --color-foreground-lighter: var(--foreground-lighter);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-foreground-contrast: var(--foreground-contrast);
+
+  --color-border: var(--border);
+  --color-border-muted: var(--border-muted);
+  --color-border-strong: var(--border-strong);
+  --color-border-stronger: var(--border-stronger);
+  --color-border-secondary: var(--border-secondary);
+  --color-border-overlay: var(--border-overlay);
+  --color-border-control: var(--border-control);
+  --color-border-button: var(--border-button);
+
+  --color-dash-sidebar: var(--dash-sidebar);
+  --color-dash-canvas: var(--dash-canvas);
+
+  --color-sidebar: var(--dash-sidebar);
+  --color-sidebar-foreground: var(--foreground);
+  --color-sidebar-primary: var(--primary);
+  --color-sidebar-primary-foreground: var(--primary-foreground);
+  --color-sidebar-accent: var(--background-selection);
+  --color-sidebar-accent-foreground: var(--foreground);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--ring);
+
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-link: var(--brand-link);
+  --color-brand: var(--brand-default);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-success: var(--success);
+  --color-success-200: var(--success-200);
+  --color-success-300: var(--success-300);
+  --color-success-400: var(--success-400);
+  --color-success-500: var(--success-500);
+  --color-success-600: var(--success-600);
+  --color-warning: var(--warning);
+  --color-warning-200: var(--warning-200);
+  --color-warning-300: var(--warning-300);
+  --color-warning-400: var(--warning-400);
+  --color-warning-500: var(--warning-500);
+  --color-warning-600: var(--warning-600);
+  --color-destructive: var(--destructive);
+  --color-destructive-200: var(--destructive-200);
+  --color-destructive-300: var(--destructive-300);
+  --color-destructive-400: var(--destructive-400);
+  --color-destructive-500: var(--destructive-500);
+  --color-destructive-600: var(--destructive-600);
+  --color-info: var(--info);
+  --color-info-200: var(--info-200);
+  --color-info-300: var(--info-300);
+  --color-info-400: var(--info-400);
+  --color-info-500: var(--info-500);
+  --color-info-600: var(--info-600);
+
+  --color-danger: var(--destructive);
+  --color-danger-foreground: var(--destructive-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
   }
 
-  @keyframes fade-in-up {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground text-base antialiased;
+    font-family: var(--font-sans);
+    font-weight: 450;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+    @apply font-semibold;
+  }
+
+  ::selection {
+    background-color: var(--background-selection);
   }
 }
 
-body {
-  @apply bg-background text-navy antialiased;
-  font-family: var(--font-sans);
+/* Supabase component utilities */
+@layer components {
+  .heading-meta {
+    @apply text-xs font-mono uppercase tracking-wider font-medium text-foreground;
+  }
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
+/*
+ * Canonical keyboard focus rings. Copied from Supabase
+ * (packages/config/css/utilities.css). Ring only shows on `:focus-visible`
+ * (keyboard Tab), never on hover/click.
+ * - focus-ring: default offset ring (buttons, inputs, most controls).
+ *   `outline-hidden` stays always-on so mouse click does not show the browser
+ *   default; the ring is `:focus-visible` only.
+ * - focus-inset: dense/flush surfaces such as interactive <tr>s. Must use
+ *   outline (not ring/box-shadow) — box-shadow on table-row is unreliable,
+ *   especially in Safari. Do NOT pair with outline-hidden.
+ */
+@utility focus-ring {
+  @apply outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+@utility focus-inset {
+  &:focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+    outline-offset: -2px;
+    outline-color: var(--ring);
+  }
+}
+
+/* A-shaped loader: a bright segment traces the outline of the "A" */
+@keyframes a-loader-dash {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+.a-loader-dash {
+  animation: a-loader-dash 1.2s linear infinite;
+}
+
+/* Scrollbars */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-stronger) transparent;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--border-stronger);
+  border-radius: 9999px;
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-/* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Edge fade masks for ShadowScrollArea (Supabase utilities.css) */
+.mask-fadeout-right {
+  -webkit-mask-image: linear-gradient(to right, white 98%, transparent 100%);
+  mask-image: linear-gradient(to right, white 98%, transparent 100%);
+}
+.mask-fadeout-left {
+  -webkit-mask-image: linear-gradient(to left, white 98%, transparent 100%);
+  mask-image: linear-gradient(to left, white 98%, transparent 100%);
+}
+
+/* Animations */
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Radix overlay & content animations */
+@keyframes overlay-show {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes content-show {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes drawer-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes drawer-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-trash-pulse {
+  animation: trash-entry-pulse 0.5s ease-in-out 4;
+}
+
+@keyframes trash-entry-pulse {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: var(--background-surface-200);
+  }
+}
+
+.map-dark .maplibregl-canvas {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
 }

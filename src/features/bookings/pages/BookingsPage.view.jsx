@@ -13,7 +13,27 @@ import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
 import Pagination from '../../../components/ui/Pagination';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
+import StatCard from '../../../components/ui/StatCard';
+import Input from '../../../components/ui/Input';
+import Select from '../../../components/ui/Select';
+import Skeleton from '../../../components/ui/Skeleton';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../../../components/ui/Table';
 import { money, formatDateTime } from '../../../services/adminShared';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '../../../components/ui/DropdownMenu';
 
 export function BookingsView({ model }) {
   const {
@@ -26,7 +46,6 @@ export function BookingsView({ model }) {
     selectedBooking,
     isDrawerOpen,
     setIsDrawerOpen,
-    actionMenuOpenId,
     action,
     setAction,
     actionReason,
@@ -36,62 +55,59 @@ export function BookingsView({ model }) {
     savingAction,
     confirm,
     closeConfirm,
-    filteredBookings,
+    error,
+    isLoading,
+    count,
     totalPages,
     paginatedBookings,
     stats,
     getStatusColor,
-    toggleActionMenu,
     handleViewDetails,
     openAction,
     submitAction,
   } = model;
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Bookings Management</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Bookings Management</h1>
+          <p className="text-foreground-lighter mt-1">
             Track and manage all service bookings across the platform
           </p>
         </div>
       </div>
 
+      {error && (
+        <div
+          role="alert"
+          className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {error}
+        </div>
+      )}
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat, index) => (
-          <div
-            key={index}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center"
-          >
-            <div className={`p-4 rounded-lg ${stat.bg} mr-4`}>{stat.icon}</div>
-            <div>
-              <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
-              <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
-            </div>
-          </div>
+          <StatCard key={index} title={stat.label} value={stat.value} icon={stat.icon} />
         ))}
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-t-xl shadow-sm border-x border-t border-gray-100 p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="relative w-full sm:w-96">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
-          </div>
-          <input
-            type="text"
+      <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="w-full sm:w-96">
+          <Input
+            icon={Search}
             aria-label="Search by ID, customer, or service..."
             placeholder="Search by ID, customer, or service..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
           />
         </div>
-        <div className="flex w-full sm:w-auto items-center gap-2">
-          <Filter size={18} className="text-gray-500" />
-          <select
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+        <div className="w-full sm:w-48">
+          <Select
+            icon={Filter}
+            aria-label="Filter bookings by status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -100,156 +116,140 @@ export function BookingsView({ model }) {
             <option value="Ongoing">Ongoing</option>
             <option value="Completed">Completed</option>
             <option value="Cancelled">Cancelled</option>
-          </select>
+          </Select>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white shadow-sm border border-gray-100 overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Booking ID & Date
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Service Details
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Customer & Worker
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Amount
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Status
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {paginatedBookings.length > 0 ? (
+      <div className="bg-card shadow-sm border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">Booking ID & Date</TableHead>
+              <TableHead scope="col">Service Details</TableHead>
+              <TableHead scope="col">Customer & Worker</TableHead>
+              <TableHead scope="col">Amount</TableHead>
+              <TableHead scope="col">Status</TableHead>
+              <TableHead scope="col" className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableSkeleton
+                rows={6}
+                columns={[
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  { className: 'text-right' },
+                ]}
+              />
+            ) : paginatedBookings.length > 0 ? (
               paginatedBookings.map((booking) => (
-                <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{booking.id}</div>
-                    <div className="text-xs text-gray-500 mt-1 flex items-center">
+                <TableRow
+                  key={booking.id}
+                  onClick={() => handleViewDetails(booking)}
+                  className="cursor-pointer"
+                >
+                  <TableCell className="whitespace-nowrap">
+                    <div className="text-sm font-medium text-foreground">{booking.id}</div>
+                    <div className="text-xs text-foreground-lighter mt-1 flex items-center">
                       <Calendar size={12} className="mr-1" /> {booking.date}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1 flex items-center">
+                    <div className="text-xs text-foreground-lighter mt-1 flex items-center">
                       <Clock size={12} className="mr-1" /> {booking.schedule} ({booking.duration})
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{booking.service}</div>
-                    <div className="text-xs text-gray-500">{booking.category}</div>
-                    <div className="text-xs text-gray-500 mt-1 truncate" title={booking.address}>
+                  </TableCell>
+                  <TableCell>
+                    <div
+                      className="max-w-[260px] truncate text-sm font-medium text-foreground"
+                      title={booking.service}
+                    >
+                      {booking.service}
+                    </div>
+                    <div className="text-xs text-foreground-lighter">{booking.category}</div>
+                    <div className="text-xs text-foreground-lighter mt-1 truncate" title={booking.address}>
                       <MapPin size={12} className="inline mr-1" /> {booking.address}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 flex items-center">
-                      <User size={14} className="mr-1 text-gray-400" /> {booking.customer}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="text-sm text-foreground flex items-center">
+                      <User size={14} className="mr-1 text-foreground-muted" /> {booking.customer}
                     </div>
                     <div
-                      className={`text-xs mt-1 font-medium ${!booking.worker ? 'text-red-500' : 'text-blue-600'}`}
+                      className={`text-xs mt-1 font-medium ${!booking.worker ? 'text-destructive' : 'text-brand-600'}`}
                     >
                       Worker: {booking.worker}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="text-sm font-medium text-foreground">
                       {money(booking.price)}
                     </div>
-                    <div className="text-xs text-gray-500">{booking.payment}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-xs text-foreground-lighter">{booking.payment}</div>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <span
                       className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}
                     >
                       {booking.status}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium relative">
-                    <button
-                      onClick={() => toggleActionMenu(booking.id)}
-                      aria-haspopup="true"
-                      aria-expanded={actionMenuOpenId === booking.id}
-                      aria-label={`Open actions for ${booking.id}`}
-                      className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
-                    >
-                      <MoreVertical size={20} />
-                    </button>
-
-                    {actionMenuOpenId === booking.id && (
-                      <div
-                        className="absolute right-8 top-10 w-48 bg-white rounded-md shadow-lg border border-gray-100 z-10 py-1"
-                        role="menu"
-                      >
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right font-medium" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
                         <button
-                          onClick={() => handleViewDetails(booking)}
-                          role="menuitem"
-                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                          aria-label={`Open actions for ${booking.id}`}
+                          className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
                         >
-                          <Eye size={16} className="mr-2 text-gray-400" /> View Details
+                          <MoreVertical size={20} />
                         </button>
-                        <button
-                          onClick={() => openAction('reassign', booking)}
-                          role="menuitem"
-                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuItem
+                          onSelect={() => handleViewDetails(booking)}
+                          className="cursor-pointer"
                         >
-                          <User size={16} className="mr-2 text-gray-400" /> Reassign Worker
-                        </button>
-                        <button
-                          onClick={() => openAction('cancel', booking)}
-                          role="menuitem"
-                          className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left"
+                          <Eye className="mr-2" /> View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => openAction('reassign', booking)}
+                          className="cursor-pointer"
                         >
-                          <XCircle size={16} className="mr-2 text-red-500" /> Cancel Booking
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
+                          <User className="mr-2" /> Reassign Worker
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onSelect={() => openAction('cancel', booking)}
+                          className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
+                        >
+                          <XCircle className="mr-2" /> Cancel Booking
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
               ))
             ) : (
-              <tr>
-                <td colSpan="6" className="px-6 py-12 text-center">
+              <TableRow hover={false}>
+                <TableCell colSpan="6" className="py-12 text-center">
                   <div className="flex flex-col items-center justify-center">
-                    <Calendar size={48} className="text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900">No bookings found</h3>
-                    <p className="text-gray-500 mt-1">
+                    <Calendar size={48} className="text-foreground-muted mb-4" />
+                    <h3 className="text-lg font-medium text-foreground">No bookings found</h3>
+                    <p className="text-foreground-lighter mt-1">
                       Adjust your search to find what you're looking for.
                     </p>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      {filteredBookings.length > 0 && (
+      {count > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
@@ -263,14 +263,33 @@ export function BookingsView({ model }) {
         onClose={() => setIsDrawerOpen(false)}
         title={`Booking ${selectedBooking?.id}`}
         width="w-[500px]"
+        footer={
+          selectedBooking &&
+          !['Completed', 'Cancelled'].includes(selectedBooking.status) ? (
+            <>
+              <button
+                onClick={() => openAction('reassign', selectedBooking)}
+                className="px-4 py-2 border border-border-strong rounded-lg text-sm font-medium text-foreground-light"
+              >
+                Reassign Worker
+              </button>
+              <button
+                onClick={() => openAction('cancel', selectedBooking)}
+                className="px-4 py-2 rounded-lg bg-destructive text-sm font-medium text-white"
+              >
+                Cancel Booking
+              </button>
+            </>
+          ) : null
+        }
       >
         {selectedBooking && (
           <div className="space-y-6">
-            <div className="bg-gray-50 p-4 rounded-xl">
+            <div className="bg-surface-200 p-4 rounded-xl">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">{selectedBooking.service}</h3>
-                  <p className="text-sm text-gray-500">{selectedBooking.category}</p>
+                  <h3 className="text-lg font-bold text-foreground">{selectedBooking.service}</h3>
+                  <p className="text-sm text-foreground-lighter">{selectedBooking.category}</p>
                 </div>
                 <span
                   className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedBooking.status)}`}
@@ -281,67 +300,121 @@ export function BookingsView({ model }) {
 
               <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
                 <div>
-                  <p className="text-gray-500">Date & Time</p>
-                  <p className="font-medium text-gray-900">
+                  <p className="text-foreground-lighter">Date & Time</p>
+                  <p className="font-medium text-foreground">
                     {selectedBooking.date} • {selectedBooking.schedule}
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Total Price</p>
-                  <p className="font-medium text-gray-900">{money(selectedBooking.price)}</p>
+                  <p className="text-foreground-lighter">Total Price</p>
+                  <p className="font-medium text-foreground">{money(selectedBooking.price)}</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-gray-500">Service Address</p>
-                  <p className="font-medium text-gray-900">{selectedBooking.address}</p>
+                  <p className="text-foreground-lighter">Service Address</p>
+                  <p className="font-medium text-foreground">{selectedBooking.address}</p>
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
                 People Involved
               </h4>
               <div className="flex justify-between gap-4">
-                <div className="flex-1 bg-white border border-gray-200 rounded-lg p-3">
-                  <p className="text-xs text-gray-500 mb-1">Customer</p>
+                <div className="flex-1 bg-card border border-border rounded-lg p-3">
+                  <p className="text-xs text-foreground-lighter mb-1">Customer</p>
                   <div className="flex items-center">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold mr-2">
+                    <div className="h-8 w-8 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-600 text-xs font-bold mr-2">
                       {selectedBooking.customer.charAt(0)}
                     </div>
                     <span className="font-medium text-sm">{selectedBooking.customer}</span>
                   </div>
                 </div>
-                <div className="flex-1 bg-white border border-gray-200 rounded-lg p-3">
-                  <p className="text-xs text-gray-500 mb-1">Assigned Worker</p>
+                <div className="flex-1 bg-card border border-border rounded-lg p-3">
+                  <p className="text-xs text-foreground-lighter mb-1">Assigned Worker</p>
                   <div className="flex items-center">
                     {selectedBooking.worker ? (
                       <>
-                        <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xs font-bold mr-2">
+                        <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center text-success text-xs font-bold mr-2">
                           {selectedBooking.worker.charAt(0)}
                         </div>
                         <span className="font-medium text-sm">{selectedBooking.worker}</span>
                       </>
                     ) : (
-                      <span className="text-sm text-red-500 font-medium">Not Assigned</span>
+                      <span className="text-sm text-destructive font-medium">Not Assigned</span>
                     )}
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Customer attachments */}
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                Customer Attachments
+              </h4>
+              {selectedBooking.media === undefined ? (
+                <Skeleton className="h-24 w-full rounded-lg" />
+              ) : selectedBooking.media === null ? (
+                <p className="text-sm text-foreground-lighter">Couldn't load attachments.</p>
+              ) : selectedBooking.media.images.length === 0 &&
+                selectedBooking.media.audio.length === 0 ? (
+                <p className="text-sm text-foreground-lighter">
+                  No photos or voice notes attached.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {selectedBooking.media.images.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {selectedBooking.media.images.map((image) => (
+                        <a
+                          key={image.path}
+                          href={image.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block aspect-square rounded-lg overflow-hidden border border-border bg-surface-200"
+                        >
+                          <img
+                            src={image.url}
+                            alt="Customer attachment"
+                            className="h-full w-full object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  {selectedBooking.media.audio.length > 0 && (
+                    <div className="space-y-2">
+                      {selectedBooking.media.audio.map((clip) => (
+                        <audio
+                          key={clip.path}
+                          controls
+                          preload="none"
+                          className="w-full"
+                          src={clip.url}
+                        >
+                          Your browser does not support audio playback.
+                        </audio>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Booking event timeline */}
-            <div className="border-t border-gray-200 pt-6 pb-20">
-              <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-6">
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-6">
                 Booking Timeline
               </h4>
-              <div className="relative border-l border-gray-200 ml-3 space-y-8">
+              <div className="relative border-l border-border ml-3 space-y-8">
                 {selectedBooking.events?.map((event, index) => (
                   <div key={`${event.created_at}-${index}`} className="relative pl-6">
-                    <span className="absolute -left-[5px] top-1 h-2.5 w-2.5 rounded-full bg-blue-600 ring-4 ring-white"></span>
-                    <p className="text-sm font-medium text-gray-900">
+                    <span className="absolute -left-[5px] top-1 h-2.5 w-2.5 rounded-full bg-brand-600 ring-4 ring-white"></span>
+                    <p className="text-sm font-medium text-foreground">
                       {event.to_status.replaceAll('_', ' ')}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-foreground-lighter">
                       {formatDateTime(event.created_at)}
                       {event.reason ? ` • ${event.reason}` : ''}
                     </p>
@@ -351,40 +424,20 @@ export function BookingsView({ model }) {
             </div>
 
             {selectedBooking.cancellation && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm">
-                <h4 className="font-semibold text-red-800">Cancellation</h4>
-                <p className="mt-1 text-red-700">{selectedBooking.cancellation.reason}</p>
-                <p className="mt-2 text-red-700">
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm">
+                <h4 className="font-semibold text-destructive-600 dark:text-destructive-400">Cancellation</h4>
+                <p className="mt-1 text-destructive">{selectedBooking.cancellation.reason}</p>
+                <p className="mt-2 text-destructive">
                   Refund: {money(Number(selectedBooking.cancellation.refund_amount ?? 0))}{' '}
                   · Fee: {money(Number(selectedBooking.cancellation.fee_amount ?? 0))}
                 </p>
                 {selectedBooking.refund && (
-                  <p className="mt-1 text-red-700">
+                  <p className="mt-1 text-destructive">
                     Refund status: {selectedBooking.refund.status} — {selectedBooking.refund.reason}
                   </p>
                 )}
               </div>
             )}
-
-            {/* Fixed footer in drawer */}
-            <div className="fixed bottom-0 right-0 w-[500px] bg-white border-t border-gray-200 p-4 flex justify-end space-x-3 shadow-lg">
-              {!['Completed', 'Cancelled'].includes(selectedBooking.status) && (
-                <>
-                  <button
-                    onClick={() => openAction('reassign', selectedBooking)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700"
-                  >
-                    Reassign Worker
-                  </button>
-                  <button
-                    onClick={() => openAction('cancel', selectedBooking)}
-                    className="px-4 py-2 rounded-lg bg-red-600 text-sm font-medium text-white"
-                  >
-                    Cancel Booking
-                  </button>
-                </>
-              )}
-            </div>
           </div>
         )}
       </Drawer>
@@ -395,14 +448,14 @@ export function BookingsView({ model }) {
       >
         {action && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">Booking {action.booking.id}</p>
+            <p className="text-sm text-foreground-light">Booking {action.booking.id}</p>
             {action.type === 'reassign' && (
               <div>
                 <label className="mb-1 block text-sm font-medium">Matched worker</label>
                 <select
                   value={replacementWorker}
                   onChange={(event) => setReplacementWorker(event.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                  className="w-full rounded-lg border border-border-strong px-3 py-2"
                 >
                   <option value="">Select a worker</option>
                   {action.booking.candidates?.map((candidate) => (
@@ -412,7 +465,7 @@ export function BookingsView({ model }) {
                   ))}
                 </select>
                 {!action.booking.candidates?.length && (
-                  <p className="mt-1 text-xs text-red-600">
+                  <p className="mt-1 text-xs text-destructive">
                     No eligible match candidates are available.
                   </p>
                 )}
@@ -424,7 +477,7 @@ export function BookingsView({ model }) {
                 value={actionReason}
                 onChange={(event) => setActionReason(event.target.value)}
                 maxLength={1000}
-                className="min-h-24 w-full rounded-lg border border-gray-300 p-3"
+                className="min-h-24 w-full rounded-lg border border-border-strong p-3"
               />
             </div>
             <div className="flex justify-end gap-3">
@@ -442,7 +495,7 @@ export function BookingsView({ model }) {
                   (action.type === 'reassign' && !replacementWorker)
                 }
                 onClick={() => void submitAction()}
-                className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50"
+                className="rounded-lg bg-brand-600 px-4 py-2 font-medium text-white disabled:opacity-50"
               >
                 {savingAction ? 'Saving…' : 'Confirm'}
               </button>

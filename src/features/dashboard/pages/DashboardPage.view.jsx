@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import {
   DollarSign,
   Calendar,
@@ -5,10 +6,11 @@ import {
   HardHat,
   CheckCircle,
   Trash2,
-  RefreshCcw,
   Headset,
   UserPlus,
   Bell,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import {
   Card,
@@ -19,23 +21,73 @@ import {
 } from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Skeleton from '../../../components/ui/Skeleton';
+import EmptyState from '../../../components/ui/EmptyState';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 import StatCard from '../../../components/ui/StatCard';
-import { money } from '../../../services/adminShared';
+import { Button } from '../../../components/ui/Button';
 import {
-  Area,
-  AreaChart,
+  ChartTooltip,
+  formatMoneyTick,
+  chartTick,
+  chartGridStroke,
+  chartCursor,
+} from '../../../components/ui/ChartTooltip';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../../../components/ui/Table';
+import { cn } from '../../../lib/utils';
+import { money } from '../../../services/adminShared';
+import { Link } from 'react-router-dom';
+import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
+
+const swatch = (color) => (color ? { background: color } : undefined);
+
+const RevenueTooltip = ({ active, payload, granularity = 'month' }) => {
+  if (!active || !payload?.length) return null;
+  const datum = payload[0].payload;
+  const dateOptions = {
+    day: { month: 'short', day: 'numeric', year: 'numeric' },
+    month: { month: 'long', year: 'numeric' },
+    year: { year: 'numeric' },
+  };
+  return (
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-md">
+      <p className="mb-1 font-medium text-foreground">
+        {datum.month.toLocaleDateString('en-US', dateOptions[granularity])}
+      </p>
+      <div className="space-y-0.5">
+        <div className="flex items-center gap-2">
+          <span className="inline-block size-2 shrink-0 rounded-sm" style={swatch('var(--chart-1)')} />
+          <span className="text-foreground-lighter">Worker payout:</span>
+          <span className="font-medium text-foreground">{money(datum.workerPayout)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-block size-2 shrink-0 rounded-sm" style={swatch('hsl(var(--chart-2))')} />
+          <span className="text-foreground-lighter">Platform commission:</span>
+          <span className="font-medium text-foreground">{money(datum.commission)}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export function DashboardView({ model }) {
   const {
     isLoading,
+    loadError,
     activities,
     metrics,
     revenueData,
@@ -45,35 +97,85 @@ export function DashboardView({ model }) {
     systemNotifications,
     handleReviewWorker,
   } = model;
+  const bookingsTotal = bookingsData.map((day) => ({
+    ...day,
+    total: (day.completed ?? 0) + (day.pending ?? 0) + (day.cancelled ?? 0),
+  }));
+  const periodPending = bookingsTotal.reduce((sum, day) => sum + (day.pending ?? 0), 0);
+  const periodCancelled = bookingsTotal.reduce((sum, day) => sum + (day.cancelled ?? 0), 0);
+  const isBookingsEmpty =
+    bookingsTotal.length === 0 || bookingsTotal.every((month) => month.total === 0);
+  const [revenueGranularity, setRevenueGranularity] = useState('month');
+  const revenueWindows = {
+    day: { window: 90, label: '90-day' },
+    month: { window: 12, label: '12-month' },
+    year: { window: 5, label: '5-year' },
+  };
+  const { window: revenueWindow, label: revenueWindowLabel } =
+    revenueWindows[revenueGranularity];
+  const activeRevenueSeries = revenueData[revenueGranularity] ?? [];
+  const revenueWindowRaw = activeRevenueSeries.slice(-revenueWindow);
+  const previousRevenueWindow = activeRevenueSeries.slice(-2 * revenueWindow, -revenueWindow);
+  const sumRevenue = (series) => series.reduce((total, point) => total + point.revenue, 0);
+  const revenueCurrent = sumRevenue(revenueWindowRaw);
+  const previousRevenue = sumRevenue(previousRevenueWindow);
+  const revenueDelta =
+    previousRevenue > 0 ? ((revenueCurrent - previousRevenue) / previousRevenue) * 100 : null;
+  const isRevenueEmpty =
+    activeRevenueSeries.length === 0 ||
+    activeRevenueSeries.every((point) => point.revenue === 0 && point.profit === 0);
+  const spansMultipleYears =
+    new Set(revenueWindowRaw.map((point) => point.month.getFullYear())).size > 1;
+  const revenueChart = revenueWindowRaw.map((point) => ({
+    ...point,
+    axisLabel: spansMultipleYears ? point.yearLabel : point.period,
+  }));
+  const maxRevenue = Math.max(0, ...revenueChart.map((point) => point.revenue));
+  const yAxisWidth = Math.max(48, Math.min(80, Math.ceil(formatMoneyTick(maxRevenue).length * 8 + 12)));
+  const chartScrollRef = useRef(null);
+  useEffect(() => {
+    chartScrollRef.current?.scrollTo({ left: chartScrollRef.current.scrollWidth });
+  }, [revenueChart.length, revenueGranularity]);
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
-          <p className="text-gray-500 mt-1">Here's what's happening in your ecosystem today.</p>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard Overview</h1>
+          <p className="text-foreground-lighter mt-1">Here's what's happening in your ecosystem today.</p>
         </div>
         <div className="flex space-x-2">
-          <button
+          <Button
+            variant="default"
+            size="sm"
             onClick={() => {
               window.location.href = '/admin/reports';
             }}
-            className="px-4 py-2 bg-white border border-border rounded-lg text-sm font-medium text-navy shadow-sm hover:bg-gray-50 transition-colors"
           >
             Reports
-          </button>
+          </Button>
         </div>
       </div>
 
+      {loadError ? (
+        <div
+          role="alert"
+          className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {loadError}
+        </div>
+      ) : null}
+
       {/* Stat Cards Grid */}
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         <StatCard
-          title="Total Revenue"
-          value={money(metrics.successful_payment_total ?? 0)}
+          title="Total Commission Revenue"
+          value={money(metrics.commission_total ?? 0)}
           icon={DollarSign}
           trend="up"
           trendValue="Live"
-          subtitle="successful payments"
+          subtitle="platform commission"
           isLoading={isLoading}
+          to="/admin/payments"
         />
         <StatCard
           title="Active Bookings"
@@ -83,6 +185,7 @@ export function DashboardView({ model }) {
           trendValue="Live"
           subtitle="current"
           isLoading={isLoading}
+          to="/admin/bookings"
         />
         <StatCard
           title="Total Users"
@@ -92,6 +195,7 @@ export function DashboardView({ model }) {
           trendValue="Live"
           subtitle="current"
           isLoading={isLoading}
+          to="/admin/users"
         />
         <StatCard
           title="Verified Workers"
@@ -101,15 +205,7 @@ export function DashboardView({ model }) {
           trendValue="Live"
           subtitle="approved"
           isLoading={isLoading}
-        />
-        <StatCard
-          title="Queued AI Jobs"
-          value={metrics.queued_ai_jobs ?? 0}
-          icon={RefreshCcw}
-          trend="up"
-          trendValue="Live"
-          subtitle="queued/processing"
-          isLoading={isLoading}
+          to="/admin/workers"
         />
         <StatCard
           title="Support Tickets"
@@ -119,107 +215,240 @@ export function DashboardView({ model }) {
           trendValue="Live"
           subtitle="open"
           isLoading={isLoading}
+          to="/admin/support"
         />
       </div>
 
       {/* Charts Section */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="lg:col-span-4 flex flex-col">
-          <CardHeader>
-            <CardTitle>Revenue Overview</CardTitle>
-            <CardDescription>Monthly revenue and profit margins.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 min-h-[300px] pb-4" data-testid="dashboard-chart">
+        {/* Revenue Overview */}
+        <div
+          data-testid="revenue-chart"
+          className="flex flex-col overflow-hidden rounded-lg border border-border bg-surface-100 shadow-sm lg:col-span-4"
+        >
+          <div className="flex h-8 shrink-0 items-center justify-between gap-2 px-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <DollarSign className="size-4 shrink-0 text-foreground-muted" strokeWidth={1.5} />
+              <h3 className="heading-meta truncate">Revenue Overview</h3>
+            </div>
+            <div
+              className="flex shrink-0 items-center gap-1"
+              role="group"
+              aria-label="Revenue granularity"
+            >
+              {[
+                { key: 'day', label: 'Daily' },
+                { key: 'month', label: 'Monthly' },
+                { key: 'year', label: 'Yearly' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setRevenueGranularity(key)}
+                  aria-pressed={revenueGranularity === key}
+                  className={cn(
+                    'rounded-md px-2 py-1 text-xs font-medium transition-colors focus-ring',
+                    revenueGranularity === key
+                      ? 'bg-foreground text-foreground-contrast'
+                      : 'text-foreground-lighter hover:text-foreground',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex grow flex-col border-t" data-testid="dashboard-chart">
             {isLoading ? (
-              <Skeleton className="w-full h-full rounded-lg min-h-[300px]" />
+              <div className="flex grow items-center px-4 py-6">
+                <Skeleton className="h-48 w-full rounded-md" />
+              </div>
+            ) : isRevenueEmpty ? (
+              <EmptyState
+                icon={DollarSign}
+                title="No revenue data yet"
+                description="Revenue from successful payments will appear here once bookings are completed."
+              />
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0B63D6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#0B63D6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: '#6B7280' }}
-                    dy={10}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: '#6B7280' }}
-                    tickFormatter={(value) => money(value)}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: '8px',
-                      border: 'none',
-                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#0B63D6"
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorRevenue)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <>
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-3 pt-3">
+                  <p className="text-2xl font-semibold tracking-tight text-foreground">
+                    {money(revenueCurrent)}
+                  </p>
+                  {revenueDelta != null && (
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                        revenueDelta >= 0
+                          ? 'bg-success/10 text-success'
+                          : 'bg-destructive/10 text-destructive',
+                      )}
+                    >
+                      {revenueDelta >= 0 ? (
+                        <ArrowUp className="size-3" />
+                      ) : (
+                        <ArrowDown className="size-3" />
+                      )}
+                      {Math.abs(revenueDelta).toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+                <p className="px-3 pt-1 text-xs text-foreground-lighter">
+                  vs previous {revenueWindowLabel} period
+                </p>
+                <div className="flex h-48 w-full px-3 py-2">
+                  <div className="h-full shrink-0" style={{ width: yAxisWidth + 8 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={revenueChart} margin={{ top: 4, right: 0, left: 4, bottom: 30 }}>
+                        <YAxis
+                          domain={[0, maxRevenue]}
+                          axisLine={false}
+                          tickLine={false}
+                          width={yAxisWidth}
+                          tickMargin={8}
+                          tick={chartTick}
+                          tickFormatter={formatMoneyTick}
+                          includeHidden
+                        />
+                        <Bar dataKey="commission" hide />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="h-full min-w-0 flex-1 overflow-x-auto" ref={chartScrollRef}>
+                    <div
+                      className="h-full"
+                      style={{
+                        width: `${Math.max(revenueChart.length * 28, 100)}px`,
+                        minWidth: '100%',
+                      }}
+                    >
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={revenueChart} margin={{ top: 4, right: 4, left: 4, bottom: 0 }} barCategoryGap={2}>
+                          <CartesianGrid vertical={false} stroke={chartGridStroke} />
+                          <XAxis
+                            dataKey="axisLabel"
+                            axisLine={false}
+                            tickLine={false}
+                            tickMargin={8}
+                            interval="preserveStartEnd"
+                            minTickGap={12}
+                            tick={chartTick}
+                          />
+                          <YAxis hide domain={[0, maxRevenue]} />
+                          <Tooltip
+                            cursor={chartCursor}
+                            defaultIndex={revenueChart.length - 1}
+                            content={<RevenueTooltip granularity={revenueGranularity} />}
+                          />
+                          <Bar
+                            dataKey="workerPayout"
+                            name="Worker payout"
+                            stackId="rev"
+                            fill="var(--chart-1)"
+                            radius={[2, 2, 1, 1]}
+                            maxBarSize={48}
+                            animationDuration={300}
+                          />
+                          <Bar
+                            dataKey="commission"
+                            name="Platform commission"
+                            stackId="rev"
+                            fill="hsl(var(--chart-2))"
+                            radius={[0, 0, 1, 1]}
+                            maxBarSize={48}
+                            animationDuration={300}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="lg:col-span-3 flex flex-col">
-          <CardHeader>
-            <CardTitle>Weekly Bookings</CardTitle>
-            <CardDescription>Booking statuses over the last 7 days.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 min-h-[300px] pb-4" data-testid="dashboard-chart">
+        {/* Daily Bookings */}
+        <Link
+          to="/admin/bookings"
+          data-testid="bookings-chart"
+          className="flex flex-col cursor-pointer overflow-hidden rounded-lg border border-border bg-surface-100 shadow-sm transition-colors focus-ring hover:border-border-strong hover:bg-surface-200/50 lg:col-span-3"
+        >
+          <div className="flex h-8 shrink-0 items-center justify-between gap-2 px-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <Calendar className="size-4 shrink-0 text-foreground-muted" strokeWidth={1.5} />
+              <h3 className="heading-meta truncate">Daily Bookings</h3>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <span className="text-[11px] font-mono uppercase tracking-wide text-foreground-light">
+                Last 14 d
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block size-2 rounded-sm" style={swatch('var(--warning)')} />
+                <span className="text-sm font-medium tabular-nums text-foreground">{periodPending}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="inline-block size-2 rounded-sm"
+                  style={swatch('var(--destructive)')}
+                />
+                <span className="text-sm font-medium tabular-nums text-foreground">{periodCancelled}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex grow flex-col border-t" data-testid="dashboard-chart">
             {isLoading ? (
-              <Skeleton className="w-full h-full rounded-lg min-h-[300px]" />
+              <div className="flex grow items-center px-4 py-6">
+                <Skeleton className="h-48 w-full rounded-md" />
+              </div>
+            ) : isBookingsEmpty ? (
+              <EmptyState
+                icon={Calendar}
+                title="No bookings yet"
+                description="Bookings made across the platform will appear here."
+              />
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={bookingsData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: '#6B7280' }}
-                    dy={10}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: '#6B7280' }}
-                  />
-                  <Tooltip
-                    cursor={{ fill: '#F3F4F6' }}
-                    contentStyle={{
-                      borderRadius: '8px',
-                      border: 'none',
-                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                    }}
-                  />
-                  <Legend
-                    iconType="circle"
-                    wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }}
-                  />
-                  <Bar dataKey="completed" stackId="a" fill="#22C55E" radius={[0, 0, 4, 4]} />
-                  <Bar dataKey="pending" stackId="a" fill="#F59E0B" />
-                  <Bar dataKey="cancelled" stackId="a" fill="#EF4444" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="grow w-full px-3 py-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={bookingsTotal} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+                    <YAxis hide domain={[0, 'dataMax']} />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tickMargin={8}
+                      interval="preserveStartEnd"
+                      minTickGap={18}
+                      tick={chartTick}
+                    />
+                    <Tooltip cursor={chartCursor} content={<ChartTooltip />} />
+                    <Bar
+                      dataKey="completed"
+                      name="Completed"
+                      stackId="a"
+                      fill="var(--success)"
+                      maxBarSize={24}
+                    />
+                    <Bar
+                      dataKey="pending"
+                      name="Pending"
+                      stackId="a"
+                      fill="var(--warning)"
+                      maxBarSize={24}
+                    />
+                    <Bar
+                      dataKey="cancelled"
+                      name="Cancelled"
+                      stackId="a"
+                      fill="var(--destructive)"
+                      maxBarSize={24}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </Link>
       </div>
 
       {/* Tables Section */}
@@ -231,22 +460,22 @@ export function DashboardView({ model }) {
             <CardDescription>Latest actions across the platform.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6 p-6">
+            <div className="space-y-4">
               {activities.map((activity, index) => (
                 <div
                   key={activity.id}
                   className="flex items-start animate-fade-in-up transition-all duration-500"
                 >
                   <div className="relative">
-                    <div className="w-2 h-2 mt-2 rounded-full bg-primary ring-4 ring-primary/10 transition-all duration-300"></div>
+                    <div className="w-1.5 h-1.5 mt-2 rounded-full bg-foreground-lighter"></div>
                     {index !== activities.length - 1 && (
-                      <div className="absolute top-4 left-1 w-px h-full bg-border -ml-px transition-all duration-300"></div>
+                      <div className="absolute top-4 left-0.5 w-px h-full bg-border transition-all duration-300"></div>
                     )}
                   </div>
                   <div className="ml-4 space-y-1">
-                    <p className="text-sm font-medium text-navy">{activity.user}</p>
-                    <p className="text-sm text-gray-500">{activity.action}</p>
-                    <p className="text-xs text-gray-400">{activity.time}</p>
+                    <p className="text-sm font-medium text-foreground">{activity.user}</p>
+                    <p className="text-sm text-foreground-lighter">{activity.action}</p>
+                    <p className="text-xs text-foreground-muted">{activity.time}</p>
                   </div>
                 </div>
               ))}
@@ -271,63 +500,63 @@ export function DashboardView({ model }) {
             </button>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-gray-500 bg-gray-50/50 uppercase border-y border-border">
-                  <tr>
-                    <th scope="col" className="px-4 py-3 font-medium">
-                      Worker
-                    </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
-                      Service
-                    </th>
-                    <th scope="col" className="px-4 py-3 font-medium">
-                      Date Applied
-                    </th>
-                    <th scope="col" className="px-4 py-3 font-medium text-right">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {pendingWorkers.map((worker) => (
-                    <tr key={worker.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-full bg-gray-200 mr-3 flex items-center justify-center text-xs font-bold text-gray-500">
-                            {worker.name.charAt(0)}
+            <Table>
+              <TableHeader>
+                  <TableRow>
+                    <TableHead scope="col">Worker</TableHead>
+                    <TableHead scope="col">Service</TableHead>
+                    <TableHead scope="col">Date Applied</TableHead>
+                    <TableHead scope="col" className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableSkeleton rows={4} columns={[{}, {}, {}, { className: 'text-right' }]} />
+                  ) : pendingWorkers.length > 0 ? (
+                    pendingWorkers.map((worker) => (
+                      <TableRow key={worker.id}>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 rounded-full bg-surface-300 mr-3 flex items-center justify-center text-xs font-bold text-foreground-lighter">
+                              {worker.name.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-medium text-foreground">{worker.name}</div>
+                              <div className="text-foreground-lighter text-xs">{worker.email}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="font-medium text-navy">{worker.name}</div>
-                            <div className="text-gray-500 text-xs">{worker.email}</div>
+                        </TableCell>
+                        <TableCell className="text-foreground-light">{worker.category}</TableCell>
+                        <TableCell className="text-foreground-lighter">{worker.registeredDate}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            <button
+                              onClick={() => handleReviewWorker(worker, 'APPROVED')}
+                              className="text-success hover:bg-success/10 p-1.5 rounded-md transition-colors"
+                              title="Approve"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleReviewWorker(worker, 'REJECTED')}
+                              className="text-danger hover:bg-danger/10 p-1.5 rounded-md transition-colors"
+                              title="Reject"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">{worker.category}</td>
-                      <td className="px-4 py-3 text-gray-500">{worker.registeredDate}</td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => handleReviewWorker(worker, 'APPROVED')}
-                            className="text-success hover:bg-success/10 p-1.5 rounded-md transition-colors"
-                            title="Approve"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleReviewWorker(worker, 'REJECTED')}
-                            className="text-danger hover:bg-danger/10 p-1.5 rounded-md transition-colors"
-                            title="Reject"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow hover={false}>
+                      <TableCell colSpan="4" className="py-6 text-center text-foreground-lighter">
+                        No workers awaiting verification.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
           </CardContent>
         </Card>
       </div>
@@ -342,8 +571,8 @@ export function DashboardView({ model }) {
                 <CardTitle>Recent Registrations</CardTitle>
                 <CardDescription>Latest users who joined A-yos.</CardDescription>
               </div>
-              <div className="p-2 bg-info/10 rounded-lg">
-                <UserPlus className="h-5 w-5 text-info" />
+              <div className="p-2 bg-surface-200 rounded-lg">
+                <UserPlus className="size-4 text-foreground-muted" strokeWidth={1.5} />
               </div>
             </div>
           </CardHeader>
@@ -355,12 +584,12 @@ export function DashboardView({ model }) {
                   className="flex items-center justify-between border-b border-border last:border-0 pb-3 last:pb-0"
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-medium">
+                    <div className="w-10 h-10 rounded-full bg-surface-200 flex items-center justify-center text-foreground-lighter font-medium">
                       {recentUser.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-navy">{recentUser.name}</p>
-                      <p className="text-xs text-gray-500">Joined {recentUser.registeredAt}</p>
+                      <p className="text-sm font-medium text-foreground">{recentUser.name}</p>
+                      <p className="text-xs text-foreground-lighter">Joined {recentUser.registeredAt}</p>
                     </div>
                   </div>
                   <Badge variant="outline" className="text-xs">
@@ -380,8 +609,8 @@ export function DashboardView({ model }) {
                 <CardTitle>System Notifications</CardTitle>
                 <CardDescription>Important alerts and updates.</CardDescription>
               </div>
-              <div className="p-2 bg-warning/10 rounded-lg">
-                <Bell className="h-5 w-5 text-warning" />
+              <div className="p-2 bg-surface-200 rounded-lg">
+                <Bell className="size-4 text-foreground-muted" strokeWidth={1.5} />
               </div>
             </div>
           </CardHeader>
@@ -397,7 +626,7 @@ export function DashboardView({ model }) {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-info">{notification.title}</p>
-                    <p className="text-xs text-gray-600 mt-1">{notification.message}</p>
+                    <p className="text-xs text-foreground-light mt-1">{notification.message}</p>
                   </div>
                 </div>
               ))}

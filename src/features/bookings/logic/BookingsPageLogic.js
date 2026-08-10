@@ -1,6 +1,7 @@
 export {
   cancelBookingAsAdmin,
-  loadBookings,
+  loadBookingsPage,
   reassignBookingAsAdmin,
+  resolveBookingMedia,
 } from '../../../services/bookings';
 export { subscribe } from '../../../services/realtime';

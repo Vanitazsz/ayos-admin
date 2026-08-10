@@ -1,48 +1,78 @@
-import { Save, CheckCircle } from 'lucide-react';
-import { titleCase, matchingWeightsTotalPercent } from '../logic/SettingsPageLogic';
+import { CheckCircle } from 'lucide-react';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormMessage,
+} from '../../../components/ui/form/Form';
+import { FormItemLayout } from '../../../components/ui/form/FormItemLayout';
+import { FormActions } from '../../../components/ui/form/FormActions';
+import Input from '../../../components/ui/Input';
+import Select from '../../../components/ui/Select';
+import Switch from '../../../components/ui/Switch';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '../../../components/ui/Card';
+import { WEIGHT_KEYS, titleCase } from '../logic/SettingsPageLogic';
+
+const TAB_DESCRIPTIONS = {
+  general: 'General information and platform defaults',
+  booking: 'Defaults applied when new bookings are created',
+  ai: 'Configure AI assistant behavior',
+  security: 'Admin authentication and session policies',
+  payments: 'Platform fees, matching weights, and payout rules',
+  notifications: 'Choose which notification channels are active',
+  integrations: 'Connect third-party services',
+};
+
+const CURRENCY_OPTIONS = [
+  { value: 'USD', label: 'USD ($)' },
+  { value: 'EUR', label: 'EUR (€)' },
+  { value: 'GBP', label: 'GBP (£)' },
+  { value: 'PHP', label: 'PHP (₱)' },
+];
+
+const TIMEZONE_OPTIONS = [
+  { value: 'Asia/Manila', label: 'UTC+08:00 Asia/Manila' },
+  { value: 'UTC-08:00', label: 'UTC-08:00 Pacific Time' },
+  { value: 'UTC-05:00', label: 'UTC-05:00 Eastern Time' },
+  { value: 'UTC+00:00', label: 'UTC+00:00 GMT' },
+];
+
+const AUTO_CANCEL_OPTIONS = ['1 Hour', '12 Hours', '24 Hours'];
+const ADVANCE_BOOKING_OPTIONS = ['Up to 7 days', 'Up to 30 days', 'Up to 3 months'];
+const SESSION_TIMEOUT_OPTIONS = ['15 Minutes', '30 Minutes', '1 Hour', 'Never'];
+const PAYOUT_SCHEDULE_OPTIONS = ['Daily', 'Weekly (Every Monday)', 'Bi-weekly', 'Manual Only'];
 
 export function SettingsView({ model }) {
   const {
     activeTab,
     setActiveTab,
-    isSaving,
+    form,
+    isSubmitting,
     saveSuccess,
-    general,
-    setGeneral,
-    settings,
-    setSettings,
-    commissionRate,
-    setCommissionRate,
-    homeownerCharge,
-    setHomeownerCharge,
-    matchingWeights,
-    setMatchingWeights,
-    autoCancel,
-    setAutoCancel,
-    advanceBooking,
-    setAdvanceBooking,
-    require2fa,
-    setRequire2fa,
-    sessionTimeout,
-    setSessionTimeout,
-    pushEnabled,
-    setPushEnabled,
-    emailEnabled,
-    setEmailEnabled,
-    smsEnabled,
-    setSmsEnabled,
-    integrationApiKey,
-    setIntegrationApiKey,
-    webhookUrl,
-    setWebhookUrl,
     handleSave,
+    handleCancel,
     tabs,
   } = model;
+
+  const matchingWeights = form.watch('matchingWeights');
+  const weightsTotal = Object.values(matchingWeights || {}).reduce(
+    (sum, value) => sum + Number(value || 0),
+    0,
+  );
+  const tabLabel = tabs.find((tab) => tab.id === activeTab)?.label;
+
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Platform Settings</h1>
-        <p className="text-gray-500 mt-1">Configure global application settings and integrations</p>
+        <h1 className="text-2xl font-bold text-foreground">Platform Settings</h1>
+        <p className="text-foreground-lighter mt-1">Configure global application settings and integrations</p>
       </div>
 
       <div className="flex flex-col md:flex-row gap-8">
@@ -52,15 +82,16 @@ export function SettingsView({ model }) {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                   activeTab === tab.id
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-foreground hover:bg-surface-200'
                 }`}
               >
                 <span
-                  className={`mr-3 ${activeTab === tab.id ? 'text-blue-600' : 'text-gray-400'}`}
+                  className={`mr-3 ${activeTab === tab.id ? 'text-primary' : 'text-foreground-muted'}`}
                 >
                   {tab.icon}
                 </span>
@@ -71,423 +102,436 @@ export function SettingsView({ model }) {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-gray-900">
-              {tabs.find((t) => t.id === activeTab)?.label} Configuration
-            </h2>
-            {saveSuccess && (
-              <span className="text-sm text-green-600 flex items-center font-medium transition-opacity duration-300">
-                <CheckCircle size={16} className="mr-1" /> Settings saved successfully
-              </span>
-            )}
-          </div>
-
-          <form onSubmit={handleSave} className="p-6">
-            {activeTab === 'general' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Platform Name
-                    </label>
-                    <input
-                      type="text"
-                      value={general.siteName}
-                      onChange={(e) => setGeneral({ ...general, siteName: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Support Email
-                    </label>
-                    <input
-                      type="email"
-                      value={general.supportEmail}
-                      onChange={(e) => setGeneral({ ...general, supportEmail: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Default Currency
-                    </label>
-                    <select
-                      value={general.currency}
-                      onChange={(e) => setGeneral({ ...general, currency: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option>USD ($)</option>
-                      <option>EUR (€)</option>
-                      <option>GBP (£)</option>
-                      <option>PHP (₱)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      System Timezone
-                    </label>
-                    <select
-                      value={general.timezone}
-                      onChange={(e) => setGeneral({ ...general, timezone: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option>UTC-08:00 Pacific Time</option>
-                      <option>UTC-05:00 Eastern Time</option>
-                      <option>UTC+00:00 GMT</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-100 pt-6 mt-6">
-                  <h3 className="text-sm font-bold text-gray-900 mb-4">Maintenance Mode</h3>
-                  <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <div>
-                      <p className="font-medium text-gray-900">Enable Maintenance Mode</p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Disables customer and worker apps for updates.
-                      </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-                </div>
+        <div className="flex-1 min-w-0">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-4">
+              <div>
+                <CardTitle>{tabLabel} Configuration</CardTitle>
+                <CardDescription>{TAB_DESCRIPTIONS[activeTab]}</CardDescription>
               </div>
-            )}
-
-            {activeTab === 'booking' && (
-              <div className="space-y-6">
-                <h3 className="text-sm font-bold text-gray-900 mb-2">Booking Policies</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Auto-cancel unassigned bookings after
-                    </label>
-                    <select
-                      value={autoCancel}
-                      onChange={(e) => setAutoCancel(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500"
-                    >
-                      <option>1 Hour</option>
-                      <option>12 Hours</option>
-                      <option>24 Hours</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Advance Booking Limit
-                    </label>
-                    <select
-                      value={advanceBooking}
-                      onChange={(e) => setAdvanceBooking(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500"
-                    >
-                      <option>Up to 7 days</option>
-                      <option>Up to 30 days</option>
-                      <option>Up to 3 months</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'ai' && (
-              <div className="space-y-6">
-                <h3 className="text-sm font-bold text-gray-900 mb-2">AI Assistant Settings</h3>
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                  <div>
-                    <p className="font-medium text-gray-900">Enable AI Request Analysis</p>
-                    <p className="text-sm text-gray-500">
-                      Analyze consented requests; deterministic matching remains authoritative.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={Boolean(settings['ai.enabled'])}
-                      onChange={(event) =>
-                        setSettings({ ...settings, 'ai.enabled': event.target.checked })
-                      }
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                  <div>
-                    <p className="font-medium text-gray-900">AI Cost Estimation</p>
-                    <p className="text-sm text-gray-500">
-                      Display AI-generated estimated cost for user requests.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={Boolean(settings['ai.cost_estimation_enabled'])}
-                      onChange={(event) =>
-                        setSettings({
-                          ...settings,
-                          'ai.cost_estimation_enabled': event.target.checked,
-                        })
-                      }
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'security' && (
-              <div className="space-y-6">
-                <h3 className="text-sm font-bold text-gray-900 mb-2">Admin Authentication</h3>
-
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                  <div>
-                    <p className="font-medium text-gray-900">Require Two-Factor Auth (2FA)</p>
-                    <p className="text-sm text-gray-500">
-                      Force all admins to use 2FA via authenticator app.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={require2fa}
-                      onChange={(e) => setRequire2fa(e.target.checked)}
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                  <div>
-                    <p className="font-medium text-gray-900">Session Timeout</p>
-                    <p className="text-sm text-gray-500">Automatically logout inactive admins.</p>
-                  </div>
-                  <select
-                    value={sessionTimeout}
-                    onChange={(e) => setSessionTimeout(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-blue-500 text-sm"
-                  >
-                    <option>15 Minutes</option>
-                    <option>30 Minutes</option>
-                    <option>1 Hour</option>
-                    <option>Never</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'payments' && (
-              <div className="space-y-6">
-                <h3 className="text-sm font-bold text-gray-900 mb-2">Platform Fees</h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Global Commission Rate (%)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="50"
-                      step="0.1"
-                      value={commissionRate}
-                      onChange={(event) => setCommissionRate(Number(event.target.value))}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Percentage deducted from worker payouts.
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Homeowner Service Charge (₱)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={homeownerCharge}
-                      onChange={(event) => setHomeownerCharge(Number(event.target.value))}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Flat charge added to the homeowner total.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-100 pt-6">
-                  <h3 className="text-sm font-bold text-gray-900 mb-4">Worker Matching Weights</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(matchingWeights).map(([key, value]) => (
-                      <label key={key} className="text-sm text-gray-700">
-                        <span className="mb-1 block">{titleCase(key)} (%)</span>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="1"
-                          value={Math.round(Number(value) * 100)}
-                          onChange={(event) =>
-                            setMatchingWeights((current) => ({
-                              ...current,
-                              [key]: Number(event.target.value) / 100,
-                            }))
-                          }
-                          className="w-full rounded-lg border border-gray-300 px-4 py-2"
+              {saveSuccess && (
+                <span className="shrink-0 text-sm text-success flex items-center font-medium">
+                  <CheckCircle size={16} className="mr-1" /> Settings saved successfully
+                </span>
+              )}
+            </CardHeader>
+            <Form {...form}>
+              <form onSubmit={handleSave} noValidate>
+                <CardContent className="space-y-6">
+                  {activeTab === 'general' && (
+                    <>
+                      <div className="space-y-6">
+                        <FormField
+                          control={form.control}
+                          name="siteName"
+                          render={({ field }) => (
+                            <FormItemLayout
+                              layout="flex-row-reverse"
+                              label="Platform Name"
+                              description="Name shown across the A-yos platform"
+                            >
+                              <FormControl>
+                                <Input {...field} placeholder="A-yos Platform" />
+                              </FormControl>
+                            </FormItemLayout>
+                          )}
                         />
-                      </label>
-                    ))}
-                  </div>
-                  <p className="mt-2 text-xs text-gray-500">
-                    Total: {matchingWeightsTotalPercent(matchingWeights)}%
-                  </p>
-                </div>
+                        <FormField
+                          control={form.control}
+                          name="supportEmail"
+                          render={({ field }) => (
+                            <FormItemLayout
+                              layout="flex-row-reverse"
+                              label="Support Email"
+                              description="Address used for support and system emails"
+                            >
+                              <FormControl>
+                                <Input {...field} type="email" placeholder="support@ayos.example" />
+                              </FormControl>
+                            </FormItemLayout>
+                          )}
+                        />
+                      </div>
 
-                <div className="border-t border-gray-100 pt-6 mt-6">
-                  <h3 className="text-sm font-bold text-gray-900 mb-4">Payout Schedule</h3>
-                  <select className="w-full md:w-1/2 border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option>Daily</option>
-                    <option>Weekly (Every Monday)</option>
-                    <option>Bi-weekly</option>
-                    <option>Manual Only</option>
-                  </select>
-                </div>
-              </div>
-            )}
+                      <div className="pt-6 border-t border-border space-y-6">
+                        <FormField
+                          control={form.control}
+                          name="currency"
+                          render={({ field }) => (
+                            <FormItemLayout
+                              layout="flex-row-reverse"
+                              label="Default Currency"
+                              description="Currency used for all monetary values"
+                            >
+                              <FormControl>
+                                <Select {...field}>
+                                  {CURRENCY_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            </FormItemLayout>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="timezone"
+                          render={({ field }) => (
+                            <FormItemLayout
+                              layout="flex-row-reverse"
+                              label="System Timezone"
+                              description="Timezone used for bookings and scheduling"
+                            >
+                              <FormControl>
+                                <Select {...field}>
+                                  {TIMEZONE_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            </FormItemLayout>
+                          )}
+                        />
+                      </div>
 
-            {activeTab === 'notifications' && (
-              <div className="space-y-6">
-                <h3 className="text-sm font-bold text-gray-900 mb-2">Notification Channels</h3>
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                  <div>
-                    <p className="font-medium text-gray-900">Push Notifications</p>
-                    <p className="text-sm text-gray-500">
-                      Send push notifications to mobile devices.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={pushEnabled}
-                      onChange={(e) => setPushEnabled(e.target.checked)}
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                  <div>
-                    <p className="font-medium text-gray-900">Email Notifications</p>
-                    <p className="text-sm text-gray-500">
-                      Send transactional and marketing emails.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={emailEnabled}
-                      onChange={(e) => setEmailEnabled(e.target.checked)}
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                  <div>
-                    <p className="font-medium text-gray-900">SMS Notifications</p>
-                    <p className="text-sm text-gray-500">Send SMS alerts for critical updates.</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={smsEnabled}
-                      onChange={(e) => setSmsEnabled(e.target.checked)}
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-              </div>
-            )}
+                      <div className="pt-6 border-t border-border">
+                        <FormField
+                          control={form.control}
+                          name="maintenanceMode"
+                          render={({ field }) => (
+                            <FormItemLayout
+                              layout="flex-row-reverse"
+                              label="Enable Maintenance Mode"
+                              description="Disables customer and worker apps for updates"
+                            >
+                              <FormControl className="flex justify-end">
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItemLayout>
+                          )}
+                        />
+                      </div>
+                    </>
+                  )}
 
-            {activeTab === 'integrations' && (
-              <div className="space-y-6">
-                <h3 className="text-sm font-bold text-gray-900 mb-2">Third-Party Integrations</h3>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">API Key</label>
-                  <input
-                    type="text"
-                    value={integrationApiKey}
-                    onChange={(e) => setIntegrationApiKey(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter your API key"
+                  {activeTab === 'booking' && (
+                    <div className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="autoCancel"
+                        render={({ field }) => (
+                          <FormItemLayout
+                            layout="flex-row-reverse"
+                            label="Auto-cancel unassigned bookings after"
+                            description="Bookings without a worker are cancelled after this window"
+                          >
+                            <FormControl>
+                              <Select {...field}>
+                                {AUTO_CANCEL_OPTIONS.map((option) => (
+                                  <option key={option}>{option}</option>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </FormItemLayout>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="advanceBooking"
+                        render={({ field }) => (
+                          <FormItemLayout
+                            layout="flex-row-reverse"
+                            label="Advance Booking Limit"
+                            description="How far in the future bookings can be placed"
+                          >
+                            <FormControl>
+                              <Select {...field}>
+                                {ADVANCE_BOOKING_OPTIONS.map((option) => (
+                                  <option key={option}>{option}</option>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </FormItemLayout>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {activeTab === 'ai' && (
+                    <div className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="aiEnabled"
+                        render={({ field }) => (
+                          <FormItemLayout
+                            layout="flex-row-reverse"
+                            label="Enable AI Request Analysis"
+                            description="Analyze consented requests; deterministic matching remains authoritative"
+                          >
+                            <FormControl className="flex justify-end">
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItemLayout>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="aiCostEstimationEnabled"
+                        render={({ field }) => (
+                          <FormItemLayout
+                            layout="flex-row-reverse"
+                            label="AI Cost Estimation"
+                            description="Display AI-generated estimated cost for user requests"
+                          >
+                            <FormControl className="flex justify-end">
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItemLayout>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {activeTab === 'security' && (
+                    <div className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="require2fa"
+                        render={({ field }) => (
+                          <FormItemLayout
+                            layout="flex-row-reverse"
+                            label="Require Two-Factor Auth (2FA)"
+                            description="Force all admins to use 2FA via authenticator app"
+                          >
+                            <FormControl className="flex justify-end">
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItemLayout>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="sessionTimeout"
+                        render={({ field }) => (
+                          <FormItemLayout
+                            layout="flex-row-reverse"
+                            label="Session Timeout"
+                            description="Automatically logout inactive admins"
+                          >
+                            <FormControl>
+                              <Select {...field}>
+                                {SESSION_TIMEOUT_OPTIONS.map((option) => (
+                                  <option key={option}>{option}</option>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </FormItemLayout>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {activeTab === 'payments' && (
+                    <div className="space-y-6">
+                      <div className="space-y-6">
+                        <FormField
+                          control={form.control}
+                          name="commissionRate"
+                          render={({ field }) => (
+                            <FormItemLayout
+                              layout="flex-row-reverse"
+                              label="Global Commission Rate (%)"
+                              description="Percentage deducted from worker payouts"
+                            >
+                              <FormControl>
+                                <Input {...field} type="number" min={0} max={50} step={0.1} />
+                              </FormControl>
+                            </FormItemLayout>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="homeownerCharge"
+                          render={({ field }) => (
+                            <FormItemLayout
+                              layout="flex-row-reverse"
+                              label="Homeowner Service Charge (₱)"
+                              description="Flat charge added to the homeowner total"
+                            >
+                              <FormControl>
+                                <Input {...field} type="number" min={0} step={0.01} />
+                              </FormControl>
+                            </FormItemLayout>
+                          )}
+                        />
+                      </div>
+
+                      <div className="pt-6 border-t border-border">
+                        <FormItemLayout
+                          layout="flex-row-reverse"
+                          label="Worker Matching Weights"
+                          description="Relative weights used to rank worker matches. Must total 100%"
+                        >
+                          <FormControl>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              {WEIGHT_KEYS.map((key) => (
+                                <FormField
+                                  key={key}
+                                  control={form.control}
+                                  name={`matchingWeights.${key}`}
+                                  render={({ field }) => (
+                                    <FormItemLayout layout="vertical" label={titleCase(key)}>
+                                      <FormControl>
+                                        <Input {...field} type="number" min={0} max={100} step={1} />
+                                      </FormControl>
+                                    </FormItemLayout>
+                                  )}
+                                />
+                              ))}
+                            </div>
+                            <p className="mt-2 text-xs text-foreground-lighter">
+                              Total: {Math.round(weightsTotal)}%
+                            </p>
+                            {form.formState.errors.matchingWeights && (
+                              <FormMessage>
+                                {form.formState.errors.matchingWeights.message}
+                              </FormMessage>
+                            )}
+                          </FormControl>
+                        </FormItemLayout>
+                      </div>
+
+                      <div className="pt-6 border-t border-border">
+                        <FormField
+                          control={form.control}
+                          name="payoutSchedule"
+                          render={({ field }) => (
+                            <FormItemLayout
+                              layout="flex-row-reverse"
+                              label="Payout Schedule"
+                              description="How often worker payouts are processed"
+                            >
+                              <FormControl>
+                                <Select {...field}>
+                                  {PAYOUT_SCHEDULE_OPTIONS.map((option) => (
+                                    <option key={option}>{option}</option>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            </FormItemLayout>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'notifications' && (
+                    <div className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="pushEnabled"
+                        render={({ field }) => (
+                          <FormItemLayout
+                            layout="flex-row-reverse"
+                            label="Push Notifications"
+                            description="Send push notifications to mobile devices"
+                          >
+                            <FormControl className="flex justify-end">
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItemLayout>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="emailEnabled"
+                        render={({ field }) => (
+                          <FormItemLayout
+                            layout="flex-row-reverse"
+                            label="Email Notifications"
+                            description="Send transactional and marketing emails"
+                          >
+                            <FormControl className="flex justify-end">
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItemLayout>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="smsEnabled"
+                        render={({ field }) => (
+                          <FormItemLayout
+                            layout="flex-row-reverse"
+                            label="SMS Notifications"
+                            description="Send SMS alerts for critical updates"
+                          >
+                            <FormControl className="flex justify-end">
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItemLayout>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {activeTab === 'integrations' && (
+                    <div className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="integrationApiKey"
+                        render={({ field }) => (
+                          <FormItemLayout
+                            layout="flex-row-reverse"
+                            label="API Key"
+                            description="Used for third-party service authentication"
+                          >
+                            <FormControl>
+                              <Input {...field} placeholder="Enter your API key" />
+                            </FormControl>
+                          </FormItemLayout>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="webhookUrl"
+                        render={({ field }) => (
+                          <FormItemLayout
+                            layout="flex-row-reverse"
+                            label="Webhook URL"
+                            description="Receive real-time event payloads at this endpoint"
+                          >
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type="url"
+                                placeholder="https://hooks.example.com/events"
+                              />
+                            </FormControl>
+                          </FormItemLayout>
+                        )}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="justify-end">
+                  <FormActions
+                    isDirty={form.formState.isDirty}
+                    isSubmitting={isSubmitting}
+                    onCancel={handleCancel}
+                    withDivider={false}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Used for third-party service authentication.
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Webhook URL
-                  </label>
-                  <input
-                    type="url"
-                    value={webhookUrl}
-                    onChange={(e) => setWebhookUrl(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="https://hooks.example.com/events"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Receive real-time event payloads at this endpoint.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end">
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center disabled:opacity-70"
-              >
-                {isSaving ? (
-                  <span className="flex items-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>{' '}
-                    Saving...
-                  </span>
-                ) : (
-                  <span className="flex items-center">
-                    <Save size={18} className="mr-2" /> Save Changes
-                  </span>
-                )}
-              </button>
-            </div>
-          </form>
+                </CardFooter>
+              </form>
+            </Form>
+          </Card>
         </div>
       </div>
     </div>

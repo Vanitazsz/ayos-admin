@@ -10,10 +10,26 @@ import {
 } from 'lucide-react';
 import Pagination from '../../../components/ui/Pagination';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../../../components/ui/Table';
 import {
   REVIEW_STATUS_BADGE,
   badgeFor,
 } from '../../../services/statusMeta';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '../../../components/ui/DropdownMenu';
 
 export function ReviewsView({ model }) {
   const {
@@ -23,8 +39,7 @@ export function ReviewsView({ model }) {
     setFilterRating,
     currentPage,
     setCurrentPage,
-    actionMenuOpenId,
-    setActionMenuOpenId,
+    isLoading,
     confirm,
     closeConfirm,
     filteredReviews,
@@ -36,11 +51,11 @@ export function ReviewsView({ model }) {
     renderStars,
   } = model;
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reviews & Moderation</h1>
-          <p className="text-gray-500 mt-1">Monitor user feedback and moderate flagged reviews</p>
+          <h1 className="text-2xl font-bold text-foreground">Reviews & Moderation</h1>
+          <p className="text-foreground-lighter mt-1">Monitor user feedback and moderate flagged reviews</p>
         </div>
       </div>
 
@@ -49,22 +64,22 @@ export function ReviewsView({ model }) {
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center"
+            className="bg-card rounded-xl shadow-sm border border-border p-6 flex items-center"
           >
             <div className={`p-4 rounded-lg ${stat.bg} mr-4`}>{stat.icon}</div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
-              <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
+              <p className="text-sm text-foreground-lighter font-medium">{stat.label}</p>
+              <h3 className="text-2xl font-bold text-foreground">{stat.value}</h3>
             </div>
           </div>
         ))}
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-t-xl shadow-sm border-x border-t border-gray-100 p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="relative w-full sm:w-96">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
+            <Search size={18} className="text-foreground-muted" />
           </div>
           <input
             type="text"
@@ -72,13 +87,13 @@ export function ReviewsView({ model }) {
             placeholder="Search reviews, customers, or workers..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus:ring-ring focus:border-brand-500 text-sm"
           />
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
-          <Filter size={18} className="text-gray-500" />
+          <Filter size={18} className="text-foreground-lighter" />
           <select
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+            className="w-full flex-1 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"
             value={filterRating}
             onChange={(e) => setFilterRating(e.target.value)}
           >
@@ -93,62 +108,46 @@ export function ReviewsView({ model }) {
       </div>
 
       {/* Reviews Table/List */}
-      <div className="bg-white shadow-sm border border-gray-100 overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Customer / Worker
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Review
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Status
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+      <div className="bg-card shadow-sm border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">Customer / Worker</TableHead>
+              <TableHead scope="col">Review</TableHead>
+              <TableHead scope="col">Status</TableHead>
+              <TableHead scope="col" className="text-right">
                 Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {paginatedReviews.length > 0 ? (
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableSkeleton rows={6} columns={[{}, {}, {}, { className: 'text-right' }]} />
+            ) : paginatedReviews.length > 0 ? (
               paginatedReviews.map((review) => (
-                <tr
+                <TableRow
                   key={review.id}
-                  className={`hover:bg-gray-50 transition-colors ${review.status === 'Hidden' ? 'opacity-60 bg-gray-50' : ''}`}
+                  className={review.status === 'Hidden' ? 'opacity-60 bg-surface-200' : ''}
                 >
-                  <td className="px-6 py-4">
+                  <TableCell>
                     <div className="flex flex-col">
-                      <span className="text-sm font-bold text-gray-900">{review.customer}</span>
-                      <span className="text-xs text-gray-500 flex items-center mt-1">
+                      <span className="text-sm font-bold text-foreground">{review.customer}</span>
+                      <span className="text-xs text-foreground-lighter flex items-center mt-1">
                         Reviewed{' '}
-                        <span className="font-medium text-blue-600 mx-1">{review.worker}</span>
+                        <span className="font-medium text-brand-600 mx-1">{review.worker}</span>
                       </span>
-                      <span className="text-xs text-gray-400 mt-1">
+                      <span className="text-xs text-foreground-muted mt-1">
                         {review.date} • {review.service}
                       </span>
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell>
                     <div className="flex flex-col">
                       <div className="mb-2">{renderStars(review.rating)}</div>
-                      <p className="text-sm text-gray-700 italic">"{review.comment}"</p>
+                      <p className="text-sm text-foreground-light italic">"{review.comment}"</p>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <span
                       className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeFor(REVIEW_STATUS_BADGE, review.status)}`}
                     >
@@ -167,67 +166,57 @@ export function ReviewsView({ model }) {
                           ? 'Hidden'
                           : `Flagged (${review.reportCount})`}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium relative">
-                    <button
-                      onClick={() =>
-                        setActionMenuOpenId(actionMenuOpenId === review.id ? null : review.id)
-                      }
-                      aria-haspopup="true"
-                      aria-expanded={actionMenuOpenId === review.id}
-                      aria-label={`Open actions for ${review.customer}`}
-                      className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
-                    >
-                      <MoreVertical size={20} />
-                    </button>
-
-                    {actionMenuOpenId === review.id && (
-                      <div
-                        className="absolute right-8 top-10 w-48 bg-white rounded-md shadow-lg border border-gray-100 z-10 py-1"
-                        role="menu"
-                      >
-                        {review.status !== 'Hidden' ? (
-                          <button
-                            onClick={() => toggleStatus(review.id, 'Hidden')}
-                            role="menuitem"
-                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
-                          >
-                            <EyeOff size={16} className="mr-2 text-gray-400" /> Hide Review
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => toggleStatus(review.id, 'Published')}
-                            role="menuitem"
-                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
-                          >
-                            <CheckCircle size={16} className="mr-2 text-green-500" /> Publish Review
-                          </button>
-                        )}
-
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right font-medium">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
                         <button
-                          onClick={() => deleteReview(review.id)}
-                          role="menuitem"
-                          className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left border-t border-gray-100 mt-1 pt-1"
+                          aria-label={`Open actions for ${review.customer}`}
+                          className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
                         >
-                          <Trash2 size={16} className="mr-2 text-red-500" /> Delete
+                          <MoreVertical size={20} />
                         </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        {review.status !== 'Hidden' ? (
+                          <DropdownMenuItem
+                            onSelect={() => toggleStatus(review.id, 'Hidden')}
+                            className="cursor-pointer"
+                          >
+                            <EyeOff className="mr-2" /> Hide Review
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            onSelect={() => toggleStatus(review.id, 'Published')}
+                            className="cursor-pointer text-success focus:text-success focus:bg-success/10 [&_svg]:text-success"
+                          >
+                            <CheckCircle className="mr-2" /> Publish Review
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onSelect={() => deleteReview(review.id)}
+                          className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
+                        >
+                          <Trash2 className="mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
               ))
             ) : (
-              <tr>
-                <td colSpan="4" className="px-6 py-12 text-center">
+              <TableRow hover={false}>
+                <TableCell colSpan="4" className="text-center">
                   <div className="flex flex-col items-center justify-center">
-                    <MessageSquare size={48} className="text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900">No reviews found</h3>
+                    <MessageSquare size={48} className="text-foreground-muted mb-4" />
+                    <h3 className="text-lg font-medium text-foreground">No reviews found</h3>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {filteredReviews.length > 0 && (

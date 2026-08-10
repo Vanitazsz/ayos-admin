@@ -1,1 +1,1 @@
-export { loadPayments } from '../../../services/payments';
+export { loadPaymentsPage } from '../../../services/payments';

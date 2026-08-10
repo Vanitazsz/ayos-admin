@@ -9,7 +9,24 @@ const ProtectedRoute = ({ children }) => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <svg
+          className="h-12 w-12 text-primary"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M3.5 21L12 3L20.5 21M7 15L17 15" pathLength="100" className="opacity-25" />
+          <path
+            d="M3.5 21L12 3L20.5 21M7 15L17 15"
+            pathLength="100"
+            strokeDasharray="20 80"
+            className="a-loader-dash"
+          />
+        </svg>
       </div>
     );
   }

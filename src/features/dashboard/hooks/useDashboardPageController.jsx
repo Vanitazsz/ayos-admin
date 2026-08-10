@@ -1,16 +1,12 @@
-import {
-  loadDashboard,
-  loadNotifications,
-  loadUsers,
-  loadWorkers,
-  reviewWorker,
-  subscribe,
-} from '../logic/DashboardPageLogic';
-import { useState, useEffect } from 'react';
+import { loadDashboard, reviewWorker, subscribe } from '../logic/DashboardPageLogic';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '../../../context/ToastContext';
+import { useDebouncedRefresh } from '../../../hooks/useDebouncedRefresh';
+
 export function useDashboardPageController() {
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [activities, setActivities] = useState([]);
   const [metrics, setMetrics] = useState({});
   const [revenueData, setRevenueData] = useState([]);
@@ -18,55 +14,48 @@ export function useDashboardPageController() {
   const [pendingWorkers, setPendingWorkers] = useState([]);
   const [recentUsers, setRecentUsers] = useState([]);
   const [systemNotifications, setSystemNotifications] = useState([]);
-  const refresh = async () => {
+  const { schedule, mark } = useDebouncedRefresh();
+
+  const applyValue = useCallback((value) => {
+    setMetrics(value.metrics);
+    setActivities(value.activities);
+    setRevenueData(value.revenueData);
+    setBookingsData(value.bookingsData);
+    setPendingWorkers(value.pendingWorkers);
+    setRecentUsers(value.recentUsers);
+    setSystemNotifications(value.systemNotifications);
+  }, []);
+
+  const refreshLive = useCallback(async () => {
     try {
-      const [value, workers, users, notifications] = await Promise.all([
-        loadDashboard(),
-        loadWorkers(),
-        loadUsers(),
-        loadNotifications(),
-      ]);
-      setPendingWorkers(workers.filter((worker) => !worker.verified).slice(0, 4));
-      setRecentUsers(users.slice(0, 3));
-      setSystemNotifications(notifications.slice(0, 3));
-      setMetrics(value.metrics);
-      setActivities(value.activities);
-      const months = new Map();
-      value.payments.forEach((payment) => {
-        const key = new Date(payment.successful_at).toLocaleString('en', { month: 'short' });
-        const row = months.get(key) ?? { name: key, revenue: 0, profit: 0 };
-        row.revenue += Number(payment.service_amount);
-        row.profit += Number(payment.commission_amount);
-        months.set(key, row);
-      });
-      setRevenueData([...months.values()]);
-      const days = new Map();
-      value.bookings.forEach((booking) => {
-        const key = new Date(booking.created_at).toLocaleString('en', { weekday: 'short' });
-        const row = days.get(key) ?? { name: key, completed: 0, cancelled: 0, pending: 0 };
-        if (booking.status === 'COMPLETED') row.completed++;
-        else if (booking.status === 'CANCELLED') row.cancelled++;
-        else row.pending++;
-        days.set(key, row);
-      });
-      setBookingsData([...days.values()]);
+      applyValue(await loadDashboard());
+      setLoadError('');
+    } catch {
+      // Realtime-triggered refreshes must not tear down the page on transient errors.
+    }
+  }, [applyValue]);
+
+  const refreshAll = useCallback(async () => {
+    setLoadError('');
+    try {
+      applyValue(await loadDashboard());
+    } catch (error) {
+      setLoadError(
+        error instanceof Error ? error.message : 'Unable to load dashboard data.',
+      );
     } finally {
       setIsLoading(false);
+      mark();
     }
-  };
+  }, [applyValue, mark]);
+
   useEffect(() => {
-    void refresh();
+    void refreshAll();
     const stops = [
-      'audit_logs',
-      'payments',
-      'bookings',
-      'worker_verifications',
-      'accounts',
-      'user_profiles',
-      'worker_profiles',
-    ].map((table) => subscribe(table, refresh));
+      subscribe('bookings', () => schedule(refreshLive), { debounce: false }),
+    ];
     return () => stops.forEach((stop) => stop());
-  }, []);
+  }, [refreshAll, refreshLive, schedule]);
   const handleReviewWorker = async (worker, decision) => {
     try {
       if (!worker.verificationId) throw new Error('No pending verification');
@@ -75,7 +64,7 @@ export function useDashboardPageController() {
         decision,
         decision === 'REJECTED' ? 'Rejected by administrator' : null,
       );
-      await refresh();
+      await refreshAll();
     } catch (error) {
       toast.error(decision === 'APPROVED' ? 'Approval failed' : 'Rejection failed', error.message);
     }
@@ -83,6 +72,7 @@ export function useDashboardPageController() {
   return {
     toast,
     isLoading,
+    loadError,
     activities,
     metrics,
     revenueData,

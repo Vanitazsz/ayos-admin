@@ -4,4 +4,5 @@ export {
   loadAdminProfile,
   saveAdminProfile,
   uploadAdminAvatar,
+  verifyCurrentPassword,
 } from '../../../services/profileData';

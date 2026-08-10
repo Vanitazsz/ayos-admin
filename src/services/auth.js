@@ -14,6 +14,9 @@ export async function requestPasswordReset(email) {
 }
 
 export async function loadSystemStatus(signal) {
-  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/health`, { signal });
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/health`, {
+    headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+    signal,
+  });
   return response.ok ? 'Operational' : 'Unavailable';
 }
