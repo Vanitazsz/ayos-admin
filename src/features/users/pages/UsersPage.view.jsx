@@ -107,6 +107,14 @@ export function UsersView({ model }) {
     getStatusBadge,
     stats,
   } = model;
+
+  const bookingGroups = userBookings.reduce((groups, booking) => {
+    const key = booking.date;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(booking);
+    return groups;
+  }, new Map());
+
   return (
     <div className="space-y-6 p-4 sm:p-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -704,39 +712,48 @@ export function UsersView({ model }) {
                   <Skeleton className="h-16 w-full rounded-lg" />
                   <Skeleton className="h-16 w-full rounded-lg" />
                 </div>
-              ) : userBookings.length === 0 ? (
+              ) : bookingGroups.size === 0 ? (
                 <p className="text-sm text-foreground-lighter">No bookings yet.</p>
               ) : (
-                <div className="space-y-2">
-                  {userBookings.map((booking) => (
-                    <button
-                      key={booking.id}
-                      type="button"
-                      onClick={() => handleViewBooking(booking)}
-                      className="w-full text-left rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-foreground truncate">
-                          {booking.service}
-                        </span>
-                        <span
-                          className={`shrink-0 inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${badgeFor(BOOKING_STATUS_BADGE, booking.status)}`}
+                <div className="max-h-[360px] overflow-y-auto custom-scrollbar space-y-3 pr-1">
+                  {[...bookingGroups.entries()].map(([date, group]) => (
+                    <div key={date} className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-border" />
+                        <span className="text-xs font-medium text-foreground-lighter">{date}</span>
+                        <div className="h-px flex-1 bg-border" />
+                      </div>
+                      {group.map((booking) => (
+                        <button
+                          key={booking.id}
+                          type="button"
+                          onClick={() => handleViewBooking(booking)}
+                          className="w-full text-left rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent"
                         >
-                          {booking.status}
-                        </span>
-                      </div>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-foreground-lighter">
-                        <span className="inline-flex items-center">
-                          <User size={12} className="mr-1" /> {booking.worker || 'Unassigned'}
-                        </span>
-                        <span className="inline-flex items-center">
-                          <Calendar size={12} className="mr-1" /> {booking.date}
-                        </span>
-                        <span className="inline-flex items-center">
-                          <Clock size={12} className="mr-1" /> {money(booking.price)}
-                        </span>
-                      </div>
-                    </button>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-medium text-foreground truncate">
+                              {booking.service}
+                            </span>
+                            <span
+                              className={`shrink-0 inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${badgeFor(BOOKING_STATUS_BADGE, booking.status)}`}
+                            >
+                              {booking.status}
+                            </span>
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-foreground-lighter">
+                            <span className="inline-flex items-center">
+                              <User size={12} className="mr-1" /> {booking.worker || 'Unassigned'}
+                            </span>
+                            <span className="inline-flex items-center">
+                              <Calendar size={12} className="mr-1" /> {booking.date}
+                            </span>
+                            <span className="inline-flex items-center">
+                              <Clock size={12} className="mr-1" /> {money(booking.price)}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   ))}
                 </div>
               )}
