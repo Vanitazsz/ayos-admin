@@ -84,10 +84,14 @@ export function useServerPagination({ fetchPage, pageSize = 10, filterKey = '' }
   }, [currentPage, totalPages, updatePage]);
 
   useEffect(() => {
-    const key = `${filterKey}\u0000${fetchPage}`;
     const page = pageRef.current;
-    if (lastFetchedRef.current?.key === key && lastFetchedRef.current?.page === page) return;
-    lastFetchedRef.current = { key, page };
+    if (
+      lastFetchedRef.current?.fetchPage === fetchPage &&
+      lastFetchedRef.current?.filterKey === filterKey &&
+      lastFetchedRef.current?.page === page
+    )
+      return;
+    lastFetchedRef.current = { fetchPage, filterKey, page };
     void refresh();
   }, [refresh, currentPage, fetchPage, filterKey]);
 
