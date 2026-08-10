@@ -6,6 +6,23 @@ import { subscribe } from '../../../services/realtime';
 import { PAYMENT_STATUS_BADGE, badgeFor } from '../../../services/statusMeta';
 import { useServerPagination } from '../../../hooks/useServerPagination';
 import { useToast } from '../../../context/ToastContext';
+import { loadSettings, saveSetting } from '../../../services/settings';
+
+const DEFAULT_FEE_SETTINGS = {
+  workerFeeEnabled: true,
+  workerFeeType: 'percentage',
+  workerCommissionRate: 10,
+  workerFixedFee: 50,
+  workerMinFee: 0,
+  workerAutoDeduct: true,
+  userFeeEnabled: false,
+  userFeeType: 'fixed',
+  userFeeRate: 3,
+  userFixedFee: 25,
+  userMinFee: 0,
+  userFeeLabel: 'Platform Service Fee',
+  includeVat: false,
+};
 
 export function usePaymentsPageController() {
   const toast = useToast();
@@ -18,6 +35,8 @@ export function usePaymentsPageController() {
   const [action, setAction] = useState(null);
   const [actionReason, setActionReason] = useState('');
   const [savingAction, setSavingAction] = useState(false);
+  const [feeSettings, setFeeSettings] = useState(DEFAULT_FEE_SETTINGS);
+  const [isSavingFeeSettings, setIsSavingFeeSettings] = useState(false);
   const [confirm, setConfirm] = useState({
     isOpen: false,
     title: '',
@@ -133,6 +152,67 @@ export function usePaymentsPageController() {
     });
   }, [action, actionReason, executeAction]);
 
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchFeeSettings() {
+      try {
+        const settings = await loadSettings();
+        if (!isMounted) return;
+        setFeeSettings({
+          workerFeeEnabled: settings['platform_settings.worker_fee_enabled'] ?? true,
+          workerFeeType: settings['platform_settings.worker_fee_type'] ?? 'percentage',
+          workerCommissionRate: Number(settings['platform_settings.commission_rate'] ?? 10),
+          workerFixedFee: Number(settings['platform_settings.worker_fixed_fee'] ?? 50),
+          workerMinFee: Number(settings['platform_settings.worker_min_fee'] ?? 0),
+          workerAutoDeduct: settings['platform_settings.worker_auto_deduct'] ?? true,
+          userFeeEnabled: settings['platform_settings.user_fee_enabled'] ?? false,
+          userFeeType: settings['platform_settings.user_fee_type'] ?? 'fixed',
+          userFeeRate: Number(settings['platform_settings.user_fee_rate'] ?? 3),
+          userFixedFee: Number(settings['platform_settings.homeowner_charge'] ?? 25),
+          userMinFee: Number(settings['platform_settings.user_min_fee'] ?? 0),
+          userFeeLabel: settings['platform_settings.user_fee_label'] ?? 'Platform Service Fee',
+          includeVat: settings['platform_settings.include_vat'] ?? false,
+        });
+      } catch (err) {
+        console.error('Failed to load fee settings:', err);
+      }
+    }
+    void fetchFeeSettings();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const saveFeeSettings = useCallback(async () => {
+    setIsSavingFeeSettings(true);
+    try {
+      await Promise.all([
+        saveSetting('platform_settings.commission_rate', feeSettings.workerCommissionRate),
+        saveSetting('platform_settings.worker_fee_type', feeSettings.workerFeeType),
+        saveSetting('platform_settings.worker_fixed_fee', feeSettings.workerFixedFee),
+        saveSetting('platform_settings.worker_min_fee', feeSettings.workerMinFee),
+        saveSetting('platform_settings.worker_fee_enabled', feeSettings.workerFeeEnabled),
+        saveSetting('platform_settings.worker_auto_deduct', feeSettings.workerAutoDeduct),
+        saveSetting('platform_settings.user_fee_enabled', feeSettings.userFeeEnabled),
+        saveSetting('platform_settings.user_fee_type', feeSettings.userFeeType),
+        saveSetting('platform_settings.user_fee_rate', feeSettings.userFeeRate),
+        saveSetting('platform_settings.homeowner_charge', feeSettings.userFixedFee),
+        saveSetting('platform_settings.user_min_fee', feeSettings.userMinFee),
+        saveSetting('platform_settings.user_fee_label', feeSettings.userFeeLabel),
+      ]);
+      toast.success('Commission & Fee settings saved successfully');
+    } catch (err) {
+      toast.error('Failed to save fee settings', err.message);
+    } finally {
+      setIsSavingFeeSettings(false);
+    }
+  }, [feeSettings, toast]);
+
+  const resetFeeSettingsToDefaults = useCallback(() => {
+    setFeeSettings(DEFAULT_FEE_SETTINGS);
+    toast.info('Fee settings reset to defaults. Click Save to apply.');
+  }, [toast]);
+
   return {
     isLoading,
     error,
@@ -164,5 +244,10 @@ export function usePaymentsPageController() {
     submitAction,
     confirm,
     closeConfirm,
+    feeSettings,
+    setFeeSettings,
+    saveFeeSettings,
+    isSavingFeeSettings,
+    resetFeeSettingsToDefaults,
   };
 }

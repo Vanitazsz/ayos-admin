@@ -5,6 +5,7 @@ import {
   Filter,
   MoreVertical,
   Eye,
+  Sliders,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Pagination from '../../../components/ui/Pagination';
@@ -29,6 +30,7 @@ import {
 import { Trash2 } from 'lucide-react';
 import Modal from '../../../components/ui/Modal';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
+import { CommissionFeeSettings } from '../components/CommissionFeeSettings';
 
 export function PaymentsView({ model }) {
   const {
@@ -60,6 +62,11 @@ export function PaymentsView({ model }) {
     submitAction,
     confirm,
     closeConfirm,
+    feeSettings,
+    setFeeSettings,
+    saveFeeSettings,
+    isSavingFeeSettings,
+    resetFeeSettingsToDefaults,
   } = model;
   return (
     <div className="p-4 sm:p-6">
@@ -122,9 +129,92 @@ export function PaymentsView({ model }) {
         >
           Payment Methods (Settings)
         </button>
+        <button
+          className={`py-2 px-4 font-medium text-sm border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'commission' ? 'border-foreground text-foreground font-semibold' : 'border-transparent text-foreground-lighter hover:text-foreground-light hover:border-border-strong'}`}
+          onClick={() => setActiveTab('commission')}
+        >
+          <Sliders size={16} className={activeTab === 'commission' ? 'text-brand-600' : ''} />
+          Commission & Fee Configuration
+        </button>
       </div>
 
-      {activeTab !== 'methods' ? (
+      {activeTab === 'commission' ? (
+        <CommissionFeeSettings
+          feeSettings={feeSettings}
+          onChangeFeeSettings={setFeeSettings}
+          onSaveFeeSettings={saveFeeSettings}
+          isSaving={isSavingFeeSettings}
+          onResetDefaults={resetFeeSettingsToDefaults}
+        />
+      ) : activeTab === 'methods' ? (
+        /* Payment Methods Settings Tab */
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+          <h2 className="text-lg font-bold text-foreground mb-6">Payment Methods</h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+              <div className="flex items-center">
+                <div className="h-12 w-12 bg-brand-500/10 rounded-lg flex items-center justify-center mr-4">
+                  <span className="font-bold text-brand-600 text-xl">GC</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">GCash</h3>
+                  <p className="text-sm text-foreground-lighter">Integration coming soon</p>
+                </div>
+              </div>
+              <span className="px-3 py-1 bg-surface-200 text-foreground-light text-xs font-medium rounded-full">
+                Disabled (Future)
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+              <div className="flex items-center">
+                <div className="h-12 w-12 bg-success/10 rounded-lg flex items-center justify-center mr-4">
+                  <span className="font-bold text-success text-xl">M</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Maya</h3>
+                  <p className="text-sm text-foreground-lighter">Integration coming soon</p>
+                </div>
+              </div>
+              <span className="px-3 py-1 bg-surface-200 text-foreground-light text-xs font-medium rounded-full">
+                Disabled (Future)
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+              <div className="flex items-center">
+                <div className="h-12 w-12 bg-info/10 rounded-lg flex items-center justify-center mr-4">
+                  <CreditCard className="text-info" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Credit / Debit Card</h3>
+                  <p className="text-sm text-foreground-lighter">Integration coming soon</p>
+                </div>
+              </div>
+              <span className="px-3 py-1 bg-surface-200 text-foreground-light text-xs font-medium rounded-full">
+                Disabled (Future)
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border border-success/30 bg-success/10 rounded-lg">
+              <div className="flex items-center">
+                <div className="h-12 w-12 bg-success/10 rounded-lg flex items-center justify-center mr-4">
+                  <DollarSign className="text-success" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Cash on Delivery / Direct</h3>
+                  <p className="text-sm text-foreground-lighter">
+                    Active by default for customer-worker offline payments
+                  </p>
+                </div>
+              </div>
+              <span className="px-3 py-1 bg-success/10 text-success-600 dark:text-success-400 text-xs font-medium rounded-full border border-success/30">
+                Active
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
         <>
           {/* Filters and Search */}
           <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -264,74 +354,6 @@ export function PaymentsView({ model }) {
             />
           )}
         </>
-      ) : (
-        /* Payment Methods Settings Tab */
-        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-          <h2 className="text-lg font-bold text-foreground mb-6">Payment Methods</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-brand-500/10 rounded-lg flex items-center justify-center mr-4">
-                  <span className="font-bold text-brand-600 text-xl">GC</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">GCash</h3>
-                  <p className="text-sm text-foreground-lighter">Integration coming soon</p>
-                </div>
-              </div>
-              <span className="px-3 py-1 bg-surface-200 text-foreground-light text-xs font-medium rounded-full">
-                Disabled (Future)
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-success/10 rounded-lg flex items-center justify-center mr-4">
-                  <span className="font-bold text-success text-xl">M</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Maya</h3>
-                  <p className="text-sm text-foreground-lighter">Integration coming soon</p>
-                </div>
-              </div>
-              <span className="px-3 py-1 bg-surface-200 text-foreground-light text-xs font-medium rounded-full">
-                Disabled (Future)
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-info/10 rounded-lg flex items-center justify-center mr-4">
-                  <CreditCard className="text-info" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Credit / Debit Card</h3>
-                  <p className="text-sm text-foreground-lighter">Integration coming soon</p>
-                </div>
-              </div>
-              <span className="px-3 py-1 bg-surface-200 text-foreground-light text-xs font-medium rounded-full">
-                Disabled (Future)
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 border border-success/30 bg-success/10 rounded-lg">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-success/10 rounded-lg flex items-center justify-center mr-4">
-                  <DollarSign className="text-success" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Cash on Delivery / Direct</h3>
-                  <p className="text-sm text-foreground-lighter">
-                    Active by default for customer-worker offline payments
-                  </p>
-                </div>
-              </div>
-              <span className="px-3 py-1 bg-success/10 text-success-600 dark:text-success-400 text-xs font-medium rounded-full border border-success/30">
-                Active
-              </span>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Transaction Details Drawer */}
