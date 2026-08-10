@@ -53,7 +53,7 @@ export async function loadPaymentsPage({
   const term = search.trim().toLowerCase();
   const matched = rows.filter((row) => {
     if (term) {
-      const customer = identity(row.bookings?.user_profiles?.display_name, 'Payment customer');
+      const customer = row.bookings?.user_profiles?.display_name ?? '';
       const worker = row.bookings?.worker_profiles?.display_name ?? '';
       if (
         !row.id.toLowerCase().includes(term) &&

@@ -98,7 +98,7 @@ const BOOKING_PAGE_SELECT =
   'id,service_request_id,status,version,created_at,agreed_service_amount,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),service_requests(description,scheduled_at,addresses(line1,barangay,city),service_categories(name),match_candidates(worker_id,score,eligible,worker_profiles:worker_id(display_name)),request_media(storage_path,content_type)),payments(method,status,service_amount,homeowner_platform_charge,refunds(status,reason)),cancellations(reason,fee_amount,refund_amount,resolution_status),booking_status_events(from_status,to_status,reason,created_at)';
 
 const BOOKING_KEY_SELECT =
-  'id,status,created_at,user_profiles:user_account_id(display_name),service_requests(description,scheduled_at)';
+  'id,status,created_at,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),service_requests(description,scheduled_at)';
 
 const bookingStats = (keys, todayStr) => ({
   today: keys.filter(
@@ -136,9 +136,11 @@ export async function loadBookingsPage({
   const matched = term
     ? rows.filter((row) => {
         const customer = row.user_profiles?.display_name ?? '';
+        const worker = row.worker_profiles?.display_name ?? '';
         const service = row.service_requests?.description ?? '';
         return (
           customer.toLowerCase().includes(term) ||
+          worker.toLowerCase().includes(term) ||
           row.id.toLowerCase().includes(term) ||
           service.toLowerCase().includes(term)
         );

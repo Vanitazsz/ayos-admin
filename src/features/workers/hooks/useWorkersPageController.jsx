@@ -104,6 +104,7 @@ export function useWorkersPageController() {
       workers.filter((w) => {
     const matchesSearch =
       w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      w.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       w.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (w.categories ?? []).join(' ').toLowerCase().includes(searchTerm.toLowerCase()) ||
       w.category.toLowerCase().includes(searchTerm.toLowerCase());

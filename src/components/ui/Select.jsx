@@ -25,7 +25,7 @@ const Select = forwardRef(
             ref={ref}
             className={cn(
               'flex h-9 w-full appearance-none rounded-lg border bg-card px-3 py-2 pr-9 text-sm text-foreground shadow-sm transition-colors',
-              'focus-ring',
+              'outline-hidden focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               Icon ? 'pl-9' : 'pl-3',
               error ? 'border-destructive' : 'border-border',
               'disabled:cursor-not-allowed disabled:opacity-50',
