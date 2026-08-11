@@ -295,6 +295,8 @@ export function useWorkersPageController() {
     setIsDrawerOpen(true);
     setActionMenuOpenId(null);
     setVerificationDocs(undefined);
+    setIsEditingVerification(false);
+    setWorkerVerificationDraft(null);
     try {
       const docs = await loadWorkerVerificationDocs(worker.id);
       setVerificationDocs(

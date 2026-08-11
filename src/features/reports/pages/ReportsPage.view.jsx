@@ -1,24 +1,19 @@
 import {
   FileText,
   Download,
-  Filter,
   Search,
   Calendar,
-  BarChart2,
-  Users,
-  Briefcase,
-  CreditCard,
-  Star,
 } from 'lucide-react';
 import Pagination from '../../../components/ui/Pagination';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import StatCard from '../../../components/ui/StatCard';
 import { Button } from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
-import Select from '../../../components/ui/Select';
 import { Badge } from '../../../components/ui/Badge';
 import { Alert } from '../../../components/ui/Alert';
 import EmptyState from '../../../components/ui/EmptyState';
 import DateFilter from '../../../components/ui/DateFilter';
+import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/Tabs';
 import {
   Table,
   TableHeader,
@@ -32,6 +27,7 @@ export function ReportsView({ model }) {
   const {
     isLoading,
     error,
+    stats,
     searchTerm,
     setSearchTerm,
     dateFilter,
@@ -67,88 +63,31 @@ export function ReportsView({ model }) {
         </Alert>
       )}
 
-      {/* Report Types Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-        <button
-          type="button"
-          onClick={() => setReportType('All')}
-          className={`rounded-xl shadow-sm border p-4 flex flex-col items-center justify-center transition-all focus-ring ${reportType === 'All' ? 'bg-foreground text-foreground-contrast border-transparent' : 'bg-card border-border hover:shadow-md text-foreground'}`}
-        >
-          <div
-            className={`p-3 rounded-full mb-3 ${reportType === 'All' ? 'bg-background/20 text-foreground-contrast' : 'bg-surface-200 text-foreground-light'}`}
-          >
-            <Filter size={24} />
-          </div>
-          <h3 className="text-sm font-bold">All Reports</h3>
-        </button>
-        {[
-          {
-            name: 'Financial',
-            filterName: 'Financial Summary',
-            icon: <CreditCard />,
-            bg: 'bg-brand-500/10',
-            activeBg: 'bg-brand-600',
-            color: 'text-brand-500',
-            activeColor: 'text-white',
-          },
-          {
-            name: 'Workers',
-            filterName: 'Worker Performance',
-            icon: <Briefcase />,
-            bg: 'bg-info/10',
-            activeBg: 'bg-info',
-            color: 'text-info',
-            activeColor: 'text-white',
-          },
-          {
-            name: 'Customers',
-            filterName: 'Customer Activity',
-            icon: <Users />,
-            bg: 'bg-success/10',
-            activeBg: 'bg-success',
-            color: 'text-success',
-            activeColor: 'text-white',
-          },
-          {
-            name: 'Services',
-            filterName: 'Service Popularity',
-            icon: <BarChart2 />,
-            bg: 'bg-warning/10',
-            activeBg: 'bg-warning',
-            color: 'text-warning',
-            activeColor: 'text-white',
-          },
-          {
-            name: 'Reviews',
-            filterName: 'Review Sentiment',
-            icon: <Star className="fill-current" />,
-            bg: 'bg-warning/10',
-            activeBg: 'bg-warning',
-            color: 'text-warning',
-            activeColor: 'text-white',
-          },
-        ].map((type, index) => {
-          const isActive = reportType === type.filterName;
-          return (
-            <button
-              type="button"
-              key={index}
-              onClick={() => {
-                setReportType(type.filterName);
-                setCurrentPage(1);
-              }}
-              className={`rounded-xl shadow-sm border p-4 flex flex-col items-center justify-center transition-all focus-ring ${isActive ? type.activeBg + ' border-transparent text-white' : 'bg-card border-border hover:shadow-md text-foreground'}`}
-            >
-              <div
-                className={`p-3 rounded-full mb-3 ${isActive ? 'bg-card/20 text-white' : type.bg + ' ' + type.color}`}
-              >
-                {type.icon}
-              </div>
-              <h3 className="text-sm font-bold">{type.name}</h3>
-            </button>
-          );
-        })}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {stats.map((stat, index) => (
+          <StatCard key={index} title={stat.label} value={stat.value} icon={stat.icon} isLoading={isLoading} />
+        ))}
       </div>
+
+      {/* Report Types */}
+      <Tabs
+        value={reportType}
+        onValueChange={(type) => {
+          setReportType(type);
+          setCurrentPage(1);
+        }}
+        className="mb-8"
+      >
+        <TabsList>
+          <TabsTrigger value="All">All Reports</TabsTrigger>
+          <TabsTrigger value="Financial Summary">Financial</TabsTrigger>
+          <TabsTrigger value="Worker Performance">Workers</TabsTrigger>
+          <TabsTrigger value="Customer Activity">Customers</TabsTrigger>
+          <TabsTrigger value="Service Popularity">Services</TabsTrigger>
+          <TabsTrigger value="Review Sentiment">Reviews</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Filters and Search */}
       <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -161,22 +100,7 @@ export function ReportsView({ model }) {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <div className="w-full flex-1 min-w-0 sm:w-52 sm:flex-none">
-            <Select
-              icon={Filter}
-              aria-label="Filter reports by type"
-              value={reportType}
-              onChange={(e) => setReportType(e.target.value)}
-            >
-              <option value="All">All Types</option>
-              <option value="Financial Summary">Financial Summary</option>
-              <option value="Worker Performance">Worker Performance</option>
-              <option value="Customer Activity">Customer Activity</option>
-              <option value="Service Popularity">Service Popularity</option>
-              <option value="Review Sentiment">Review Sentiment</option>
-            </Select>
-          </div>
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <DateFilter model={dateFilter} />
         </div>
       </div>

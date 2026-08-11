@@ -8,10 +8,11 @@ import {
   resolveBookingMedia,
   resolveUserAvatar,
 } from '../logic/LocationsPageLogic';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Badge from '../../../components/ui/Badge';
 import { useServerPagination } from '../../../hooks/useServerPagination';
 import { usePagination } from '../../../hooks/usePagination';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { useDebouncedRefresh } from '../../../hooks/useDebouncedRefresh';
 import { useRealtime } from '../../../hooks/useRealtime';
 import { useDateFilter } from '../../../hooks/useDateFilter';
@@ -31,6 +32,7 @@ export function useLocationsPageController() {
 
   // ---- Users tab ----
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebouncedValue(searchQuery);
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterVerified, setFilterVerified] = useState('All');
   const [filterLocation, setFilterLocation] = useState('All');
@@ -44,7 +46,7 @@ export function useLocationsPageController() {
   const fetchUsers = useCallback(
     ({ page, pageSize }) =>
       loadUsersPage({
-        search: searchQuery,
+        search: debouncedSearch,
         status: filterStatus,
         verified: filterVerified,
         location: filterLocation,
@@ -54,7 +56,7 @@ export function useLocationsPageController() {
         page,
         pageSize,
       }),
-    [searchQuery, filterStatus, filterVerified, filterLocation, userDateFilter],
+    [debouncedSearch, filterStatus, filterVerified, filterLocation, userDateFilter],
   );
 
   const {
@@ -114,12 +116,22 @@ export function useLocationsPageController() {
     };
   }, []);
 
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  const refreshUsersRef = useRef(refreshUsers);
+  refreshUsersRef.current = refreshUsers;
+  const loadWorkersDataRef = useRef(loadWorkersData);
+  loadWorkersDataRef.current = loadWorkersData;
+
   const handleRealtime = useCallback(() => {
     schedule(async () => {
-      await refreshUsers();
-      await loadWorkersData();
+      if (activeTabRef.current === 'workers') {
+        await loadWorkersDataRef.current();
+      } else {
+        await refreshUsersRef.current();
+      }
     });
-  }, [schedule, refreshUsers, loadWorkersData]);
+  }, [schedule]);
 
   useRealtime(
     ['accounts', 'user_profiles', 'locations', 'worker_profiles', 'worker_verifications'],

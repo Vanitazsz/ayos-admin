@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import {
   DollarSign,
   Percent,
-  Sliders,
   Calculator,
   Save,
   RotateCcw,
@@ -16,7 +15,14 @@ import Input from '../../../components/ui/Input';
 import Switch from '../../../components/ui/Switch';
 import { Badge } from '../../../components/ui/Badge';
 import { Alert } from '../../../components/ui/Alert';
-import { Card } from '../../../components/ui/Card';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '../../../components/ui/Card';
 import { money } from '../../../services/adminShared';
 
 export function CommissionFeeSettings({
@@ -159,16 +165,15 @@ export function CommissionFeeSettings({
   return (
     <div className="space-y-6">
       {/* Header & Quick Action Presets */}
-      <Card className="p-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5 mb-5">
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <Sliders className="text-brand-600" size={22} />
+            <CardTitle className="text-lg font-bold text-foreground">
               Commission & Fee Configuration
-            </h2>
-            <p className="text-sm text-foreground-lighter mt-1">
+            </CardTitle>
+            <CardDescription>
               Configure fee structures for both service providers (workers) and customers (users).
-            </p>
+            </CardDescription>
           </div>
           <div className="flex items-center gap-3">
             <Button type="button" variant="outline" size="sm" onClick={onResetDefaults}>
@@ -195,10 +200,9 @@ export function CommissionFeeSettings({
               )}
             </Button>
           </div>
-        </div>
+        </CardHeader>
 
-        {/* Presets Selection */}
-        <div>
+        <CardContent>
           <div className="flex items-center gap-2 mb-3">
             <Sparkles size={16} className="text-warning-500" />
             <span className="text-xs font-semibold text-foreground-light uppercase tracking-wider">
@@ -262,33 +266,35 @@ export function CommissionFeeSettings({
               </p>
             </button>
           </div>
-        </div>
+        </CardContent>
       </Card>
 
       {/* Main Grid: User Fee Config & Worker Fee Config */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Worker Commission Settings */}
-        <Card className="p-6 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-brand-500/10 rounded-lg flex items-center justify-center text-brand-600">
-                  <Briefcase size={20} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-foreground text-base">Worker Commission Fee</h3>
-                  <p className="text-xs text-foreground-lighter">
-                    Fee deducted from the worker's earnings per completed job
-                  </p>
-                </div>
+        <Card className="flex h-full flex-col">
+          <CardHeader className="flex-row items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-brand-500/10 rounded-lg flex items-center justify-center text-brand-600">
+                <Briefcase size={20} />
               </div>
-              <Switch
-                checked={feeSettings.workerFeeEnabled}
-                onCheckedChange={(checked) => updateSetting('workerFeeEnabled', checked)}
-                aria-label="Enable worker commission fee"
-              />
+              <div>
+                <CardTitle className="text-base font-bold text-foreground">
+                  Worker Commission Fee
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Fee deducted from the worker's earnings per completed job
+                </CardDescription>
+              </div>
             </div>
+            <Switch
+              checked={feeSettings.workerFeeEnabled}
+              onCheckedChange={(checked) => updateSetting('workerFeeEnabled', checked)}
+              aria-label="Enable worker commission fee"
+            />
+          </CardHeader>
 
+          <CardContent className="flex-1">
             {feeSettings.workerFeeEnabled ? (
               <div className="space-y-4">
                 {/* Fee Type Selection */}
@@ -418,41 +424,45 @@ export function CommissionFeeSettings({
                 </div>
               </div>
             ) : (
-              <div className="p-4 rounded-lg bg-surface-200 text-center text-xs text-foreground-lighter my-4">
+              <div className="p-4 rounded-lg bg-surface-200 text-center text-xs text-foreground-lighter">
                 Worker commission is currently <span className="font-bold text-destructive">Disabled</span>. Workers will receive 100% of their job payout amount.
               </div>
             )}
-          </div>
+          </CardContent>
 
-          <Alert className="mt-4 border-brand-500/20 bg-brand-500/5">
-            <span className="text-foreground-light">
-              Worker commission is deducted from the service provider when the booking reaches Completed status.
-            </span>
-          </Alert>
+          <CardFooter>
+            <Alert className="w-full border-brand-500/20 bg-brand-500/5">
+              <span className="text-foreground-light">
+                Worker commission is deducted from the service provider when the booking reaches Completed status.
+              </span>
+            </Alert>
+          </CardFooter>
         </Card>
 
         {/* User / Customer Fee Settings */}
-        <Card className="p-6 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-info/10 rounded-lg flex items-center justify-center text-info">
-                  <Users size={20} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-foreground text-base">User Service / Convenience Fee</h3>
-                  <p className="text-xs text-foreground-lighter">
-                    Fee added to the customer's total invoice at checkout
-                  </p>
-                </div>
+        <Card className="flex h-full flex-col">
+          <CardHeader className="flex-row items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-info/10 rounded-lg flex items-center justify-center text-info">
+                <Users size={20} />
               </div>
-              <Switch
-                checked={feeSettings.userFeeEnabled}
-                onCheckedChange={(checked) => updateSetting('userFeeEnabled', checked)}
-                aria-label="Enable user service fee"
-              />
+              <div>
+                <CardTitle className="text-base font-bold text-foreground">
+                  User Service / Convenience Fee
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Fee added to the customer's total invoice at checkout
+                </CardDescription>
+              </div>
             </div>
+            <Switch
+              checked={feeSettings.userFeeEnabled}
+              onCheckedChange={(checked) => updateSetting('userFeeEnabled', checked)}
+              aria-label="Enable user service fee"
+            />
+          </CardHeader>
 
+          <CardContent className="flex-1">
             {feeSettings.userFeeEnabled ? (
               <div className="space-y-4">
                 {/* Fee Type Selection */}
@@ -575,32 +585,36 @@ export function CommissionFeeSettings({
                 </div>
               </div>
             ) : (
-              <div className="p-4 rounded-lg bg-surface-200 text-center text-xs text-foreground-lighter my-4">
+              <div className="p-4 rounded-lg bg-surface-200 text-center text-xs text-foreground-lighter">
                 User service fee is currently <span className="font-bold text-foreground">Disabled (Free)</span>. Customers pay exact service booking cost with zero surcharge.
               </div>
             )}
-          </div>
+          </CardContent>
 
-          <Alert variant="info" className="mt-4">
-            <span className="text-foreground-light">
-              User service fee is added directly to the total booking charge during checkout.
-            </span>
-          </Alert>
+          <CardFooter>
+            <Alert variant="info" className="w-full">
+              <span className="text-foreground-light">
+                User service fee is added directly to the total booking charge during checkout.
+              </span>
+            </Alert>
+          </CardFooter>
         </Card>
       </div>
 
       {/* Live Revenue & Fee Breakdown Simulator */}
-      <Card className="p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-6">
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 bg-warning-500/10 rounded-lg flex items-center justify-center text-warning-500 font-bold">
               <Calculator size={20} />
             </div>
             <div>
-              <h3 className="font-bold text-foreground text-base">Live Fee & Revenue Simulator</h3>
-              <p className="text-xs text-foreground-lighter">
+              <CardTitle className="text-base font-bold text-foreground">
+                Live Fee & Revenue Simulator
+              </CardTitle>
+              <CardDescription className="text-xs">
                 Test how your current fee rules affect a sample booking transaction
-              </p>
+              </CardDescription>
             </div>
           </div>
 
@@ -620,9 +634,9 @@ export function CommissionFeeSettings({
               />
             </div>
           </div>
-        </div>
+        </CardHeader>
 
-        {/* Simulator Content Cards */}
+        <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {/* Card 1: Job Subtotal */}
           <div className="p-4 rounded-xl bg-surface-100 border border-border">
@@ -694,6 +708,7 @@ export function CommissionFeeSettings({
             </div>
           </div>
         </div>
+        </CardContent>
       </Card>
     </div>
   );

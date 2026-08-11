@@ -1,10 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { subscribe } from '../services/realtime';
 
 export function useRealtime(tables, onEvent, options) {
+  const tableKey = useMemo(
+    () => (Array.isArray(tables) ? tables.slice().sort().join('|') : String(tables)),
+    [tables],
+  );
+
   useEffect(() => {
-    const tableList = Array.isArray(tables) ? tables : [tables];
+    const tableList = tableKey ? tableKey.split('|') : [];
     const stops = tableList.map((table) => subscribe(table, onEvent, options));
     return () => stops.forEach((stop) => stop());
-  }, [tables, onEvent, options]);
+  }, [tableKey, onEvent, options]);
 }

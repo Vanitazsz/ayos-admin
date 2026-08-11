@@ -24,6 +24,7 @@ import {
   ArchiveRestore,
   MapPinned,
   Upload,
+  XCircle,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
@@ -137,6 +138,13 @@ export function WorkersView({ model }) {
     { value: 'VOTERS_ID', label: "Voter's ID" },
     { value: 'TIN_ID', label: 'TIN ID' },
     { value: 'OTHER', label: 'Other' },
+  ];
+
+  const MATCHING_REQUIREMENTS = [
+    { key: 'approval', label: 'Verification approval' },
+    { key: 'skills', label: 'At least one skill assigned' },
+    { key: 'service area', label: 'Service area set' },
+    { key: 'online status', label: 'Available for bookings' },
   ];
   return (
     <div className="p-4 sm:p-6">
@@ -715,6 +723,84 @@ export function WorkersView({ model }) {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                Matching Readiness
+              </h4>
+              {selectedWorker.matchingReady ? (
+                <div className="flex items-start gap-3 rounded-lg border border-success/30 bg-success/10 p-4">
+                  <CheckCircle
+                    size={18}
+                    className="mt-0.5 shrink-0 text-success-600 dark:text-success-400"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      Ready for matching
+                    </p>
+                    <p className="mt-0.5 text-sm text-foreground-muted">
+                      All requirements are complete and this worker can receive
+                      bookings.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4">
+                    <AlertCircle
+                      size={18}
+                      className="mt-0.5 shrink-0 text-warning-600 dark:text-warning-400"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        Incomplete — not matchable yet
+                      </p>
+                      <p className="mt-0.5 text-sm text-foreground-muted">
+                        Complete the items below before this worker can be
+                        matched.
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="space-y-2">
+                    {MATCHING_REQUIREMENTS.map((requirement) => {
+                      const done = !selectedWorker.matchingMissing.includes(
+                        requirement.key,
+                      );
+                      return (
+                        <li
+                          key={requirement.key}
+                          className="flex items-center justify-between gap-3 rounded-lg bg-surface-200 px-3 py-2.5"
+                        >
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            {done ? (
+                              <CheckCircle
+                                size={16}
+                                className="shrink-0 text-success-600 dark:text-success-400"
+                              />
+                            ) : (
+                              <XCircle
+                                size={16}
+                                className="shrink-0 text-destructive-600 dark:text-destructive-400"
+                              />
+                            )}
+                            <span
+                              className={`text-sm ${
+                                done ? 'text-foreground-light' : 'font-medium text-foreground'
+                              }`}
+                            >
+                              {requirement.label}
+                            </span>
+                          </div>
+                          {!done && (
+                            <Badge variant="warning">Missing</Badge>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               )}
             </div>

@@ -23,12 +23,14 @@ import Badge from '../../../components/ui/Badge';
 import { Users, UserCheck, UserX, AlertCircle } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { useServerPagination } from '../../../hooks/useServerPagination';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { useDateFilter } from '../../../hooks/useDateFilter';
 import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
 import { uploadVerificationImage } from '../../../services/adminShared';
 
 export function useUsersPageController() {
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebouncedValue(searchQuery);
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterVerified, setFilterVerified] = useState('All');
   const [filterLocation, setFilterLocation] = useState('All');
@@ -80,7 +82,7 @@ export function useUsersPageController() {
   const fetchUsers = useCallback(
     ({ page, pageSize }) =>
       loadUsersPage({
-        search: searchQuery,
+        search: debouncedSearch,
         status: filterStatus,
         verified: filterVerified,
         location: filterLocation,
@@ -90,7 +92,7 @@ export function useUsersPageController() {
         page,
         pageSize,
       }),
-    [searchQuery, filterStatus, filterVerified, filterLocation, dateFilter],
+    [debouncedSearch, filterStatus, filterVerified, filterLocation, dateFilter],
   );
 
   const {
@@ -176,16 +178,18 @@ export function useUsersPageController() {
     [meta, verifications],
   );
 
-  const refreshRef = useRef(refresh);
-  refreshRef.current = refresh;
+  const refreshUsersRef = useRef(refreshUsers);
+  refreshUsersRef.current = refreshUsers;
+  const loadVerificationsRef = useRef(loadVerifications);
+  loadVerificationsRef.current = loadVerifications;
 
   useEffect(() => {
     const stops = [
       subscribe('accounts', () => {
-        void refreshRef.current();
+        void refreshUsersRef.current();
       }),
       subscribe('customer_verifications', () => {
-        void refreshRef.current();
+        void loadVerificationsRef.current();
       }),
     ];
     return () => {
@@ -462,6 +466,14 @@ export function useUsersPageController() {
     setActionMenuOpenId(null);
     setAvatarUrl('');
     setVerificationDocs(undefined);
+    setIsEditingVerification(false);
+    setVerificationDraft({
+      idType: '',
+      frontFile: null,
+      backFile: null,
+      frontPreview: '',
+      backPreview: '',
+    });
     try {
       setAvatarUrl(await resolveUserAvatar(user.avatarPath));
     } catch {
