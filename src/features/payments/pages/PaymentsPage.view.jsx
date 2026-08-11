@@ -6,11 +6,19 @@ import {
   MoreVertical,
   Eye,
   Sliders,
+  ArrowRight,
+  CalendarDays,
+  Check,
+  ChevronDown,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Pagination from '../../../components/ui/Pagination';
 import StatCard from '../../../components/ui/StatCard';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import Select from '../../../components/ui/Select';
+import Button from '../../../components/ui/Button';
+import Modal from '../../../components/ui/Modal';
+import Input from '../../../components/ui/Input';
 import { money } from '../../../services/adminShared';
 import {
   Table,
@@ -28,7 +36,6 @@ import {
   DropdownMenuSeparator,
 } from '../../../components/ui/DropdownMenu';
 import { Trash2 } from 'lucide-react';
-import Modal from '../../../components/ui/Modal';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import { CommissionFeeSettings } from '../components/CommissionFeeSettings';
 
@@ -40,6 +47,17 @@ export function PaymentsView({ model }) {
     setSearchTerm,
     filterType,
     setFilterType,
+    sort,
+    setSort,
+    datePreset,
+    setDatePreset,
+    customRange,
+    setCustomRange,
+    isDateRangeOpen,
+    setIsDateRangeOpen,
+    dateFilterLabel,
+    handleApplyDateRange,
+    handleClearDateRange,
     currentPage,
     setCurrentPage,
     selectedTxn,
@@ -232,17 +250,78 @@ export function PaymentsView({ model }) {
               />
             </div>
             <div className="flex w-full sm:w-auto items-center gap-2">
-              <Filter size={18} className="text-foreground-lighter" />
-              <select
-                className="w-full flex-1 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-              >
-                <option value="All">All Types</option>
-                <option value="Payment">Payments</option>
-                <option value="Payout">Worker Payouts</option>
-                <option value="Refund">Refunds</option>
-              </select>
+              <div className="w-full sm:w-48">
+                <Select
+                  icon={Filter}
+                  aria-label="Filter transactions by type"
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                >
+                  <option value="All">All Types</option>
+                  <option value="Payment">Payments</option>
+                </Select>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                    <CalendarDays className="size-4" />
+                    <span className="max-w-40 truncate">{dateFilterLabel}</span>
+                    <ChevronDown className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setSort('newest');
+                      setDatePreset('all');
+                    }}
+                    className="cursor-pointer justify-between"
+                  >
+                    Most Recent
+                    {sort === 'newest' && datePreset === 'all' && <Check className="size-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setSort('oldest');
+                      setDatePreset('all');
+                    }}
+                    className="cursor-pointer justify-between"
+                  >
+                    Old to New
+                    {sort === 'oldest' && datePreset === 'all' && <Check className="size-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => setDatePreset('today')}
+                    className="cursor-pointer justify-between"
+                  >
+                    Today
+                    {datePreset === 'today' && <Check className="size-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => setDatePreset('7d')}
+                    className="cursor-pointer justify-between"
+                  >
+                    Last 7 Days
+                    {datePreset === '7d' && <Check className="size-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => setDatePreset('month')}
+                    className="cursor-pointer justify-between"
+                  >
+                    This Month
+                    {datePreset === 'month' && <Check className="size-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => setIsDateRangeOpen(true)}
+                    className="cursor-pointer justify-between"
+                  >
+                    Custom Range…
+                    {datePreset === 'custom' && <Check className="size-4" />}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -251,7 +330,7 @@ export function PaymentsView({ model }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead scope="col">Transaction</TableHead>
+                  <TableHead scope="col">Sender → Receiver</TableHead>
                   <TableHead scope="col">Type / Method</TableHead>
                   <TableHead scope="col">Amount</TableHead>
                   <TableHead scope="col">Status</TableHead>
@@ -269,8 +348,15 @@ export function PaymentsView({ model }) {
                   paginatedTxns.map((txn) => (
                     <TableRow key={txn.id}>
                       <TableCell className="whitespace-nowrap">
-                        <div className="text-sm font-medium text-foreground">{txn.id}</div>
-                        <div className="text-xs text-foreground-lighter">Booking: {txn.bookingId}</div>
+                        <div className="flex items-center text-sm font-medium text-foreground">
+                          <span className="max-w-44 truncate">{txn.customer || '—'}</span>
+                          <ArrowRight className="mx-1.5 size-3 shrink-0 text-foreground-muted" />
+                          <span className="max-w-44 truncate">{txn.worker || '—'}</span>
+                        </div>
+                        <div className="mt-0.5 text-xs text-foreground-lighter">
+                          <span className="font-mono">{txn.id}</span> · Booking:{' '}
+                          {txn.bookingId}
+                        </div>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         <span
@@ -355,6 +441,38 @@ export function PaymentsView({ model }) {
           )}
         </>
       )}
+
+      {/* Custom Date Range Modal */}
+      <Modal
+        isOpen={isDateRangeOpen}
+        onClose={() => setIsDateRangeOpen(false)}
+        title="Custom Date Range"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              type="date"
+              label="From"
+              value={customRange.from}
+              onChange={(e) => setCustomRange((prev) => ({ ...prev, from: e.target.value }))}
+            />
+            <Input
+              type="date"
+              label="To"
+              value={customRange.to}
+              onChange={(e) => setCustomRange((prev) => ({ ...prev, to: e.target.value }))}
+            />
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={handleClearDateRange}>
+            Clear
+          </Button>
+          <Button size="sm" onClick={() => handleApplyDateRange(customRange.from, customRange.to)}>
+            Apply
+          </Button>
+        </div>
+      </Modal>
 
       {/* Transaction Details Drawer */}
       <Drawer
