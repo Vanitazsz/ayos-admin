@@ -3,6 +3,7 @@ import { ShieldCheck, UserCheck, UserX } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import { useServerPagination } from '../../../hooks/useServerPagination';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { useDateFilter } from '../../../hooks/useDateFilter';
 import {
   inviteMember,
@@ -32,6 +33,7 @@ const messageFrom = (error) => {
 
 export function useTeamPageController() {
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebouncedValue(searchQuery);
   const [filterRole, setFilterRole] = useState('All');
   const dateFilter = useDateFilter({ canModify: true });
   const [roles, setRoles] = useState([]);
@@ -61,7 +63,7 @@ export function useTeamPageController() {
   const fetchPage = useCallback(
     ({ page, pageSize }) =>
       loadTeamPage({
-        search: searchQuery,
+        search: debouncedSearch,
         role: filterRole,
         sort: dateFilter.sort,
         field: dateFilter.field,
@@ -69,7 +71,7 @@ export function useTeamPageController() {
         page,
         pageSize,
       }),
-    [searchQuery, filterRole, dateFilter],
+    [debouncedSearch, filterRole, dateFilter],
   );
 
   const {
@@ -96,7 +98,9 @@ export function useTeamPageController() {
 
   useEffect(() => {
     const stops = [
-      subscribe('accounts', () => void refreshRef.current()),
+      subscribe('accounts', () => void refreshRef.current(), {
+        filter: 'role=eq.ADMIN',
+      }),
       subscribe('admin_profiles', () => void refreshRef.current()),
     ];
     return () => stops.forEach((stop) => stop());

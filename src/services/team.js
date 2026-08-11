@@ -1,5 +1,6 @@
 import { supabase } from './adminShared';
 import { applyDateFilter, getRowDate } from '../lib/dateFilter';
+import { cacheable } from '../lib/cacheable';
 
 const rpcErrorMessage = (error) => {
   const message = error?.message;
@@ -29,7 +30,7 @@ export async function loadTeam() {
   }));
 }
 
-export async function loadTeamPage({
+async function loadTeamPageRaw({
   search = '',
   role = 'All',
   sort = 'newest',
@@ -67,7 +68,9 @@ export async function loadTeamPage({
   };
 }
 
-export async function loadRoles() {
+export const loadTeamPage = cacheable('team', { ttl: 60_000 }, loadTeamPageRaw);
+
+async function loadRolesRaw() {
   const { data, error } = await supabase.rpc('admin_get_roles');
   if (error) throw error;
   return (data ?? []).map((row) => ({
@@ -77,6 +80,8 @@ export async function loadRoles() {
     permissions: Array.isArray(row.permissions) ? row.permissions : [],
   }));
 }
+
+export const loadRoles = cacheable('team', { ttl: 10 * 60_000, key: 'roles' }, loadRolesRaw);
 
 export async function loadMyPermissions() {
   const { data, error } = await supabase.rpc('admin_get_my_permissions');

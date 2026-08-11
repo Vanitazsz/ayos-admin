@@ -213,7 +213,6 @@ export function UsersView({ model }) {
                 >
                   <option value="All">All Verifications</option>
                   <option value="verified">Verified</option>
-                  <option value="pending">Pending</option>
                   <option value="unverified">Unverified</option>
                 </Select>
               </div>
@@ -227,6 +226,7 @@ export function UsersView({ model }) {
                   <option value="All">All Statuses</option>
                   <option value="ACTIVE">Active</option>
                   <option value="SUSPENDED">Suspended</option>
+                  <option value="PENDING">Pending</option>
                   <option value="Trashed">Trashed</option>
                 </Select>
               </div>

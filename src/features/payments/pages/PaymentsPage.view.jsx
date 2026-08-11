@@ -5,8 +5,13 @@ import {
   Filter,
   MoreVertical,
   Eye,
-  Sliders,
   ArrowRight,
+  Calendar,
+  Hash,
+  BookOpen,
+  Users,
+  Briefcase,
+  CheckCircle2,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Pagination from '../../../components/ui/Pagination';
@@ -180,6 +185,17 @@ const TransactionsTab = ({ model, onOpenAction, onViewDetails }) => (
                       >
                         <Eye className="mr-2" /> View Details
                       </DropdownMenuItem>
+                      {model.canConfirmCash(txn) && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onSelect={() => onOpenAction('confirmCash', txn)}
+                            className="cursor-pointer text-success-600 dark:text-success-400 focus:bg-success/10 [&_svg]:text-success-600 dark:[&_svg]:text-success-400"
+                          >
+                            <CheckCircle2 className="mr-2" /> Confirm Cash
+                          </DropdownMenuItem>
+                        </>
+                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onSelect={() => onOpenAction('trash', txn)}
@@ -217,6 +233,26 @@ const TransactionsTab = ({ model, onOpenAction, onViewDetails }) => (
   </>
 );
 
+function DetailRow({ icon: Icon, label, value }) {
+  return (
+    <div className="flex items-start gap-3">
+      <Icon size={16} className="mt-0.5 shrink-0 text-foreground-muted" />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-foreground-muted">{label}</p>
+        <div className="text-sm text-foreground">{value || '—'}</div>
+      </div>
+    </div>
+  );
+}
+
+function DetailSectionTitle({ children }) {
+  return (
+    <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+      {children}
+    </h4>
+  );
+}
+
 export function PaymentsView({ model }) {
   const {
     error,
@@ -235,6 +271,7 @@ export function PaymentsView({ model }) {
     setActionReason,
     savingAction,
     submitAction,
+    canConfirmCash,
     confirm,
     closeConfirm,
     feeSettings,
@@ -281,10 +318,7 @@ export function PaymentsView({ model }) {
           <TabsTrigger value="refunds">Refund Management</TabsTrigger>
           <TabsTrigger value="cash">Cash Records</TabsTrigger>
           <TabsTrigger value="methods">Payment Methods (Settings)</TabsTrigger>
-          <TabsTrigger value="commission" className="gap-1.5">
-            <Sliders size={16} className={activeTab === 'commission' ? 'text-brand-600' : ''} />
-            Commission & Fee Configuration
-          </TabsTrigger>
+          <TabsTrigger value="commission">Commission & Fee Configuration</TabsTrigger>
         </TabsList>
 
         <TabsContent value="transactions">
@@ -391,63 +425,82 @@ export function PaymentsView({ model }) {
         title="Transaction Details"
         footer={
           selectedTxn ? (
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => openAction('trash', selectedTxn)}
-            >
-              Move to Trash
-            </Button>
+            <div className="flex w-full gap-3">
+              {canConfirmCash(selectedTxn) && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => openAction('confirmCash', selectedTxn)}
+                >
+                  <CheckCircle2 /> Confirm Cash
+                </Button>
+              )}
+              <Button
+                variant="danger"
+                size="sm"
+                className="flex-1"
+                onClick={() => openAction('trash', selectedTxn)}
+              >
+                Move to Trash
+              </Button>
+            </div>
           ) : null
         }
       >
         {selectedTxn && (
           <div className="space-y-6">
             <div className="text-center py-6 bg-surface-200 rounded-xl">
-              <p className="text-sm text-foreground-lighter uppercase tracking-wider font-semibold mb-2">
-                {selectedTxn.type}
-              </p>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Badge variant={txnTypeVariant[selectedTxn.type] ?? 'default'}>
+                  {selectedTxn.type}
+                </Badge>
+                <Badge
+                  variant={txnStatusVariant[selectedTxn.status] ?? 'default'}
+                  className="text-sm px-3 py-1"
+                >
+                  {selectedTxn.status}
+                </Badge>
+              </div>
               <h2 className="text-4xl font-bold text-foreground mb-2">
                 {money(selectedTxn.amount)}
               </h2>
-              <Badge
-                variant={txnStatusVariant[selectedTxn.status] ?? 'default'}
-                className="text-sm px-3 py-1"
-              >
-                {selectedTxn.status}
-              </Badge>
+              <p className="text-xs text-foreground-lighter uppercase tracking-wider font-semibold">
+                {selectedTxn.method}
+              </p>
             </div>
 
-            <div className="border-t border-border pt-4 space-y-4">
-              <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-foreground-lighter">Transaction ID</span>
-                <span className="max-w-[16rem] font-mono font-medium text-foreground text-right break-all select-all">
-                  {selectedTxn.id}
-                </span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-foreground-lighter">Date</span>
-                <span className="font-medium text-foreground">{selectedTxn.date}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-foreground-lighter">Payment Method</span>
-                <span className="font-medium text-foreground">{selectedTxn.method}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-foreground-lighter">Related Booking</span>
-                <span className="font-medium text-brand-600 hover:underline cursor-pointer">
-                  {selectedTxn.bookingId}
-                </span>
+            <div className="border-t border-border pt-6">
+              <DetailSectionTitle>Details</DetailSectionTitle>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <DetailRow
+                  icon={Hash}
+                  label="Transaction ID"
+                  value={
+                    <span className="font-mono break-all select-all">{selectedTxn.id}</span>
+                  }
+                />
+                <DetailRow icon={Calendar} label="Date" value={selectedTxn.date} />
+                <DetailRow icon={CreditCard} label="Payment Method" value={selectedTxn.method} />
+                <DetailRow
+                  icon={BookOpen}
+                  label="Related Booking"
+                  value={
+                    <button className="font-medium text-brand-600 hover:underline cursor-pointer">
+                      {selectedTxn.bookingId}
+                    </button>
+                  }
+                />
               </div>
             </div>
 
             <div className="border-t border-border pt-6">
-              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
-                Involved Parties
-              </h4>
+              <DetailSectionTitle>Involved Parties</DetailSectionTitle>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="bg-card border border-border rounded-lg p-3">
-                  <p className="text-xs text-foreground-lighter mb-2">Customer (Payer)</p>
+                  <p className="text-xs text-foreground-lighter mb-2 flex items-center gap-1.5">
+                    <Users size={12} className="text-brand-600" /> Customer (Payer)
+                  </p>
                   <div className="flex items-center">
                     <div className="h-8 w-8 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-600 text-xs font-bold mr-2 shrink-0">
                       {(selectedTxn.customer || '?').charAt(0)}
@@ -458,7 +511,9 @@ export function PaymentsView({ model }) {
                   </div>
                 </div>
                 <div className="bg-card border border-border rounded-lg p-3">
-                  <p className="text-xs text-foreground-lighter mb-2">Worker (Payee)</p>
+                  <p className="text-xs text-foreground-lighter mb-2 flex items-center gap-1.5">
+                    <Briefcase size={12} className="text-success" /> Worker (Payee)
+                  </p>
                   <div className="flex items-center">
                     <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center text-success text-xs font-bold mr-2 shrink-0">
                       {(selectedTxn.worker || '?').charAt(0)}
@@ -473,9 +528,7 @@ export function PaymentsView({ model }) {
 
             {selectedTxn.type === 'Payment' && (
               <div className="border-t border-border pt-6">
-                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
-                  Fee Breakdown
-                </h4>
+                <DetailSectionTitle>Fee Breakdown</DetailSectionTitle>
                 <div className="bg-surface-200 p-4 rounded-lg space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-foreground-light">Subtotal</span>
@@ -499,18 +552,30 @@ export function PaymentsView({ model }) {
       <Modal
         isOpen={Boolean(action)}
         onClose={() => !savingAction && setAction(null)}
-        title="Move Transaction to Trash"
+        title={action?.type === 'confirmCash' ? 'Confirm Cash Payment' : 'Move Transaction to Trash'}
       >
         {action && (
           <div className="space-y-4">
             <p className="text-sm text-foreground-light">Transaction {action.txn.id}</p>
+            {action.type === 'confirmCash' && (
+              <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
+                <p className="font-medium">Cash payment of {money(action.txn.amount)}</p>
+                <p className="mt-0.5 text-xs text-foreground-lighter">
+                  Marking this as completed records that the offline cash payment was collected.
+                </p>
+              </div>
+            )}
             <div>
               <Textarea
-                label="Admin reason"
+                label={action.type === 'confirmCash' ? 'Admin notes (optional)' : 'Admin reason'}
                 value={actionReason}
                 onChange={(e) => setActionReason(e.target.value)}
                 maxLength={1000}
-                placeholder="Specify the reason for trashing this transaction..."
+                placeholder={
+                  action.type === 'confirmCash'
+                    ? 'Add any notes about this cash confirmation...'
+                    : 'Specify the reason for trashing this transaction...'
+                }
                 className="min-h-24"
               />
             </div>
@@ -523,7 +588,10 @@ export function PaymentsView({ model }) {
                 Close
               </Button>
               <Button
-                disabled={savingAction || actionReason.trim().length < 3}
+                disabled={
+                  savingAction ||
+                  (action.type !== 'confirmCash' && actionReason.trim().length < 3)
+                }
                 onClick={() => void submitAction()}
                 isLoading={savingAction}
                 loadingText="Saving…"

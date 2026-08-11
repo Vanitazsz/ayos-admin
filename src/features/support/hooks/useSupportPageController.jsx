@@ -26,23 +26,32 @@ export function useSupportPageController() {
   const [safetyCases, setSafetyCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const refreshTickets = useCallback(async () => {
+    const rows = await loadSupport();
+    setTickets(rows);
+    setSelectedTicket((current) =>
+      current ? (rows.find((row) => row.id === current.id) ?? null) : null,
+    );
+  }, []);
+
+  const refreshSafety = useCallback(async () => {
+    setSafetyCases(await loadSafetyCases());
+  }, []);
+
   const refresh = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [rows, cases] = await Promise.all([loadSupport(), loadSafetyCases()]);
-      setTickets(rows);
-      setSafetyCases(cases);
-      setSelectedTicket((current) =>
-        current ? (rows.find((row) => row.id === current.id) ?? null) : null,
-      );
+      await Promise.all([refreshTickets(), refreshSafety()]);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [refreshTickets, refreshSafety]);
+
   useEffect(() => {
     void refresh();
   }, [refresh]);
-  useRealtime(['support_tickets', 'account_reports', 'booking_disputes'], refresh);
+  useRealtime('support_tickets', refreshTickets);
+  useRealtime(['account_reports', 'booking_disputes'], refreshSafety);
   const matchedTickets = tickets.filter((t) => {
     const matchesSearch =
       t.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||

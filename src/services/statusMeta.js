@@ -28,9 +28,9 @@ export const SUPPORT_STATUS_BADGE = {
 };
 
 export const REVIEW_STATUS_BADGE = {
+  Pending: 'bg-warning/10 text-warning-600 dark:text-warning-400',
   Published: 'bg-success/10 text-success-600 dark:text-success-400',
-  Hidden: 'bg-surface-200 text-foreground',
-  Flagged: 'bg-destructive/10 text-destructive-600 dark:text-destructive-400',
+  Rejected: 'bg-surface-200 text-foreground',
 };
 
 export const DEFAULT_BADGE = 'bg-surface-200 text-foreground';

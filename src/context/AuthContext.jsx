@@ -11,10 +11,12 @@ async function resolveAdmin(session) {
     { data: isAdmin, error: roleError },
     { data, error: profileError },
     { data: permissions, error: permissionError },
+    { data: adminRole, error: roleCodeError },
   ] = await Promise.all([
     supabase.rpc('is_admin', { require_aal2: false }),
     supabase.rpc('get_my_profile'),
     supabase.rpc('admin_get_my_permissions'),
+    supabase.rpc('admin_get_my_role'),
   ]);
   if (
     roleError ||
@@ -35,6 +37,7 @@ async function resolveAdmin(session) {
     email: data.account.email,
     name: data.profile.display_name,
     role: data.account.role,
+    adminRole: roleCodeError?.code === 'PGRST202' ? null : (adminRole ?? null),
     profileComplete: Boolean(data.profile_complete),
     permissions: myPermissions,
   };

@@ -1,5 +1,6 @@
 import { downloadReport, generateReport, loadReports } from '../logic/ReportsPageLogic';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { FileText, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { useDataFetch } from '../../../hooks/useDataFetch';
 import { useRealtime } from '../../../hooks/useRealtime';
 import { useToast } from '../../../context/ToastContext';
@@ -16,6 +17,19 @@ export function useReportsPageController() {
   const [reportType, setReportType] = useState('All');
 
   const safeReports = reports ?? [];
+  const stats = useMemo(() => {
+    const completed = safeReports.filter((r) => r.status === 'Completed').length;
+    const processing = safeReports.filter(
+      (r) => r.status === 'Pending' || r.status === 'Processing',
+    ).length;
+    const failed = safeReports.filter((r) => r.status === 'Failed').length;
+    return [
+      { label: 'Total Reports', value: safeReports.length, icon: FileText },
+      { label: 'Completed', value: completed, icon: CheckCircle },
+      { label: 'In Progress', value: processing, icon: Clock },
+      { label: 'Failed', value: failed, icon: AlertTriangle },
+    ];
+  }, [safeReports]);
   const matchedReports = safeReports.filter((r) => {
     const matchesSearch =
       r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -79,6 +93,7 @@ export function useReportsPageController() {
   return {
     isLoading,
     error,
+    stats,
     searchTerm,
     setSearchTerm,
     dateFilter,

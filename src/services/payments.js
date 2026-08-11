@@ -123,3 +123,13 @@ export async function movePaymentToTrash(id, reason) {
   invalidate('payments');
   return data;
 }
+
+export async function confirmCashPayment(id, notes) {
+  const { data, error } = await supabase.rpc('admin_confirm_cash_payment', {
+    p_payment_id: id,
+    p_notes: notes,
+  });
+  if (error) throw error;
+  invalidate('payments');
+  return data;
+}

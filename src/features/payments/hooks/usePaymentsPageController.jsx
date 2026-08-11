@@ -1,12 +1,14 @@
-import { loadPaymentsPage, movePaymentToTrash } from '../logic/PaymentsPageLogic';
+import { loadPaymentsPage, movePaymentToTrash, confirmCashPayment } from '../logic/PaymentsPageLogic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DollarSign, TrendingUp, CreditCard, ArrowDownRight } from 'lucide-react';
 import { money } from '../../../services/adminShared';
 import { subscribe } from '../../../services/realtime';
 import { PAYMENT_STATUS_BADGE, badgeFor } from '../../../services/statusMeta';
 import { useServerPagination } from '../../../hooks/useServerPagination';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { useDateFilter } from '../../../hooks/useDateFilter';
 import { useToast } from '../../../context/ToastContext';
+import { useAuth } from '../../../context/AuthContext';
 import { loadSettings, saveSetting } from '../../../services/settings';
 
 const DEFAULT_FEE_SETTINGS = {
@@ -27,7 +29,10 @@ const DEFAULT_FEE_SETTINGS = {
 
 export function usePaymentsPageController() {
   const toast = useToast();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.adminRole === 'SUPER_ADMIN';
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [filterType, setFilterType] = useState('All');
   const [selectedTxn, setSelectedTxn] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -55,7 +60,7 @@ export function usePaymentsPageController() {
   const fetchPayments = useCallback(
     ({ page, pageSize }) =>
       loadPaymentsPage({
-        search: searchTerm,
+        search: debouncedSearch,
         type: filterType,
         tab: activeTab,
         sort: dateFilter.sort,
@@ -64,7 +69,7 @@ export function usePaymentsPageController() {
         page,
         pageSize,
       }),
-    [searchTerm, filterType, activeTab, dateFilter],
+    [debouncedSearch, filterType, activeTab, dateFilter],
   );
 
   const filterKey = `${filterType}|${dateFilter.sort}|${dateFilter.field}|${dateFilter.preset}|${dateFilter.customRange.from}|${dateFilter.customRange.to}`;
@@ -139,12 +144,17 @@ export function usePaymentsPageController() {
   }, []);
 
   const executeAction = useCallback(async () => {
-    if (!action || actionReason.trim().length < 3) return;
+    if (!action) return;
+    const isCashConfirm = action.type === 'confirmCash';
+    if (!isCashConfirm && actionReason.trim().length < 3) return;
     setSavingAction(true);
     try {
       if (action.type === 'trash') {
         await movePaymentToTrash(action.txn.id, actionReason.trim());
         toast.success('Transaction moved to trash');
+      } else if (action.type === 'confirmCash') {
+        await confirmCashPayment(action.txn.id, actionReason.trim());
+        toast.success('Cash payment confirmed', 'The payment has been marked as completed.');
       }
       setAction(null);
       await refresh();
@@ -157,14 +167,27 @@ export function usePaymentsPageController() {
   }, [action, actionReason, refresh, toast]);
 
   const submitAction = useCallback(() => {
-    if (!action || actionReason.trim().length < 3) return;
+    if (!action) return;
+    const isCashConfirm = action.type === 'confirmCash';
+    if (!isCashConfirm && actionReason.trim().length < 3) return;
     setConfirm({
       isOpen: true,
-      title: 'Confirm Action',
-      message: 'Confirm that you want to move this transaction to trash?',
+      title: isCashConfirm ? 'Confirm Cash Payment' : 'Confirm Action',
+      message: isCashConfirm
+        ? `Mark this ${money(action.txn.amount)} cash payment as completed? This confirms the offline payment was collected from the customer.`
+        : 'Confirm that you want to move this transaction to trash?',
       onConfirm: executeAction,
     });
   }, [action, actionReason, executeAction]);
+
+  const canConfirmCash = useCallback(
+    (txn) =>
+      isSuperAdmin &&
+      txn?.type === 'Payment' &&
+      txn?.status === 'Pending' &&
+      txn?.method === 'Cash',
+    [isSuperAdmin],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -257,6 +280,7 @@ export function usePaymentsPageController() {
     setActionReason,
     savingAction,
     submitAction,
+    canConfirmCash,
     confirm,
     closeConfirm,
     feeSettings,

@@ -18,6 +18,7 @@ const SCOPE_TO_TABLES = {
   catalog: ['industries', 'service_categories'],
   locations: ['locations'],
   settings: ['system_settings'],
+  team: ['accounts', 'admin_profiles', 'admin_roles'],
   dashboard: ['bookings', 'payments'],
   analytics: ['payments'],
 };
