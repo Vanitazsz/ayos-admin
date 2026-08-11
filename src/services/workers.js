@@ -4,7 +4,7 @@ export async function loadWorkers() {
   const { data, error } = await supabase
     .from('worker_profiles')
     .select(
-      'account_id,display_name,bio,experience,service_area,service_origin,service_radius_meters,approval_status,is_available,created_at,accounts!worker_profiles_account_id_fkey!inner(email,mobile,status,role,deleted_at),worker_skills!worker_skills_worker_id_fkey(years,rate_minor,category_id,service_categories!worker_skills_category_id_fkey(id,name)),worker_verifications!worker_verifications_worker_id_fkey(id,status),bookings!bookings_worker_account_id_fkey(count)',
+      'account_id,display_name,bio,experience,service_area,service_origin,service_radius_meters,approval_status,is_available,created_at,accounts!worker_profiles_account_id_fkey!inner(email,mobile,status,role,deleted_at),locations!worker_profiles_location_id_fkey(name),worker_skills!worker_skills_worker_id_fkey(years,rate_minor,category_id,service_categories!worker_skills_category_id_fkey(id,name)),worker_verifications!worker_verifications_worker_id_fkey(id,status),bookings!bookings_worker_account_id_fkey(count)',
     )
     .eq('accounts.role', 'WORKER')
     .is('accounts.deleted_at', null)
@@ -84,7 +84,8 @@ export async function loadWorkers() {
       experience: Math.max(...skills.map((skill) => skill.years), 0),
       status: status(row.accounts?.status),
       verified: row.approval_status === 'APPROVED',
-      location: row.service_area ?? '',
+      location: row.locations?.name ?? row.service_area ?? '',
+      locationId: row.locations?.id ?? null,
       registeredDate: row.created_at ? new Date(row.created_at).toLocaleDateString() : '',
       earnings: walletByWorker.get(row.account_id) ?? 0,
       verificationStatus: verification?.status ?? row.approval_status,

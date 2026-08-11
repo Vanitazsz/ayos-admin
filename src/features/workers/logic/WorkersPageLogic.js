@@ -14,3 +14,4 @@ export {
   updateWorkerEmail,
 } from '../../../services/workers';
 export { loadCatalog } from '../../../services/catalog';
+export { loadLocations } from '../../../services/locations';

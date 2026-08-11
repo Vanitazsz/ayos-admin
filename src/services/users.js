@@ -17,6 +17,8 @@ export const mapUser = (row) => {
     address: [row.addresses?.[0]?.line1, row.addresses?.[0]?.barangay, row.addresses?.[0]?.city]
       .filter(Boolean)
       .join(', '),
+    location: profile?.locations?.[0]?.name ?? '',
+    locationId: profile?.locations?.[0]?.id ?? null,
     registeredAt: new Date(row.created_at).toLocaleDateString(),
     status: status(row.status),
     bookings: profile?.bookings?.[0]?.count ?? 0,
@@ -27,15 +29,16 @@ export const mapUser = (row) => {
 };
 
 const USER_PAGE_SELECT =
-  'id,email,mobile,status,created_at,user_profiles(display_name,verification_status,avatar_path,bookings!bookings_user_account_id_fkey(count)),addresses(line1,barangay,city)';
+  'id,email,mobile,status,created_at,user_profiles(display_name,verification_status,avatar_path,locations!user_profiles_location_id_fkey(id,name),bookings!bookings_user_account_id_fkey(count)),addresses(line1,barangay,city)';
 
 const USER_KEY_SELECT =
-  'id,email,status,created_at,user_profiles(display_name,verification_status)';
+  'id,email,status,created_at,user_profiles(display_name,verification_status,locations!user_profiles_location_id_fkey(id,name))';
 
 export async function loadUsersPage({
   search = '',
   status = 'All',
   verified = 'All',
+  location = 'All',
   page = 1,
   pageSize = 10,
 } = {}) {
@@ -66,7 +69,7 @@ export async function loadUsersPage({
 
   const term = search.trim().toLowerCase();
   const matchesSearch = (row) => {
-    const name = row.user_profiles?.display_name ?? '';
+    const name = asProfile(row)?.display_name ?? '';
     return (
       name.toLowerCase().includes(term) ||
       row.email.toLowerCase().includes(term) ||
@@ -82,8 +85,17 @@ export async function loadUsersPage({
     const profile = asProfile(row);
     return normalizeVerificationStatus(profile?.verification_status) === verified;
   };
+  const matchesLocation = (row) => {
+    if (location === 'All') return true;
+    const profile = asProfile(row);
+    return (profile?.locations?.[0]?.name ?? '') === location;
+  };
   const matched = allKeys.filter(
-    (row) => (!term || matchesSearch(row)) && matchesStatus(row) && matchesVerified,
+    (row) =>
+      (!term || matchesSearch(row)) &&
+      matchesStatus(row) &&
+      matchesVerified(row) &&
+      matchesLocation(row),
   );
   const count = matched.length;
   const pageIds = matched

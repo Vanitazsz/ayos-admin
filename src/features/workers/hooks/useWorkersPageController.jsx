@@ -10,6 +10,7 @@ import {
   updateWorker,
   updateWorkerEmail,
   loadCatalog,
+  loadLocations,
 } from '../logic/WorkersPageLogic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { UserCheck, UserX, AlertCircle, Briefcase } from 'lucide-react';
@@ -24,6 +25,8 @@ export function useWorkersPageController() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterVerified, setFilterVerified] = useState('All');
+  const [filterLocation, setFilterLocation] = useState('All');
+  const [locations, setLocations] = useState([]);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
@@ -84,6 +87,13 @@ export function useWorkersPageController() {
           setSkills([]);
         }
       });
+    void loadLocations()
+      .then((loadedLocations) => {
+        if (!cancelled) setLocations(loadedLocations ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setLocations([]);
+      });
     return () => {
       cancelled = true;
     };
@@ -118,12 +128,15 @@ export function useWorkersPageController() {
         const matchesVerified =
           filterVerified === 'All' ||
           (filterVerified === 'verified' ? w.verified : !w.verified);
+        const matchesLocation =
+          filterLocation === 'All' ||
+          (w.location ?? '') === filterLocation;
         const matchesTab =
           activeTab === 'all' ||
           (activeTab === 'review' && needsReview(w));
-        return matchesSearch && matchesStatus && matchesVerified && matchesTab;
+        return matchesSearch && matchesStatus && matchesVerified && matchesLocation && matchesTab;
       }),
-    [workers, searchTerm, filterStatus, filterVerified, activeTab, needsReview],
+    [workers, searchTerm, filterStatus, filterVerified, filterLocation, activeTab, needsReview],
   );
 
   const {
@@ -205,7 +218,7 @@ export function useWorkersPageController() {
 
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [searchTerm, filterStatus, filterVerified, activeTab]);
+  }, [searchTerm, filterStatus, filterVerified, filterLocation, activeTab]);
 
   const handleBulkStatus = useCallback(
     async (nextStatus) => {
@@ -554,6 +567,9 @@ export function useWorkersPageController() {
       setFilterStatus,
       filterVerified,
       setFilterVerified,
+      filterLocation,
+      setFilterLocation,
+      locations,
       currentPage,
       setCurrentPage,
       selectedWorker,
@@ -618,6 +634,8 @@ export function useWorkersPageController() {
       searchTerm,
       filterStatus,
       filterVerified,
+      filterLocation,
+      locations,
       currentPage,
       selectedWorker,
       isDrawerOpen,

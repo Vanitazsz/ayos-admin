@@ -20,6 +20,7 @@ import {
   ArrowLeft,
   X,
   ArchiveRestore,
+  MapPinned,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { formatDateTime, money } from '../../../services/adminShared';
@@ -67,6 +68,9 @@ export function UsersView({ model }) {
     setFilterStatus,
     filterVerified,
     setFilterVerified,
+    filterLocation,
+    setFilterLocation,
+    locations,
     currentPage,
     setCurrentPage,
     activeTab,
@@ -179,6 +183,21 @@ export function UsersView({ model }) {
             <div className="flex w-full sm:w-auto items-center gap-2">
               <div className="w-full sm:w-44">
                 <Select
+                  icon={MapPinned}
+                  aria-label="Filter by location"
+                  value={filterLocation}
+                  onChange={(e) => setFilterLocation(e.target.value)}
+                >
+                  <option value="All">All Locations</option>
+                  {locations.map((location) => (
+                    <option key={location.id} value={location.name}>
+                      {location.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="w-full sm:w-44">
+                <Select
                   icon={ShieldCheck}
                   aria-label="Filter by verification status"
                   value={filterVerified}
@@ -282,6 +301,7 @@ export function UsersView({ model }) {
                     </TableHead>
                   ) : null}
                   <TableHead scope="col">User Details</TableHead>
+                  <TableHead scope="col" className="hidden xl:table-cell">Location</TableHead>
                   <TableHead scope="col" className="hidden lg:table-cell">Contact</TableHead>
                   <TableHead scope="col" className="hidden lg:table-cell">Registration Date</TableHead>
                   <TableHead scope="col">Bookings</TableHead>
@@ -309,6 +329,7 @@ export function UsersView({ model }) {
                           </div>
                         ),
                       },
+                      { className: 'hidden xl:table-cell' },
                       { className: 'hidden lg:table-cell' },
                       { className: 'hidden lg:table-cell' },
                       {},
@@ -327,7 +348,7 @@ export function UsersView({ model }) {
                   />
                 ) : currentUsers.length === 0 ? (
                   <TableRow hover={false}>
-                    <TableCell colSpan={isSelectionActive ? 8 : 7} className="h-64 text-center">
+                    <TableCell colSpan={isSelectionActive ? 9 : 8} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center text-foreground-lighter">
                         <Search className="h-12 w-12 text-foreground-muted mb-4" />
                         <p className="text-lg font-medium text-foreground">
@@ -369,6 +390,14 @@ export function UsersView({ model }) {
                             <div className="text-xs text-foreground-lighter">{user.id}</div>
                           </div>
                         </div>
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell">
+                        <span className="flex items-center text-sm text-foreground-light">
+                          <MapPinned className="h-3.5 w-3.5 mr-1.5 shrink-0 text-foreground-muted" />
+                          <span className="truncate max-w-[12rem] min-w-0" title={user.location}>
+                            {user.location || '—'}
+                          </span>
+                        </span>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
                         <div className="flex flex-col space-y-1">

@@ -22,6 +22,7 @@ import {
   X,
   Coins,
   ArchiveRestore,
+  MapPinned,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
@@ -60,6 +61,9 @@ export function WorkersView({ model }) {
     setFilterStatus,
     filterVerified,
     setFilterVerified,
+    filterLocation,
+    setFilterLocation,
+    locations,
     currentPage,
     setCurrentPage,
     selectedWorker,
@@ -163,6 +167,21 @@ export function WorkersView({ model }) {
           />
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
+          <div className="w-full sm:w-44">
+            <Select
+              icon={MapPinned}
+              aria-label="Filter workers by location"
+              value={filterLocation}
+              onChange={(e) => setFilterLocation(e.target.value)}
+            >
+              <option value="All">All Locations</option>
+              {locations.map((location) => (
+                <option key={location.id} value={location.name}>
+                  {location.name}
+                </option>
+              ))}
+            </Select>
+          </div>
           <div className="w-full sm:w-44">
             <Select
               icon={ShieldCheck}
@@ -284,6 +303,9 @@ export function WorkersView({ model }) {
               <TableHead scope="col">
                 Category
               </TableHead>
+              <TableHead scope="col" className="hidden xl:table-cell">
+                Location
+              </TableHead>
               <TableHead scope="col">
                 Rating
               </TableHead>
@@ -319,6 +341,7 @@ export function WorkersView({ model }) {
                     ),
                   },
                   {},
+                  { className: 'hidden xl:table-cell' },
                   {},
                   { className: 'hidden xl:table-cell' },
                   { className: 'hidden lg:table-cell' },
@@ -373,6 +396,12 @@ export function WorkersView({ model }) {
                       {(worker.categories ?? []).join(', ') || '—'}
                     </div>
                     <div className="text-sm text-foreground-lighter">{worker.experience} yrs exp</div>
+                  </TableCell>
+                  <TableCell className="hidden xl:table-cell whitespace-nowrap">
+                    <div className="flex items-center text-sm text-foreground">
+                      <MapPinned size={16} className="text-brand-600 mr-2 shrink-0" />
+                      {worker.location || '—'}
+                    </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center text-sm text-foreground">
