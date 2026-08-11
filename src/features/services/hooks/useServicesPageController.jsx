@@ -338,22 +338,6 @@ export function useServicesPageController() {
     [refresh, toast],
   );
 
-  const toggleIndustryStatus = useCallback(
-    async (id) => {
-      const industry = industriesData.find((item) => item.id === id);
-      try {
-        await saveIndustry({
-          ...industry,
-          status: industry.status === 'Enabled' ? 'Disabled' : 'Enabled',
-        });
-        await refresh();
-      } catch (error) {
-        toast.error('Operation failed', error.message);
-      }
-    },
-    [industriesData, refresh, toast],
-  );
-
   const handleSaveIndustry = useCallback(
     async (e) => {
       e.preventDefault();
@@ -416,7 +400,6 @@ export function useServicesPageController() {
       handleOpenAddIndustryModal,
       handleOpenEditIndustryModal,
       handleDeactivateIndustry,
-      toggleIndustryStatus,
       handleSaveIndustry,
     }),
     [
@@ -451,7 +434,6 @@ export function useServicesPageController() {
       handleOpenAddIndustryModal,
       handleOpenEditIndustryModal,
       handleDeactivateIndustry,
-      toggleIndustryStatus,
       handleSaveIndustry,
       closeConfirm,
       closeDetails,

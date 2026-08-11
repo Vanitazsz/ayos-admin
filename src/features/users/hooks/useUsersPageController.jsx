@@ -90,20 +90,6 @@ export function useUsersPageController() {
     filterKey: `${filterStatus}|${filterVerified}|${filterLocation}`,
   });
 
-  useEffect(() => {
-    let cancelled = false;
-    void loadLocations()
-      .then((loadedLocations) => {
-        if (!cancelled) setLocations(loadedLocations ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setLocations([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const loadVerifications = useCallback(async () => {
     setIsVerificationsLoading(true);
     try {
@@ -119,6 +105,20 @@ export function useUsersPageController() {
     await refreshUsers();
     await loadVerifications();
   }, [refreshUsers, loadVerifications]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadLocations()
+      .then((loadedLocations) => {
+        if (!cancelled) setLocations(loadedLocations ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setLocations([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const stats = useMemo(
     () => [

@@ -39,16 +39,18 @@ export function AnalyticsView({ model }) {
           <h1 className="text-2xl font-bold text-foreground">Business Analytics</h1>
           <p className="text-foreground-lighter mt-1">High-level metrics and growth trends</p>
         </div>
-        <Select className="w-44" defaultValue="last-12">
-          <option value="last-12">Last 12 Months</option>
-          <option value="last-6">Last 6 Months</option>
-          <option value="this-year">This Year</option>
-          <option value="all-time">All Time</option>
-        </Select>
+        <div className="w-44">
+          <Select defaultValue="last-12" aria-label="Analytics time range">
+            <option value="last-12">Last 12 Months</option>
+            <option value="last-6">Last 6 Months</option>
+            <option value="this-year">This Year</option>
+            <option value="all-time">All Time</option>
+          </Select>
+        </div>
       </div>
 
       {/* Primary Metrics (KPIs) */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi, index) => (
           <StatCard
             key={index}
@@ -151,42 +153,23 @@ export function AnalyticsView({ model }) {
       </div>
 
       {/* Extra Analytics Cards */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Monthly Active Users (MAU)</CardTitle>
-            <CardDescription>Compared to previous month</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-success/10">
-              <Users className="size-6 text-success" />
-            </div>
-            <div className="flex items-baseline gap-3">
-              <span className="text-2xl font-normal leading-tight text-foreground">
-                {mau ?? '—'}
-              </span>
-              <span className="text-xs font-medium text-success">Live</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Avg. Worker Earnings / Mo</CardTitle>
-            <CardDescription>Across all verified workers</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-warning/10">
-              <Wallet className="size-6 text-warning-600 dark:text-warning-400" />
-            </div>
-            <div className="flex items-baseline gap-3">
-              <span className="text-2xl font-normal leading-tight text-foreground">
-                {avgWorkerEarnings != null ? money(avgWorkerEarnings) : '—'}
-              </span>
-              <span className="text-xs font-medium text-success">Annual avg</span>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <StatCard
+          title="Monthly Active Users (MAU)"
+          value={mau ?? '—'}
+          icon={Users}
+          trend="up"
+          trendValue="Live"
+          subtitle="Compared to previous month"
+        />
+        <StatCard
+          title="Avg. Worker Earnings / Mo"
+          value={avgWorkerEarnings != null ? money(avgWorkerEarnings) : '—'}
+          icon={Wallet}
+          trend="up"
+          trendValue="Annual avg"
+          subtitle="Across all verified workers"
+        />
       </div>
     </div>
   );

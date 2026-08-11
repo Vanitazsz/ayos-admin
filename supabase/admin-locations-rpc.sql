@@ -1,25 +1,24 @@
--- Admin LOCATIONS entity + migration.
--- Replaces the legacy "subdivisions" concept end-to-end:
---   admin_list_subdivisions / admin_create_subdivision / admin_update_subdivision
+-- Admin LOCATIONS entity RPCs.
+-- The `locations` table itself is created/migrated by the consumer schema migration
+-- (ayos-final: 2026...rename_subdivisions_to_locations.sql), which owns the canonical
+-- definition (same shape/grants/RLS as the legacy `subdivisions` table). This script
+-- only guarantees the table exists for standalone setup and defines the admin RPCs.
 -- Run in the Supabase SQL editor. Idempotent / re-runnable.
 --
 -- Design notes (mirrors the existing admin RPC conventions):
---   * The locations table is admin-only (RLS via the shared admin_full_access policy).
---   * All writes go through SECURITY DEFINER RPCs guarded by public.is_admin().
---   * Reads are also exposed through an RPC (is_admin(false)) so the admin app has a
---     single, explicit source of truth and stays consistent with worker/user pages.
+--   * The locations table is RLS-protected; the consumer app reads active rows, and
+--     admins manage rows through the SECURITY DEFINER RPCs below guarded by is_admin().
 --   * The table is added to the realtime publication so the admin app's
 --     useRealtime('locations', ...) subscription works.
---   * worker_profiles.location_id and user_profiles.location_id are additive, nullable
---     columns so the consumer apps are unaffected; existing rows are backfilled where a
---     name match is possible.
+--   * Do NOT drop the legacy `subdivisions` schema here; that is owned by the consumer
+--     migration so the consumer app stays in sync.
 
--- 1) locations table
+-- 1) canonical locations table (matches the consumer definition; no-op if present)
 create table if not exists public.locations (
   id uuid primary key default gen_random_uuid(),
-  name text not null unique,
-  center_lat double precision not null,
-  center_lng double precision not null,
+  name text not null check (length(btrim(name)) between 2 and 160),
+  center_lat double precision not null check (center_lat between -90 and 90),
+  center_lng double precision not null check (center_lng between -180 and 180),
   radius_meters integer not null default 2000 check (radius_meters between 100 and 50000),
   boundary jsonb,
   is_active boolean not null default true,
@@ -27,59 +26,41 @@ create table if not exists public.locations (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists locations_is_active_idx on public.locations(is_active);
+create unique index if not exists locations_name_key on public.locations(lower(name));
+create index if not exists locations_active_idx on public.locations(is_active, name);
 
--- 2) realtime
+-- 2) RLS + grants (parity with the legacy subdivisions access model)
+alter table public.locations enable row level security;
+drop policy if exists "admin_full_access" on public.locations;
+
+revoke all on public.locations from anon, authenticated;
+grant select on public.locations to authenticated;
+grant select, insert, update, delete on public.locations to service_role;
+
+drop policy if exists locations_authenticated_read on public.locations;
+create policy locations_authenticated_read on public.locations
+for select to authenticated using (is_active or public.is_admin(false));
+
+drop policy if exists locations_admin_insert on public.locations;
+create policy locations_admin_insert on public.locations
+for insert to authenticated with check (public.is_admin(true));
+
+drop policy if exists locations_admin_update on public.locations;
+create policy locations_admin_update on public.locations
+for update to authenticated using (public.is_admin(true)) with check (public.is_admin(true));
+
+drop policy if exists locations_admin_delete on public.locations;
+create policy locations_admin_delete on public.locations
+for delete to authenticated using (public.is_admin(true));
+
+-- 3) realtime
 do $$
 begin
   alter publication supabase_realtime add table public.locations;
 exception when duplicate_object then null;
 end $$;
 
--- 3) RLS
-alter table public.locations enable row level security;
-drop policy if exists "admin_full_access" on public.locations;
-create policy "admin_full_access" on public.locations
-  for all using (public.iam_admin()) with check (public.iam_admin());
-
--- 4) migrate legacy subdivisions data, then drop the old objects.
-do $$
-begin
-  if exists (
-    select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
-    where n.nspname = 'public' and c.relname = 'subdivisions' and c.relkind = 'r'
-  ) then
-    begin
-      insert into public.locations(id, name, center_lat, center_lng, radius_meters, boundary, is_active, created_at, updated_at)
-      select id, name, center_lat, center_lng, radius_meters, boundary, is_active, created_at, updated_at
-      from public.subdivisions
-      on conflict (id) do nothing;
-    exception when undefined_column then
-      insert into public.locations(id, name, center_lat, center_lng, radius_meters, is_active, created_at, updated_at)
-      select id, name, center_lat, center_lng, radius_meters, is_active, created_at, updated_at
-      from public.subdivisions
-      on conflict (id) do nothing;
-    end;
-    drop table public.subdivisions;
-  end if;
-end $$;
-
--- Drop every function under the old names regardless of signature.
-do $$
-declare r record;
-begin
-  for r in
-    select p.oid::regprocedure as sig
-    from pg_proc p
-    join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public'
-      and p.proname in ('admin_list_subdivisions', 'admin_create_subdivision', 'admin_update_subdivision')
-  loop
-    execute 'drop function ' || r.sig;
-  end loop;
-end $$;
-
--- 5) admin RPCs
+-- 4) admin RPCs
 create or replace function public.admin_list_locations()
 returns setof public.locations
 language plpgsql security definer set search_path = '' as $$
@@ -198,36 +179,7 @@ begin
 end
 $$;
 
--- 6) associations: additive nullable FKs on the shared profile tables.
-alter table public.worker_profiles add column if not exists location_id uuid references public.locations(id) on delete set null;
-alter table public.user_profiles add column if not exists location_id uuid references public.locations(id) on delete set null;
-create index if not exists worker_profiles_location_id_idx on public.worker_profiles(location_id);
-create index if not exists user_profiles_location_id_idx on public.user_profiles(location_id);
-
--- 7) backfill existing profiles where a name match is unambiguous.
-do $$
-declare loc record;
-begin
-  for loc in
-    select id, name from public.locations where is_active
-  loop
-    update public.worker_profiles
-    set location_id = loc.id
-    where location_id is null
-      and lower(coalesce(service_area, '')) = lower(loc.name);
-
-    update public.user_profiles
-    set location_id = loc.id
-    where location_id is null
-      and exists (
-        select 1 from public.addresses a
-        where a.account_id = user_profiles.account_id
-          and lower(coalesce(a.city, '') || ' ' || coalesce(a.barangay, '')) like '%' || lower(loc.name) || '%'
-      );
-  end loop;
-end $$;
-
--- 8) grants
+-- 5) grants
 revoke all on function public.admin_list_locations() from public, anon;
 grant execute on function public.admin_list_locations() to authenticated;
 

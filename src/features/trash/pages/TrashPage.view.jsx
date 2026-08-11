@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Pagination from '../../../components/ui/Pagination';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import AccountDeleteModal from '../../../components/admin/AccountDeleteModal';
+import PermanentDeleteModal from '../components/PermanentDeleteModal';
 import { TRASH_TABS } from '../logic/TrashPageLogic';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
@@ -31,6 +32,9 @@ export function TrashView({ model }) {
     accountToDelete,
     setAccountToDelete,
     handleDeleteAccountFromTrash,
+    bookingToDelete,
+    setBookingToDelete,
+    handleDeleteBookingFromTrash,
   } = model;
 
   const scrolledRef = useRef(false);
@@ -239,6 +243,12 @@ export function TrashView({ model }) {
         onDelete={handleDeleteAccountFromTrash}
         onDeleted={() => setAccountToDelete(null)}
         onClose={() => setAccountToDelete(null)}
+      />
+      <PermanentDeleteModal
+        item={bookingToDelete}
+        onDelete={handleDeleteBookingFromTrash}
+        onDeleted={() => setBookingToDelete(null)}
+        onClose={() => setBookingToDelete(null)}
       />
     </div>
   );

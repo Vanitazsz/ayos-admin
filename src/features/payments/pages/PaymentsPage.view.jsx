@@ -16,9 +16,20 @@ import Pagination from '../../../components/ui/Pagination';
 import StatCard from '../../../components/ui/StatCard';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import Select from '../../../components/ui/Select';
-import Button from '../../../components/ui/Button';
+import { Button } from '../../../components/ui/Button';
 import Modal from '../../../components/ui/Modal';
 import Input from '../../../components/ui/Input';
+import Textarea from '../../../components/ui/Textarea';
+import { Badge } from '../../../components/ui/Badge';
+import { Alert } from '../../../components/ui/Alert';
+import EmptyState from '../../../components/ui/EmptyState';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/Tabs';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '../../../components/ui/Card';
 import { money } from '../../../services/adminShared';
 import {
   Table,
@@ -39,37 +50,235 @@ import { Trash2 } from 'lucide-react';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import { CommissionFeeSettings } from '../components/CommissionFeeSettings';
 
+const txnTypeVariant = {
+  Payment: 'primary',
+  Payout: 'info',
+  Refund: 'warning',
+};
+
+const txnStatusVariant = {
+  Completed: 'success',
+  Pending: 'warning',
+  Failed: 'danger',
+  Refunded: 'default',
+};
+
+const TransactionsTab = ({ model, onOpenAction, onViewDetails }) => (
+  <>
+    {/* Filters and Search */}
+    <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div className="relative w-full sm:w-96">
+        <Input
+          icon={Search}
+          aria-label="Search transactions by ID or name..."
+          placeholder="Search transactions by ID or name..."
+          value={model.searchTerm}
+          onChange={(e) => model.setSearchTerm(e.target.value)}
+        />
+      </div>
+      <div className="flex w-full sm:w-auto items-center gap-2">
+        <div className="w-full sm:w-48">
+          <Select
+            icon={Filter}
+            aria-label="Filter transactions by type"
+            value={model.filterType}
+            onChange={(e) => model.setFilterType(e.target.value)}
+          >
+            <option value="All">All Types</option>
+            <option value="Payment">Payments</option>
+          </Select>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
+              <CalendarDays className="size-4" />
+              <span className="max-w-40 truncate">{model.dateFilterLabel}</span>
+              <ChevronDown className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem
+              onSelect={() => {
+                model.setSort('newest');
+                model.setDatePreset('all');
+              }}
+              className="cursor-pointer justify-between"
+            >
+              Most Recent
+              {model.sort === 'newest' && model.datePreset === 'all' && <Check className="size-4" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => {
+                model.setSort('oldest');
+                model.setDatePreset('all');
+              }}
+              className="cursor-pointer justify-between"
+            >
+              Old to New
+              {model.sort === 'oldest' && model.datePreset === 'all' && <Check className="size-4" />}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => model.setDatePreset('today')}
+              className="cursor-pointer justify-between"
+            >
+              Today
+              {model.datePreset === 'today' && <Check className="size-4" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => model.setDatePreset('7d')}
+              className="cursor-pointer justify-between"
+            >
+              Last 7 Days
+              {model.datePreset === '7d' && <Check className="size-4" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => model.setDatePreset('month')}
+              className="cursor-pointer justify-between"
+            >
+              This Month
+              {model.datePreset === 'month' && <Check className="size-4" />}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => model.setIsDateRangeOpen(true)}
+              className="cursor-pointer justify-between"
+            >
+              Custom Range…
+              {model.datePreset === 'custom' && <Check className="size-4" />}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+
+    {/* Table */}
+    <div className="bg-card shadow-sm border border-border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col">Sender → Receiver</TableHead>
+            <TableHead scope="col">Type / Method</TableHead>
+            <TableHead scope="col">Amount</TableHead>
+            <TableHead scope="col">Status</TableHead>
+            <TableHead scope="col">Date</TableHead>
+            <TableHead scope="col" className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {model.isLoading ? (
+            <TableSkeleton
+              rows={6}
+              columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]}
+            />
+          ) : model.paginatedTxns.length > 0 ? (
+            model.paginatedTxns.map((txn) => (
+              <TableRow key={txn.id}>
+                <TableCell className="whitespace-nowrap">
+                  <div className="flex items-center text-sm font-medium text-foreground">
+                    <span className="max-w-44 truncate">{txn.customer || '—'}</span>
+                    <ArrowRight className="mx-1.5 size-3 shrink-0 text-foreground-muted" />
+                    <span className="max-w-44 truncate">{txn.worker || '—'}</span>
+                  </div>
+                  <div className="mt-0.5 text-xs text-foreground-lighter">
+                    <span className="font-mono">{txn.id}</span> · Booking:{' '}
+                    {txn.bookingId}
+                  </div>
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <Badge variant={txnTypeVariant[txn.type] ?? 'default'} className="mb-1">
+                    {txn.type}
+                  </Badge>
+                  <div className="text-xs text-foreground-lighter">{txn.method}</div>
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <div
+                    className={`text-sm font-bold ${txn.type === 'Refund' ? 'text-destructive' : 'text-foreground'}`}
+                  >
+                    {money(txn.amount)}
+                  </div>
+                  {txn.type === 'Payment' && (
+                    <div className="text-xs text-foreground-lighter">Fee: {money(txn.fee)}</div>
+                  )}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <Badge variant={txnStatusVariant[txn.status] ?? 'default'}>
+                    {txn.status}
+                  </Badge>
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-foreground-lighter">
+                  {txn.date}
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-right font-medium">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        aria-label={`Open actions for ${txn.id}`}
+                        className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
+                      >
+                        <MoreVertical size={20} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52">
+                      <DropdownMenuItem
+                        onSelect={() => onViewDetails(txn)}
+                        className="cursor-pointer"
+                      >
+                        <Eye className="mr-2" /> View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onSelect={() => onOpenAction('trash', txn)}
+                        className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
+                      >
+                        <Trash2 className="mr-2" /> Move to Trash
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow hover={false}>
+              <TableCell colSpan="6" className="p-0">
+                <EmptyState
+                  icon={CreditCard}
+                  title="No transactions found"
+                  description="No transactions found matching your criteria."
+                />
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+
+    {model.count > 0 && (
+      <Pagination
+        currentPage={model.currentPage}
+        totalPages={model.totalPages}
+        onPageChange={model.setCurrentPage}
+      />
+    )}
+  </>
+);
+
 export function PaymentsView({ model }) {
   const {
-    isLoading,
     error,
-    searchTerm,
-    setSearchTerm,
-    filterType,
-    setFilterType,
-    sort,
-    setSort,
-    datePreset,
-    setDatePreset,
     customRange,
     setCustomRange,
     isDateRangeOpen,
     setIsDateRangeOpen,
-    dateFilterLabel,
     handleApplyDateRange,
     handleClearDateRange,
-    currentPage,
-    setCurrentPage,
     selectedTxn,
     isDrawerOpen,
     setIsDrawerOpen,
     activeTab,
     setActiveTab,
-    count,
-    totalPages,
-    paginatedTxns,
+    setCurrentPage,
     stats,
-    getStatusColor,
     handleViewDetails,
     openAction,
     action,
@@ -97,12 +306,9 @@ export function PaymentsView({ model }) {
         </div>
       </div>
       {error && (
-        <div
-          role="alert"
-          className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
+        <Alert variant="danger" className="mb-4">
           {error}
-        </div>
+        </Alert>
       )}
 
       {/* Stats Cards */}
@@ -112,335 +318,123 @@ export function PaymentsView({ model }) {
         ))}
       </div>
 
-      {/* Tabs */}
-      <div className="flex space-x-4 mb-6 border-b border-border overflow-x-auto">
-        <button
-          className={`py-2 px-4 font-medium text-sm border-b-2 whitespace-nowrap ${activeTab === 'transactions' ? 'border-foreground text-foreground' : 'border-transparent text-foreground-lighter hover:text-foreground-light hover:border-border-strong'}`}
-          onClick={() => {
-            setActiveTab('transactions');
+      <Tabs
+        value={activeTab}
+        onValueChange={(tab) => {
+          setActiveTab(tab);
+          if (tab !== 'methods' && tab !== 'commission') {
             setCurrentPage(1);
-          }}
-        >
-          All Transactions
-        </button>
-        <button
-          className={`py-2 px-4 font-medium text-sm border-b-2 whitespace-nowrap ${activeTab === 'refunds' ? 'border-foreground text-foreground' : 'border-transparent text-foreground-lighter hover:text-foreground-light hover:border-border-strong'}`}
-          onClick={() => {
-            setActiveTab('refunds');
-            setCurrentPage(1);
-          }}
-        >
-          Refund Management
-        </button>
-        <button
-          className={`py-2 px-4 font-medium text-sm border-b-2 whitespace-nowrap ${activeTab === 'cash' ? 'border-foreground text-foreground' : 'border-transparent text-foreground-lighter hover:text-foreground-light hover:border-border-strong'}`}
-          onClick={() => {
-            setActiveTab('cash');
-            setCurrentPage(1);
-          }}
-        >
-          Cash Records
-        </button>
-        <button
-          className={`py-2 px-4 font-medium text-sm border-b-2 whitespace-nowrap ${activeTab === 'methods' ? 'border-foreground text-foreground' : 'border-transparent text-foreground-lighter hover:text-foreground-light hover:border-border-strong'}`}
-          onClick={() => setActiveTab('methods')}
-        >
-          Payment Methods (Settings)
-        </button>
-        <button
-          className={`py-2 px-4 font-medium text-sm border-b-2 whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'commission' ? 'border-foreground text-foreground font-semibold' : 'border-transparent text-foreground-lighter hover:text-foreground-light hover:border-border-strong'}`}
-          onClick={() => setActiveTab('commission')}
-        >
-          <Sliders size={16} className={activeTab === 'commission' ? 'text-brand-600' : ''} />
-          Commission & Fee Configuration
-        </button>
-      </div>
+          }
+        }}
+      >
+        {/* Tabs */}
+        <TabsList className="space-x-2 mb-6">
+          <TabsTrigger value="transactions">All Transactions</TabsTrigger>
+          <TabsTrigger value="refunds">Refund Management</TabsTrigger>
+          <TabsTrigger value="cash">Cash Records</TabsTrigger>
+          <TabsTrigger value="methods">Payment Methods (Settings)</TabsTrigger>
+          <TabsTrigger value="commission" className="gap-1.5">
+            <Sliders size={16} className={activeTab === 'commission' ? 'text-brand-600' : ''} />
+            Commission & Fee Configuration
+          </TabsTrigger>
+        </TabsList>
 
-      {activeTab === 'commission' ? (
-        <CommissionFeeSettings
-          feeSettings={feeSettings}
-          onChangeFeeSettings={setFeeSettings}
-          onSaveFeeSettings={saveFeeSettings}
-          isSaving={isSavingFeeSettings}
-          onResetDefaults={resetFeeSettingsToDefaults}
-        />
-      ) : activeTab === 'methods' ? (
-        /* Payment Methods Settings Tab */
-        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-          <h2 className="text-lg font-bold text-foreground mb-6">Payment Methods</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-brand-500/10 rounded-lg flex items-center justify-center mr-4">
-                  <span className="font-bold text-brand-600 text-xl">GC</span>
+        <TabsContent value="transactions">
+          <TransactionsTab
+            model={model}
+            onOpenAction={openAction}
+            onViewDetails={handleViewDetails}
+          />
+        </TabsContent>
+        <TabsContent value="refunds">
+          <TransactionsTab
+            model={model}
+            onOpenAction={openAction}
+            onViewDetails={handleViewDetails}
+          />
+        </TabsContent>
+        <TabsContent value="cash">
+          <TransactionsTab
+            model={model}
+            onOpenAction={openAction}
+            onViewDetails={handleViewDetails}
+          />
+        </TabsContent>
+        <TabsContent value="methods">
+          {/* Payment Methods Settings Tab */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-bold">Payment Methods</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                  <div className="flex items-center">
+                    <div className="h-12 w-12 bg-brand-500/10 rounded-lg flex items-center justify-center mr-4">
+                      <span className="font-bold text-brand-600 text-xl">GC</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">GCash</h3>
+                      <p className="text-sm text-foreground-lighter">Integration coming soon</p>
+                    </div>
+                  </div>
+                  <Badge variant="default">Disabled (Future)</Badge>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">GCash</h3>
-                  <p className="text-sm text-foreground-lighter">Integration coming soon</p>
+
+                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                  <div className="flex items-center">
+                    <div className="h-12 w-12 bg-success/10 rounded-lg flex items-center justify-center mr-4">
+                      <span className="font-bold text-success text-xl">M</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">Maya</h3>
+                      <p className="text-sm text-foreground-lighter">Integration coming soon</p>
+                    </div>
+                  </div>
+                  <Badge variant="default">Disabled (Future)</Badge>
+                </div>
+
+                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                  <div className="flex items-center">
+                    <div className="h-12 w-12 bg-info/10 rounded-lg flex items-center justify-center mr-4">
+                      <CreditCard className="text-info" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">Credit / Debit Card</h3>
+                      <p className="text-sm text-foreground-lighter">Integration coming soon</p>
+                    </div>
+                  </div>
+                  <Badge variant="default">Disabled (Future)</Badge>
+                </div>
+
+                <div className="flex items-center justify-between p-4 border border-success/30 bg-success/10 rounded-lg">
+                  <div className="flex items-center">
+                    <div className="h-12 w-12 bg-success/10 rounded-lg flex items-center justify-center mr-4">
+                      <DollarSign className="text-success" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">Cash on Delivery / Direct</h3>
+                      <p className="text-sm text-foreground-lighter">
+                        Active by default for customer-worker offline payments
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="success">Active</Badge>
                 </div>
               </div>
-              <span className="px-3 py-1 bg-surface-200 text-foreground-light text-xs font-medium rounded-full">
-                Disabled (Future)
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-success/10 rounded-lg flex items-center justify-center mr-4">
-                  <span className="font-bold text-success text-xl">M</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Maya</h3>
-                  <p className="text-sm text-foreground-lighter">Integration coming soon</p>
-                </div>
-              </div>
-              <span className="px-3 py-1 bg-surface-200 text-foreground-light text-xs font-medium rounded-full">
-                Disabled (Future)
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-info/10 rounded-lg flex items-center justify-center mr-4">
-                  <CreditCard className="text-info" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Credit / Debit Card</h3>
-                  <p className="text-sm text-foreground-lighter">Integration coming soon</p>
-                </div>
-              </div>
-              <span className="px-3 py-1 bg-surface-200 text-foreground-light text-xs font-medium rounded-full">
-                Disabled (Future)
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 border border-success/30 bg-success/10 rounded-lg">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-success/10 rounded-lg flex items-center justify-center mr-4">
-                  <DollarSign className="text-success" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Cash on Delivery / Direct</h3>
-                  <p className="text-sm text-foreground-lighter">
-                    Active by default for customer-worker offline payments
-                  </p>
-                </div>
-              </div>
-              <span className="px-3 py-1 bg-success/10 text-success-600 dark:text-success-400 text-xs font-medium rounded-full border border-success/30">
-                Active
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Filters and Search */}
-          <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="relative w-full sm:w-96">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={18} className="text-foreground-muted" />
-              </div>
-              <input
-                type="text"
-                aria-label="Search transactions by ID or name..."
-                placeholder="Search transactions by ID or name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus:ring-ring focus:border-brand-500 text-sm"
-              />
-            </div>
-            <div className="flex w-full sm:w-auto items-center gap-2">
-              <div className="w-full sm:w-48">
-                <Select
-                  icon={Filter}
-                  aria-label="Filter transactions by type"
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                >
-                  <option value="All">All Types</option>
-                  <option value="Payment">Payments</option>
-                </Select>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                    <CalendarDays className="size-4" />
-                    <span className="max-w-40 truncate">{dateFilterLabel}</span>
-                    <ChevronDown className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      setSort('newest');
-                      setDatePreset('all');
-                    }}
-                    className="cursor-pointer justify-between"
-                  >
-                    Most Recent
-                    {sort === 'newest' && datePreset === 'all' && <Check className="size-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      setSort('oldest');
-                      setDatePreset('all');
-                    }}
-                    className="cursor-pointer justify-between"
-                  >
-                    Old to New
-                    {sort === 'oldest' && datePreset === 'all' && <Check className="size-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onSelect={() => setDatePreset('today')}
-                    className="cursor-pointer justify-between"
-                  >
-                    Today
-                    {datePreset === 'today' && <Check className="size-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => setDatePreset('7d')}
-                    className="cursor-pointer justify-between"
-                  >
-                    Last 7 Days
-                    {datePreset === '7d' && <Check className="size-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => setDatePreset('month')}
-                    className="cursor-pointer justify-between"
-                  >
-                    This Month
-                    {datePreset === 'month' && <Check className="size-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onSelect={() => setIsDateRangeOpen(true)}
-                    className="cursor-pointer justify-between"
-                  >
-                    Custom Range…
-                    {datePreset === 'custom' && <Check className="size-4" />}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="bg-card shadow-sm border border-border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead scope="col">Sender → Receiver</TableHead>
-                  <TableHead scope="col">Type / Method</TableHead>
-                  <TableHead scope="col">Amount</TableHead>
-                  <TableHead scope="col">Status</TableHead>
-                  <TableHead scope="col">Date</TableHead>
-                  <TableHead scope="col" className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableSkeleton
-                    rows={6}
-                    columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]}
-                  />
-                ) : paginatedTxns.length > 0 ? (
-                  paginatedTxns.map((txn) => (
-                    <TableRow key={txn.id}>
-                      <TableCell className="whitespace-nowrap">
-                        <div className="flex items-center text-sm font-medium text-foreground">
-                          <span className="max-w-44 truncate">{txn.customer || '—'}</span>
-                          <ArrowRight className="mx-1.5 size-3 shrink-0 text-foreground-muted" />
-                          <span className="max-w-44 truncate">{txn.worker || '—'}</span>
-                        </div>
-                        <div className="mt-0.5 text-xs text-foreground-lighter">
-                          <span className="font-mono">{txn.id}</span> · Booking:{' '}
-                          {txn.bookingId}
-                        </div>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <span
-                          className={`inline-flex px-2 py-0.5 rounded text-xs font-medium mb-1 ${
-                            txn.type === 'Payment'
-                              ? 'bg-brand-500/10 text-brand-700 border border-brand-500/30'
-                              : txn.type === 'Payout'
-                                ? 'bg-info/10 text-info border border-purple-200'
-                                : 'bg-warning/10 text-warning-600 dark:text-warning-400 border border-orange-200'
-                          }`}
-                        >
-                          {txn.type}
-                        </span>
-                        <div className="text-xs text-foreground-lighter">{txn.method}</div>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <div
-                          className={`text-sm font-bold ${txn.type === 'Refund' ? 'text-destructive' : 'text-foreground'}`}
-                        >
-                          {money(txn.amount)}
-                        </div>
-                        {txn.type === 'Payment' && (
-                          <div className="text-xs text-foreground-lighter">Fee: {money(txn.fee)}</div>
-                        )}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <span
-                          className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(txn.status)}`}
-                        >
-                          {txn.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-foreground-lighter">
-                        {txn.date}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-right font-medium">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              aria-label={`Open actions for ${txn.id}`}
-                              className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
-                            >
-                              <MoreVertical size={20} />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-52">
-                            <DropdownMenuItem
-                              onSelect={() => handleViewDetails(txn)}
-                              className="cursor-pointer"
-                            >
-                              <Eye className="mr-2" /> View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onSelect={() => openAction('trash', txn)}
-                              className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
-                            >
-                              <Trash2 className="mr-2" /> Move to Trash
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow hover={false}>
-                    <TableCell colSpan="6" className="py-12 text-center text-foreground-lighter">
-                      No transactions found matching your criteria.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {count > 0 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          )}
-        </>
-      )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="commission">
+          <CommissionFeeSettings
+            feeSettings={feeSettings}
+            onChangeFeeSettings={setFeeSettings}
+            onSaveFeeSettings={saveFeeSettings}
+            isSaving={isSavingFeeSettings}
+            onResetDefaults={resetFeeSettingsToDefaults}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Custom Date Range Modal */}
       <Modal
@@ -481,12 +475,13 @@ export function PaymentsView({ model }) {
         title="Transaction Details"
         footer={
           selectedTxn ? (
-            <button
+            <Button
+              variant="danger"
+              size="sm"
               onClick={() => openAction('trash', selectedTxn)}
-              className="px-4 py-2 rounded-lg bg-destructive text-sm font-medium text-white"
             >
               Move to Trash
-            </button>
+            </Button>
           ) : null
         }
       >
@@ -499,11 +494,12 @@ export function PaymentsView({ model }) {
               <h2 className="text-4xl font-bold text-foreground mb-2">
                 {money(selectedTxn.amount)}
               </h2>
-              <span
-                className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedTxn.status)}`}
+              <Badge
+                variant={txnStatusVariant[selectedTxn.status] ?? 'default'}
+                className="text-sm px-3 py-1"
               >
                 {selectedTxn.status}
-              </span>
+              </Badge>
             </div>
 
             <div className="border-t border-border pt-4 space-y-4">
@@ -577,30 +573,31 @@ export function PaymentsView({ model }) {
           <div className="space-y-4">
             <p className="text-sm text-foreground-light">Transaction {action.txn.id}</p>
             <div>
-              <label className="mb-1 block text-sm font-medium">Admin reason</label>
-              <textarea
+              <Textarea
+                label="Admin reason"
                 value={actionReason}
                 onChange={(e) => setActionReason(e.target.value)}
                 maxLength={1000}
                 placeholder="Specify the reason for trashing this transaction..."
-                className="min-h-24 w-full rounded-lg border border-border-strong p-3 text-sm focus:ring-ring focus:border-brand-500"
+                className="min-h-24"
               />
             </div>
             <div className="flex justify-end gap-3">
-              <button
+              <Button
+                variant="outline"
                 disabled={savingAction}
                 onClick={() => setAction(null)}
-                className="rounded-lg border border-border-strong px-4 py-2 text-sm font-medium text-foreground-light hover:bg-surface-200"
               >
                 Close
-              </button>
-              <button
+              </Button>
+              <Button
                 disabled={savingAction || actionReason.trim().length < 3}
                 onClick={() => void submitAction()}
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-brand-700"
+                isLoading={savingAction}
+                loadingText="Saving…"
               >
-                {savingAction ? 'Saving…' : 'Confirm'}
-              </button>
+                Confirm
+              </Button>
             </div>
           </div>
         )}

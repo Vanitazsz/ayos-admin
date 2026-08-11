@@ -68,9 +68,6 @@ export function UsersView({ model }) {
     setFilterStatus,
     filterVerified,
     setFilterVerified,
-    filterLocation,
-    setFilterLocation,
-    locations,
     currentPage,
     setCurrentPage,
     activeTab,
@@ -181,21 +178,6 @@ export function UsersView({ model }) {
               />
             </div>
             <div className="flex w-full sm:w-auto items-center gap-2">
-              <div className="w-full sm:w-44">
-                <Select
-                  icon={MapPinned}
-                  aria-label="Filter by location"
-                  value={filterLocation}
-                  onChange={(e) => setFilterLocation(e.target.value)}
-                >
-                  <option value="All">All Locations</option>
-                  {locations.map((location) => (
-                    <option key={location.id} value={location.name}>
-                      {location.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
               <div className="w-full sm:w-44">
                 <Select
                   icon={ShieldCheck}
@@ -385,16 +367,21 @@ export function UsersView({ model }) {
                           <div className="w-10 h-10 rounded-full bg-brand-500/10 text-brand-600 flex items-center justify-center font-bold text-sm shrink-0 mr-3">
                             {user.name.charAt(0)}
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <div className="font-medium text-foreground">{user.name}</div>
-                            <div className="text-xs text-foreground-lighter">{user.id}</div>
+                            <div
+                              className="truncate max-w-[8rem] min-w-0 text-xs text-foreground-lighter"
+                              title={user.id}
+                            >
+                              {user.id}
+                            </div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="hidden xl:table-cell">
                         <span className="flex items-center text-sm text-foreground-light">
                           <MapPinned className="h-3.5 w-3.5 mr-1.5 shrink-0 text-foreground-muted" />
-                          <span className="truncate max-w-[12rem] min-w-0" title={user.location}>
+                          <span className="truncate max-w-[8rem] min-w-0" title={user.location}>
                             {user.location || '—'}
                           </span>
                         </span>

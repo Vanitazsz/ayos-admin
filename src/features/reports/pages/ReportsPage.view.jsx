@@ -12,6 +12,12 @@ import {
 } from 'lucide-react';
 import Pagination from '../../../components/ui/Pagination';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import { Button } from '../../../components/ui/Button';
+import Input from '../../../components/ui/Input';
+import Select from '../../../components/ui/Select';
+import { Badge } from '../../../components/ui/Badge';
+import { Alert } from '../../../components/ui/Alert';
+import EmptyState from '../../../components/ui/EmptyState';
 import {
   Table,
   TableHeader,
@@ -48,20 +54,17 @@ export function ReportsView({ model }) {
           <h1 className="text-2xl font-bold text-foreground">Reports Center</h1>
           <p className="text-foreground-lighter mt-1">Generate and download comprehensive system reports</p>
         </div>
-        <button
+        <Button
           onClick={() => void handleGenerate()}
-          className="mt-4 sm:mt-0 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center"
+          className="mt-4 sm:mt-0"
         >
-          <FileText size={18} className="mr-2" /> Generate Custom Report
-        </button>
+          <FileText size={18} /> Generate Custom Report
+        </Button>
       </div>
       {error && (
-        <div
-          role="alert"
-          className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
+        <Alert variant="danger" className="mb-4">
           {error}
-        </div>
+        </Alert>
       )}
 
       {/* Report Types Cards */}
@@ -69,7 +72,7 @@ export function ReportsView({ model }) {
         <button
           type="button"
           onClick={() => setReportType('All')}
-          className={`rounded-xl shadow-sm border p-4 flex flex-col items-center justify-center transition-all ${reportType === 'All' ? 'bg-foreground text-foreground-contrast border-transparent' : 'bg-card border-border hover:shadow-md text-foreground'}`}
+          className={`rounded-xl shadow-sm border p-4 flex flex-col items-center justify-center transition-all focus-ring ${reportType === 'All' ? 'bg-foreground text-foreground-contrast border-transparent' : 'bg-card border-border hover:shadow-md text-foreground'}`}
         >
           <div
             className={`p-3 rounded-full mb-3 ${reportType === 'All' ? 'bg-background/20 text-foreground-contrast' : 'bg-surface-200 text-foreground-light'}`}
@@ -134,7 +137,7 @@ export function ReportsView({ model }) {
                 setReportType(type.filterName);
                 setCurrentPage(1);
               }}
-              className={`rounded-xl shadow-sm border p-4 flex flex-col items-center justify-center transition-all ${isActive ? type.activeBg + ' border-transparent text-white' : 'bg-card border-border hover:shadow-md text-foreground'}`}
+              className={`rounded-xl shadow-sm border p-4 flex flex-col items-center justify-center transition-all focus-ring ${isActive ? type.activeBg + ' border-transparent text-white' : 'bg-card border-border hover:shadow-md text-foreground'}`}
             >
               <div
                 className={`p-3 rounded-full mb-3 ${isActive ? 'bg-card/20 text-white' : type.bg + ' ' + type.color}`}
@@ -150,42 +153,43 @@ export function ReportsView({ model }) {
       {/* Filters and Search */}
       <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="relative w-full sm:w-96">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-foreground-muted" />
-          </div>
-          <input
-            type="text"
+          <Input
+            icon={Search}
             aria-label="Search reports by name or ID..."
             placeholder="Search reports by name or ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus:ring-ring focus:border-brand-500 text-sm"
           />
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <Filter size={18} className="text-foreground-lighter" />
-          <select
-            className="w-full flex-1 min-w-0 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"
-            value={reportType}
-            onChange={(e) => setReportType(e.target.value)}
-          >
-            <option value="All">All Types</option>
-            <option value="Financial Summary">Financial Summary</option>
-            <option value="Worker Performance">Worker Performance</option>
-            <option value="Customer Activity">Customer Activity</option>
-            <option value="Service Popularity">Service Popularity</option>
-            <option value="Review Sentiment">Review Sentiment</option>
-          </select>
-          <select
-            className="w-full flex-1 min-w-0 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:ml-2 sm:w-auto sm:flex-none"
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-          >
-            <option value="Last 7 Days">Last 7 Days</option>
-            <option value="Last 30 Days">Last 30 Days</option>
-            <option value="This Year">This Year</option>
-            <option value="All Time">All Time</option>
-          </select>
+          <div className="w-full flex-1 min-w-0 sm:w-52 sm:flex-none">
+            <Select
+              icon={Filter}
+              aria-label="Filter reports by type"
+              value={reportType}
+              onChange={(e) => setReportType(e.target.value)}
+            >
+              <option value="All">All Types</option>
+              <option value="Financial Summary">Financial Summary</option>
+              <option value="Worker Performance">Worker Performance</option>
+              <option value="Customer Activity">Customer Activity</option>
+              <option value="Service Popularity">Service Popularity</option>
+              <option value="Review Sentiment">Review Sentiment</option>
+            </Select>
+          </div>
+          <div className="w-full flex-1 min-w-0 sm:w-48 sm:flex-none">
+            <Select
+              icon={Calendar}
+              aria-label="Filter reports by date range"
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+            >
+              <option value="Last 7 Days">Last 7 Days</option>
+              <option value="Last 30 Days">Last 30 Days</option>
+              <option value="This Year">This Year</option>
+              <option value="All Time">All Time</option>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -226,39 +230,46 @@ export function ReportsView({ model }) {
                     <div className="text-xs text-foreground-lighter mt-1">By {report.generatedBy}</div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-success/10 text-success-600 dark:text-success-400 mb-1">
+                    <Badge variant="success" className="mb-1">
                       {report.status}
-                    </span>
+                    </Badge>
                     <div className="text-xs text-foreground-lighter">{report.size}</div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-right font-medium">
                     <div className="flex justify-end gap-2">
-                      <button
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleDownloadCSV(report.id)}
-                        className="text-foreground-light bg-card border border-border-strong hover:bg-surface-200 px-3 py-1.5 rounded-lg font-medium transition-colors text-xs"
                       >
                         CSV
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-success-600 dark:text-success-400 border-success/30 bg-success/10 hover:bg-success/10"
                         onClick={() => handleDownloadExcel(report.id)}
-                        className="text-success-600 dark:text-success-400 bg-success/10 border border-success/30 hover:bg-success/10 px-3 py-1.5 rounded-lg font-medium transition-colors text-xs"
                       >
                         Excel
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        size="sm"
                         onClick={() => handleDownload(report.id)}
-                        className="text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg font-medium transition-colors text-xs flex items-center"
                       >
-                        <Download size={14} className="mr-1" /> PDF
-                      </button>
+                        <Download size={14} /> PDF
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow hover={false}>
-                <TableCell colSpan="4" className="text-center text-foreground-lighter">
-                  No reports found matching your criteria.
+                <TableCell colSpan="4" className="p-0">
+                  <EmptyState
+                    icon={FileText}
+                    title="No reports found"
+                    description="No reports found matching your criteria."
+                  />
                 </TableCell>
               </TableRow>
             )}

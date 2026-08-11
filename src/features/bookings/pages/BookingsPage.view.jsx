@@ -155,7 +155,9 @@ export function BookingsView({ model }) {
                   className="cursor-pointer"
                 >
                   <TableCell className="whitespace-nowrap">
-                    <div className="text-sm font-medium text-foreground">{booking.id}</div>
+                    <div className="max-w-[220px] truncate text-sm font-medium text-foreground" title={booking.id}>
+                      {booking.id}
+                    </div>
                     <div className="text-xs text-foreground-lighter mt-1 flex items-center">
                       <Calendar size={12} className="mr-1" /> {booking.date}
                     </div>

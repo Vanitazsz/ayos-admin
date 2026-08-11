@@ -32,28 +32,24 @@ export function useAuditLogsPageController() {
     {
       label: 'Recent Activities',
       value: safeLogs.length,
-      icon: <ShieldAlert className="text-brand-500" />,
-      bg: 'bg-brand-500/10',
+      icon: ShieldAlert,
     },
     {
       label: 'Failed Actions',
       value: safeLogs.filter((log) => log.status === 'Failed').length,
-      icon: <XCircle className="text-destructive" />,
-      bg: 'bg-destructive/10',
+      icon: XCircle,
     },
     {
       label: 'Critical Actions',
       value: safeLogs.filter(
         (log) => String(log.metadata?.severity ?? '').toUpperCase() === 'CRITICAL',
       ).length,
-      icon: <AlertTriangle className="text-warning" />,
-      bg: 'bg-warning/10',
+      icon: AlertTriangle,
     },
     {
       label: 'Active Sessions',
       value: activeSessions,
-      icon: <CheckCircle className="text-success" />,
-      bg: 'bg-success/10',
+      icon: CheckCircle,
     },
   ];
   return {

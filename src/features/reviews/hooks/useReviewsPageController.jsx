@@ -52,26 +52,22 @@ export function useReviewsPageController() {
     {
       label: 'Average Rating',
       value: avgRating,
-      icon: <Star className="text-warning fill-current" />,
-      bg: 'bg-warning/10',
+      icon: Star,
     },
     {
       label: 'Positive Reviews',
       value: reviews.filter((r) => r.rating >= 4).length,
-      icon: <ThumbsUp className="text-success" />,
-      bg: 'bg-success/10',
+      icon: ThumbsUp,
     },
     {
       label: 'Negative Reviews',
       value: reviews.filter((r) => r.rating <= 2).length,
-      icon: <ThumbsDown className="text-destructive" />,
-      bg: 'bg-destructive/10',
+      icon: ThumbsDown,
     },
     {
       label: 'Flagged / Reported',
       value: reviews.filter((r) => r.status === 'Flagged').length,
-      icon: <AlertTriangle className="text-warning" />,
-      bg: 'bg-warning/10',
+      icon: AlertTriangle,
     },
   ];
   const toggleStatus = async (id, newStatus) => {

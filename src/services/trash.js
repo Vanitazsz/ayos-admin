@@ -144,6 +144,24 @@ export async function permanentlyDeleteTrash(id, entityId) {
   if (error) throw error;
 }
 
+export async function hardDeleteBookingFromTrash(id, entityId) {
+  const { data, error } = await supabase.rpc('admin_hard_delete_booking_from_trash', {
+    p_trash_id: id,
+    p_confirmation: `DELETE ${entityId}`,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function hardDeletePaymentFromTrash(id, entityId) {
+  const { data, error } = await supabase.rpc('admin_hard_delete_payment_from_trash', {
+    p_trash_id: id,
+    p_confirmation: `DELETE ${entityId}`,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function hardDeleteAccountFromTrash(id, email) {
   const { data, error } = await supabase.rpc('admin_hard_delete_account_from_trash', {
     p_trash_id: id,
