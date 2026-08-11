@@ -12,6 +12,7 @@ export {
   reviewWorker,
   updateWorker,
   updateWorkerEmail,
+  updateWorkerVerification,
 } from '../../../services/workers';
 export { loadCatalog } from '../../../services/catalog';
 export { loadLocations } from '../../../services/locations';

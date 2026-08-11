@@ -7,6 +7,7 @@ import PermanentDeleteModal from '../components/PermanentDeleteModal';
 import { TRASH_TABS } from '../logic/TrashPageLogic';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import DateFilter from '../../../components/ui/DateFilter';
 const tabs = TRASH_TABS;
 export function TrashView({ model }) {
   const {
@@ -17,6 +18,7 @@ export function TrashView({ model }) {
     items,
     searchTerm,
     setSearchTerm,
+    dateFilter,
     currentPage,
     setCurrentPage,
     confirm,
@@ -107,7 +109,7 @@ export function TrashView({ model }) {
           ))}
         </div>
 
-        <div className="p-4 bg-surface-100 border-b border-border">
+        <div className="p-4 bg-surface-100 border-b border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="relative w-full sm:w-96">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search size={18} className="text-foreground-muted" />
@@ -121,6 +123,7 @@ export function TrashView({ model }) {
               className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus:ring-ring focus:border-brand-500 text-sm"
             />
           </div>
+          <DateFilter model={dateFilter} />
         </div>
 
         <Table>

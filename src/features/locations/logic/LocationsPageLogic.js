@@ -16,11 +16,14 @@ export {
 } from '../../../services/users';
 export {
   bulkSetWorkerVerification,
-  loadWorkerVerificationDocs,
   loadWorkers,
   updateWorker,
   updateWorkerEmail,
 } from '../../../services/workers';
-export { loadBookingsForUser, resolveBookingMedia } from '../../../services/bookings';
+export {
+  loadBookingsForUser,
+  loadBookingsForWorker,
+  resolveBookingMedia,
+} from '../../../services/bookings';
 export { loadCatalog } from '../../../services/catalog';
 export { loadLocations } from '../../../services/locations';

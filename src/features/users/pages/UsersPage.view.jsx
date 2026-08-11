@@ -21,6 +21,7 @@ import {
   X,
   ArchiveRestore,
   MapPinned,
+  Upload,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { formatDateTime, money } from '../../../services/adminShared';
@@ -40,6 +41,7 @@ import Input from '../../../components/ui/Input';
 import Checkbox from '../../../components/ui/Checkbox';
 import Textarea from '../../../components/ui/Textarea';
 import Pagination from '../../../components/ui/Pagination';
+import DateFilter from '../../../components/ui/DateFilter';
 import {
   Tabs,
   TabsList,
@@ -68,11 +70,14 @@ export function UsersView({ model }) {
     setFilterStatus,
     filterVerified,
     setFilterVerified,
+    dateFilter,
+    verificationDateFilter,
     currentPage,
     setCurrentPage,
     activeTab,
     setActiveTab,
     verifications,
+    verificationsCount,
     isVerificationsLoading,
     selectedVerification,
     setSelectedVerification,
@@ -95,6 +100,13 @@ export function UsersView({ model }) {
     editDraft,
     setEditDraft,
     isSavingUser,
+    isEditingVerification,
+    verificationDraft,
+    setVerificationDraft,
+    isSavingVerification,
+    enterVerificationEdit,
+    cancelVerificationEdit,
+    handleSaveVerificationEdit,
     actionLoadingId,
     selectedIds,
     selectedCount,
@@ -133,6 +145,18 @@ export function UsersView({ model }) {
     return groups;
   }, new Map());
 
+  const ID_TYPE_OPTIONS = [
+    { value: 'NATIONAL_ID', label: 'National ID' },
+    { value: 'DRIVERS_LICENSE', label: "Driver's License" },
+    { value: 'PASSPORT', label: 'Passport' },
+    { value: 'UMID', label: 'UMID' },
+    { value: 'PRC_ID', label: 'PRC ID' },
+    { value: 'POSTAL_ID', label: 'Postal ID' },
+    { value: 'VOTERS_ID', label: "Voter's ID" },
+    { value: 'TIN_ID', label: 'TIN ID' },
+    { value: 'OTHER', label: 'Other' },
+  ];
+
   return (
     <div className="space-y-6 p-4 sm:p-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -155,7 +179,7 @@ export function UsersView({ model }) {
         <TabsList>
           <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="verifications">
-            Pending Verification ({verifications.length})
+            Pending Verification ({verificationsCount})
           </TabsTrigger>
         </TabsList>
         {loadError ? (
@@ -179,6 +203,7 @@ export function UsersView({ model }) {
               />
             </div>
             <div className="flex w-full sm:w-auto items-center gap-2">
+              <DateFilter model={dateFilter} />
               <div className="w-full sm:w-44">
                 <Select
                   icon={ShieldCheck}
@@ -477,7 +502,10 @@ export function UsersView({ model }) {
         <TabsContent value="verifications">
         <Card>
           <CardHeader>
-            <CardTitle>Customer Verifications</CardTitle>
+            <div className="flex items-center justify-between gap-4">
+              <CardTitle>Customer Verifications</CardTitle>
+              <DateFilter model={verificationDateFilter} />
+            </div>
           </CardHeader>
           <Table>
               <TableHeader>
@@ -885,9 +913,20 @@ export function UsersView({ model }) {
             </div>
 
             <div className="border-t border-border pt-6">
-              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
-                Identity Verification
-              </h4>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+                  Identity Verification
+                </h4>
+                {verificationDocs?.id && !isEditingVerification && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={enterVerificationEdit}
+                  >
+                    Edit
+                  </Button>
+                )}
+              </div>
               {verificationDocs === undefined ? (
                 <p className="text-sm text-foreground-lighter">
                   Loading verification documents…
@@ -896,6 +935,113 @@ export function UsersView({ model }) {
                 <p className="text-sm text-foreground-lighter">
                   Couldn't load verification documents.
                 </p>
+              ) : isEditingVerification ? (
+                <div className="space-y-4">
+                  <Select
+                    label="ID Type"
+                    value={verificationDraft.idType}
+                    onChange={(event) =>
+                      setVerificationDraft({
+                        ...verificationDraft,
+                        idType: event.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Select ID type…</option>
+                    {ID_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="mb-2 text-sm font-medium text-foreground">Front</p>
+                      {verificationDraft.frontPreview ? (
+                        <img
+                          src={verificationDraft.frontPreview}
+                          alt="Government ID front"
+                          className="mb-2 aspect-[4/3] w-full rounded-lg border border-border bg-surface-200 object-cover"
+                        />
+                      ) : (
+                        <p className="mb-2 text-sm text-foreground-lighter">
+                          No front image
+                        </p>
+                      )}
+                      <label className="flex h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-foreground-muted transition-colors hover:border-brand-400 hover:text-brand-500">
+                        <Upload size={18} />
+                        <span className="text-xs">
+                          {verificationDraft.frontPreview ? 'Replace' : 'Upload'} front image
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/heic"
+                          className="hidden"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (!file) return;
+                            setVerificationDraft({
+                              ...verificationDraft,
+                              frontFile: file,
+                              frontPreview: URL.createObjectURL(file),
+                            });
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-sm font-medium text-foreground">Back</p>
+                      {verificationDraft.backPreview ? (
+                        <img
+                          src={verificationDraft.backPreview}
+                          alt="Government ID back"
+                          className="mb-2 aspect-[4/3] w-full rounded-lg border border-border bg-surface-200 object-cover"
+                        />
+                      ) : (
+                        <p className="mb-2 text-sm text-foreground-lighter">
+                          No back image
+                        </p>
+                      )}
+                      <label className="flex h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-foreground-muted transition-colors hover:border-brand-400 hover:text-brand-500">
+                        <Upload size={18} />
+                        <span className="text-xs">
+                          {verificationDraft.backPreview ? 'Replace' : 'Upload'} back image
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/heic"
+                          className="hidden"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (!file) return;
+                            setVerificationDraft({
+                              ...verificationDraft,
+                              backFile: file,
+                              backPreview: URL.createObjectURL(file),
+                            });
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={isSavingVerification}
+                      onClick={cancelVerificationEdit}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      isLoading={isSavingVerification}
+                      onClick={() => void handleSaveVerificationEdit()}
+                    >
+                      Save Changes
+                    </Button>
+                  </div>
+                </div>
               ) : verificationDocs.frontUrl === '' && verificationDocs.backUrl === '' ? (
                 <p className="text-sm text-foreground-lighter">
                   No verification submitted.

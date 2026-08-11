@@ -5,6 +5,7 @@ import { money } from '../../../services/adminShared';
 import { subscribe } from '../../../services/realtime';
 import { PAYMENT_STATUS_BADGE, badgeFor } from '../../../services/statusMeta';
 import { useServerPagination } from '../../../hooks/useServerPagination';
+import { useDateFilter } from '../../../hooks/useDateFilter';
 import { useToast } from '../../../context/ToastContext';
 import { loadSettings, saveSetting } from '../../../services/settings';
 
@@ -49,52 +50,7 @@ export function usePaymentsPageController() {
     [],
   );
 
-  const [sort, setSort] = useState('newest');
-  const [datePreset, setDatePreset] = useState('all');
-  const [customRange, setCustomRange] = useState({ from: '', to: '' });
-  const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
-
-  const effectiveRange = useMemo(() => {
-    if (datePreset === 'today') {
-      const from = new Date();
-      from.setHours(0, 0, 0, 0);
-      const to = new Date();
-      to.setHours(23, 59, 59, 999);
-      return { from, to };
-    }
-    if (datePreset === '7d') {
-      const to = new Date();
-      const from = new Date();
-      from.setDate(from.getDate() - 6);
-      from.setHours(0, 0, 0, 0);
-      return { from, to };
-    }
-    if (datePreset === 'month') {
-      const now = new Date();
-      return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now };
-    }
-    if (datePreset === 'custom') {
-      if (!customRange.from && !customRange.to) return null;
-      return {
-        from: customRange.from ? new Date(`${customRange.from}T00:00:00`) : null,
-        to: customRange.to ? new Date(`${customRange.to}T23:59:59.999`) : null,
-      };
-    }
-    return null;
-  }, [datePreset, customRange]);
-
-  const dateFilterLabel = useMemo(() => {
-    if (datePreset === 'today') return 'Today';
-    if (datePreset === '7d') return 'Last 7 Days';
-    if (datePreset === 'month') return 'This Month';
-    if (datePreset === 'custom') {
-      if (customRange.from && customRange.to) {
-        return `${customRange.from} → ${customRange.to}`;
-      }
-      return customRange.from ? `From ${customRange.from}` : customRange.to ? `To ${customRange.to}` : 'Custom Range';
-    }
-    return sort === 'oldest' ? 'Old to New' : 'Most Recent';
-  }, [datePreset, customRange, sort]);
+  const dateFilter = useDateFilter({ canModify: true });
 
   const fetchPayments = useCallback(
     ({ page, pageSize }) =>
@@ -102,15 +58,16 @@ export function usePaymentsPageController() {
         search: searchTerm,
         type: filterType,
         tab: activeTab,
-        sort,
-        dateRange: effectiveRange,
+        sort: dateFilter.sort,
+        field: dateFilter.field,
+        dateRange: dateFilter.effectiveRange,
         page,
         pageSize,
       }),
-    [searchTerm, filterType, activeTab, sort, effectiveRange],
+    [searchTerm, filterType, activeTab, dateFilter],
   );
 
-  const filterKey = `${filterType}|${sort}|${datePreset}|${customRange.from}|${customRange.to}`;
+  const filterKey = `${filterType}|${dateFilter.sort}|${dateFilter.field}|${dateFilter.preset}|${dateFilter.customRange.from}|${dateFilter.customRange.to}`;
 
   const {
     rows: transactions,
@@ -270,18 +227,6 @@ export function usePaymentsPageController() {
     toast.info('Fee settings reset to defaults. Click Save to apply.');
   }, [toast]);
 
-  const handleApplyDateRange = (from, to) => {
-    setCustomRange({ from, to });
-    setDatePreset('custom');
-    setIsDateRangeOpen(false);
-  };
-  const handleClearDateRange = () => {
-    setCustomRange({ from: '', to: '' });
-    setDatePreset('all');
-    setSort('newest');
-    setIsDateRangeOpen(false);
-  };
-
   return {
     isLoading,
     error,
@@ -298,17 +243,7 @@ export function usePaymentsPageController() {
     setActionMenuOpenId,
     activeTab,
     setActiveTab,
-    sort,
-    setSort,
-    datePreset,
-    setDatePreset,
-    customRange,
-    setCustomRange,
-    isDateRangeOpen,
-    setIsDateRangeOpen,
-    dateFilterLabel,
-    handleApplyDateRange,
-    handleClearDateRange,
+    ...dateFilter,
     count,
     totalPages,
     paginatedTxns: transactions,

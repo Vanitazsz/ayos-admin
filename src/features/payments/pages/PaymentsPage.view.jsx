@@ -7,9 +7,6 @@ import {
   Eye,
   Sliders,
   ArrowRight,
-  CalendarDays,
-  Check,
-  ChevronDown,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Pagination from '../../../components/ui/Pagination';
@@ -48,6 +45,7 @@ import {
 } from '../../../components/ui/DropdownMenu';
 import { Trash2 } from 'lucide-react';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
+import DateFilter from '../../../components/ui/DateFilter';
 import { CommissionFeeSettings } from '../components/CommissionFeeSettings';
 
 const txnTypeVariant = {
@@ -76,7 +74,7 @@ const TransactionsTab = ({ model, onOpenAction, onViewDetails }) => (
           onChange={(e) => model.setSearchTerm(e.target.value)}
         />
       </div>
-      <div className="flex w-full sm:w-auto items-center gap-2">
+        <div className="flex w-full sm:w-auto items-center gap-2">
         <div className="w-full sm:w-48">
           <Select
             icon={Filter}
@@ -88,67 +86,7 @@ const TransactionsTab = ({ model, onOpenAction, onViewDetails }) => (
             <option value="Payment">Payments</option>
           </Select>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="w-full sm:w-auto">
-              <CalendarDays className="size-4" />
-              <span className="max-w-40 truncate">{model.dateFilterLabel}</span>
-              <ChevronDown className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem
-              onSelect={() => {
-                model.setSort('newest');
-                model.setDatePreset('all');
-              }}
-              className="cursor-pointer justify-between"
-            >
-              Most Recent
-              {model.sort === 'newest' && model.datePreset === 'all' && <Check className="size-4" />}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => {
-                model.setSort('oldest');
-                model.setDatePreset('all');
-              }}
-              className="cursor-pointer justify-between"
-            >
-              Old to New
-              {model.sort === 'oldest' && model.datePreset === 'all' && <Check className="size-4" />}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => model.setDatePreset('today')}
-              className="cursor-pointer justify-between"
-            >
-              Today
-              {model.datePreset === 'today' && <Check className="size-4" />}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => model.setDatePreset('7d')}
-              className="cursor-pointer justify-between"
-            >
-              Last 7 Days
-              {model.datePreset === '7d' && <Check className="size-4" />}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => model.setDatePreset('month')}
-              className="cursor-pointer justify-between"
-            >
-              This Month
-              {model.datePreset === 'month' && <Check className="size-4" />}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => model.setIsDateRangeOpen(true)}
-              className="cursor-pointer justify-between"
-            >
-              Custom Range…
-              {model.datePreset === 'custom' && <Check className="size-4" />}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <DateFilter model={model} />
       </div>
     </div>
 
@@ -282,12 +220,6 @@ const TransactionsTab = ({ model, onOpenAction, onViewDetails }) => (
 export function PaymentsView({ model }) {
   const {
     error,
-    customRange,
-    setCustomRange,
-    isDateRangeOpen,
-    setIsDateRangeOpen,
-    handleApplyDateRange,
-    handleClearDateRange,
     selectedTxn,
     isDrawerOpen,
     setIsDrawerOpen,
@@ -451,38 +383,6 @@ export function PaymentsView({ model }) {
           />
         </TabsContent>
       </Tabs>
-
-      {/* Custom Date Range Modal */}
-      <Modal
-        isOpen={isDateRangeOpen}
-        onClose={() => setIsDateRangeOpen(false)}
-        title="Custom Date Range"
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input
-              type="date"
-              label="From"
-              value={customRange.from}
-              onChange={(e) => setCustomRange((prev) => ({ ...prev, from: e.target.value }))}
-            />
-            <Input
-              type="date"
-              label="To"
-              value={customRange.to}
-              onChange={(e) => setCustomRange((prev) => ({ ...prev, to: e.target.value }))}
-            />
-          </div>
-        </div>
-        <div className="mt-6 flex justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={handleClearDateRange}>
-            Clear
-          </Button>
-          <Button size="sm" onClick={() => handleApplyDateRange(customRange.from, customRange.to)}>
-            Apply
-          </Button>
-        </div>
-      </Modal>
 
       {/* Transaction Details Drawer */}
       <Drawer

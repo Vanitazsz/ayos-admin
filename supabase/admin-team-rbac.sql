@@ -113,7 +113,8 @@ returns table (
   admin_role text,
   role_name text,
   role_description text,
-  permissions text[]
+  permissions text[],
+  updated_at timestamptz
 )
 language plpgsql security definer set search_path = '' as $$
 begin
@@ -130,7 +131,8 @@ begin
            ap.admin_role,
            coalesce(r.name, ap.admin_role),
            coalesce(r.description, ''),
-           coalesce(r.permissions, '{}'::text[])
+           coalesce(r.permissions, '{}'::text[]),
+           ap.updated_at
     from public.accounts a
     join public.admin_profiles ap on ap.account_id = a.id
     left join public.admin_roles r on r.code = ap.admin_role

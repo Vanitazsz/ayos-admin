@@ -4,22 +4,29 @@ import { useDataFetch } from '../../../hooks/useDataFetch';
 import { useRealtime } from '../../../hooks/useRealtime';
 import { useToast } from '../../../context/ToastContext';
 import { usePagination } from '../../../hooks/usePagination';
+import { useDateFilter } from '../../../hooks/useDateFilter';
+import { applyDateFilter } from '../../../lib/dateFilter';
 
 export function useReportsPageController() {
   const toast = useToast();
+  const dateFilter = useDateFilter({ canModify: false });
   const { data: reports, isLoading, error, refresh } = useDataFetch(loadReports, []);
   useRealtime('report_exports', refresh);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateRange, setDateRange] = useState('Last 30 Days');
   const [reportType, setReportType] = useState('All');
 
   const safeReports = reports ?? [];
-  const filteredReports = safeReports.filter((r) => {
+  const matchedReports = safeReports.filter((r) => {
     const matchesSearch =
       r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = reportType === 'All' || r.type === reportType;
     return matchesSearch && matchesType;
+  });
+  const filteredReports = applyDateFilter(matchedReports, {
+    field: 'created',
+    range: dateFilter.effectiveRange,
+    sort: dateFilter.sort,
   });
   const {
     currentPage,
@@ -74,10 +81,9 @@ export function useReportsPageController() {
     error,
     searchTerm,
     setSearchTerm,
+    dateFilter,
     currentPage,
     setCurrentPage,
-    dateRange,
-    setDateRange,
     reportType,
     setReportType,
     filteredReports,

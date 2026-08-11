@@ -13,13 +13,13 @@ import {
   ArrowLeft,
   MapPinned,
   CheckCircle,
-  Coins,
   UserX,
 } from 'lucide-react';
 import { Card, CardHeader } from '../../../components/ui/Card';
-import { formatDateTime, money, moneyFromMinor } from '../../../services/adminShared';
+import { formatDateTime, money } from '../../../services/adminShared';
 import { badgeFor, BOOKING_STATUS_BADGE } from '../../../services/statusMeta';
 import Select from '../../../components/ui/Select';
+import DateFilter from '../../../components/ui/DateFilter';
 import {
   Table,
   TableHeader,
@@ -101,6 +101,8 @@ export function LocationsView({ model }) {
   const {
     activeTab,
     setActiveTab,
+    userDateFilter,
+    workerDateFilter,
     locations,
     locationFor,
     // Users tab
@@ -148,17 +150,22 @@ export function LocationsView({ model }) {
     handleViewBooking,
     handleViewUserProfile,
     selectedWorker,
-    workerVerificationDocs,
+    workerBookings,
+    isWorkerBookingsLoading,
     handleViewWorkerDetails,
     getStatusBadge,
   } = model;
 
-  const bookingGroups = userBookings.reduce((groups, booking) => {
-    const key = booking.date;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(booking);
-    return groups;
-  }, new Map());
+  const groupBookingsByDate = (bookings) =>
+    bookings.reduce((groups, booking) => {
+      const key = booking.date;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(booking);
+      return groups;
+    }, new Map());
+
+  const bookingGroups = groupBookingsByDate(userBookings);
+  const workerBookingGroups = groupBookingsByDate(workerBookings);
 
   return (
     <div className="animate-fade-in space-y-6 p-4 sm:p-6">
@@ -198,6 +205,7 @@ export function LocationsView({ model }) {
                 />
               </div>
               <div className="flex w-full items-center gap-2 sm:w-auto">
+                <DateFilter model={userDateFilter} />
                 <div className="w-full sm:w-44">
                   <Select
                     icon={MapPinned}
@@ -393,6 +401,7 @@ export function LocationsView({ model }) {
                 />
               </div>
               <div className="flex w-full items-center gap-2 sm:w-auto">
+                <DateFilter model={workerDateFilter} />
                 <div className="w-full sm:w-44">
                   <Select
                     icon={MapPinned}
@@ -587,7 +596,7 @@ export function LocationsView({ model }) {
         }}
         title={
           activeTab === 'workers'
-            ? 'Worker Details'
+            ? 'Worker Activity'
             : activeBooking
               ? 'Booking Details'
               : 'More Details'
@@ -618,30 +627,6 @@ export function LocationsView({ model }) {
 
             <div className="border-t border-border pt-6">
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
-                Contact Information
-              </h4>
-              <div className="space-y-3">
-                <div className="flex items-center text-sm text-foreground-light">
-                  <Mail size={16} className="mr-3 text-foreground-muted" />{' '}
-                  {selectedWorker.email}
-                </div>
-                <div className="flex items-center text-sm text-foreground-light">
-                  <Phone size={16} className="mr-3 text-foreground-muted" />{' '}
-                  {selectedWorker.phone}
-                </div>
-                <div className="flex items-center text-sm text-foreground-light">
-                  <MapPin size={16} className="mr-3 text-foreground-muted" />{' '}
-                  {selectedWorker.location}
-                </div>
-                <div className="flex items-center text-sm text-foreground-light">
-                  <Calendar size={16} className="mr-3 text-foreground-muted" /> Registered{' '}
-                  {selectedWorker.registeredDate}
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t border-border pt-6">
-              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
                 Location
               </h4>
               <LocationSection person={selectedWorker} locationFor={locationFor} />
@@ -649,124 +634,73 @@ export function LocationsView({ model }) {
 
             <div className="border-t border-border pt-6">
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
-                Professional Profile
+                Bookings
               </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-surface-200 p-4 rounded-lg">
-                  <p className="text-xs text-foreground-lighter mb-1">Experience</p>
-                  <p className="font-semibold text-foreground">
-                    {selectedWorker.experience} Years
-                  </p>
+              {isWorkerBookingsLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-16 w-full rounded-lg" />
+                  <Skeleton className="h-16 w-full rounded-lg" />
                 </div>
-                <div className="bg-surface-200 p-4 rounded-lg">
-                  <p className="text-xs text-foreground-lighter mb-1">Jobs Completed</p>
-                  <p className="font-semibold text-foreground">{selectedWorker.jobsCompleted}</p>
-                </div>
-                <div className="bg-surface-200 p-4 rounded-lg">
-                  <p className="text-xs text-foreground-lighter mb-1">Earnings</p>
-                  <p className="font-semibold text-foreground">
-                    {money(selectedWorker.earnings)}
-                  </p>
-                </div>
-              </div>
-              {(selectedWorker.categories?.length ?? 0) > 0 && (
-                <div className="mt-4">
-                  <p className="mb-2 text-xs text-foreground-lighter">Categories</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedWorker.categories.map((category) => (
-                      <span
-                        key={category}
-                        className="rounded-full bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-700 dark:text-brand-300"
-                      >
-                        {category}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {(selectedWorker.skills?.length ?? 0) > 0 && (
-                <div className="mt-4">
-                  <p className="mb-2 text-xs text-foreground-lighter">Skills & Rates</p>
-                  <div className="max-h-64 space-y-2 overflow-y-auto pr-1 custom-scrollbar">
-                    {selectedWorker.skills.map((skill) => (
-                      <div
-                        key={skill.id}
-                        className="flex items-center justify-between gap-3 rounded-lg bg-surface-200 px-3 py-2"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {skill.name}
-                          </p>
-                          <p className="text-xs text-foreground-lighter">{skill.years} yrs exp</p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-foreground">
-                          <Coins size={14} className="text-foreground-muted" />
-                          {skill.rateMinor != null ? moneyFromMinor(skill.rateMinor) : 'No rate set'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-border pt-6">
-              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
-                Identity Verification
-              </h4>
-              {workerVerificationDocs === undefined ? (
-                <p className="text-sm text-foreground-lighter">
-                  Loading verification documents…
-                </p>
-              ) : workerVerificationDocs === null ? (
-                <p className="text-sm text-foreground-lighter">
-                  Couldn't load verification documents.
-                </p>
-              ) : workerVerificationDocs.documents.length === 0 ? (
-                <p className="text-sm text-foreground-lighter">No verification submitted.</p>
+              ) : workerBookingGroups.size === 0 ? (
+                <p className="text-sm text-foreground-lighter">No bookings yet.</p>
               ) : (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {workerVerificationDocs.idType && (
-                      <Badge variant="outline">
-                        {workerVerificationDocs.idType.replaceAll('_', ' ')}
-                      </Badge>
-                    )}
-                    <Badge
-                      variant={workerVerificationDocs.status === 'APPROVED' ? 'success' : 'warning'}
-                    >
-                      {workerVerificationDocs.status.replaceAll('_', ' ')}
-                    </Badge>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {workerVerificationDocs.documents.map((url, index) => (
-                      <a
-                        key={url}
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block aspect-[4/3] overflow-hidden rounded-lg border border-border bg-surface-200"
-                      >
-                        <img
-                          src={url}
-                          alt={`Submitted ID document ${index + 1}`}
-                          className="h-full w-full object-cover"
-                        />
-                      </a>
-                    ))}
-                  </div>
+                <div className="max-h-[360px] overflow-y-auto custom-scrollbar space-y-3 pr-1">
+                  {[...workerBookingGroups.entries()].map(([date, group]) => (
+                    <div key={date} className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-border" />
+                        <span className="text-xs font-medium text-foreground-lighter">{date}</span>
+                        <div className="h-px flex-1 bg-border" />
+                      </div>
+                      {group.map((booking) => (
+                        <button
+                          key={booking.id}
+                          type="button"
+                          onClick={() => void handleViewBooking(booking)}
+                          className="w-full text-left rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-medium text-foreground truncate">
+                              {booking.service}
+                            </span>
+                            <span
+                              className={`shrink-0 inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${badgeFor(BOOKING_STATUS_BADGE, booking.status)}`}
+                            >
+                              {booking.status}
+                            </span>
+                          </div>
+                          <div className="mt-1.5 space-y-1 text-xs text-foreground-lighter">
+                            <span className="flex items-center">
+                              <MapPin size={12} className="mr-1 shrink-0" />
+                              <span className="truncate">
+                                {booking.address || 'Address not provided'}
+                              </span>
+                            </span>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                              <span className="inline-flex items-center">
+                                <User size={12} className="mr-1" /> {booking.customer}
+                              </span>
+                              <span className="inline-flex items-center">
+                                <Clock size={12} className="mr-1" /> {money(booking.price)}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
-        ) : activeBooking && selectedUser ? (
+        ) : activeBooking && (selectedUser || selectedWorker) ? (
           <div className="space-y-6">
             <button
               type="button"
               onClick={() => setActiveBooking(null)}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground-light transition-colors hover:text-foreground"
             >
-              <ArrowLeft size={16} /> Back to {selectedUser?.name ?? 'user'}
+              <ArrowLeft size={16} /> Back to {selectedUser?.name ?? selectedWorker?.name}
             </button>
 
             <div className="bg-surface-200 p-4 rounded-xl">

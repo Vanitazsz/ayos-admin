@@ -1,5 +1,6 @@
 import { supabase, status, identity } from './adminShared';
 import { cacheable, invalidate } from '../lib/cacheable';
+import { applyDateFilter, getRowDate } from '../lib/dateFilter';
 
 const asProfile = (row) =>
   Array.isArray(row.user_profiles) ? row.user_profiles[0] : row.user_profiles;
@@ -28,6 +29,8 @@ export const mapUser = (row) => {
     location: asLocation(profile)?.name ?? '',
     locationId: asLocation(profile)?.id ?? null,
     registeredAt: new Date(row.created_at).toLocaleDateString(),
+    created_at: row.created_at,
+    updated_at: row.updated_at ?? null,
     status: status(row.status),
     bookings: profile?.bookings?.[0]?.count ?? 0,
     verified: verificationStatus === 'verified',
@@ -37,16 +40,19 @@ export const mapUser = (row) => {
 };
 
 const USER_PAGE_SELECT =
-  'id,email,mobile,status,created_at,user_profiles(display_name,verification_status,avatar_path,locations!user_profiles_location_id_fkey(id,name),bookings!bookings_user_account_id_fkey(count)),addresses(line1,barangay,city)';
+  'id,email,mobile,status,created_at,updated_at,user_profiles(display_name,verification_status,avatar_path,locations!user_profiles_location_id_fkey(id,name),bookings!bookings_user_account_id_fkey(count)),addresses(line1,barangay,city)';
 
 const USER_KEY_SELECT =
-  'id,email,status,created_at,user_profiles(display_name,verification_status,locations!user_profiles_location_id_fkey(id,name))';
+  'id,email,status,created_at,updated_at,user_profiles(display_name,verification_status,locations!user_profiles_location_id_fkey(id,name))';
 
 export async function loadUsersPageRaw({
   search = '',
   status = 'All',
   verified = 'All',
   location = 'All',
+  sort = 'newest',
+  field = 'created',
+  dateRange = null,
   page = 1,
   pageSize = 10,
 } = {}) {
@@ -105,8 +111,14 @@ export async function loadUsersPageRaw({
       matchesVerified(row) &&
       matchesLocation(row),
   );
-  const count = matched.length;
-  const pageIds = matched
+  const ordered = applyDateFilter(matched, {
+    field,
+    range: dateRange,
+    sort,
+    getDate: (row) => getRowDate(row, field) ?? getRowDate(row, 'created'),
+  });
+  const count = ordered.length;
+  const pageIds = ordered
     .slice((page - 1) * pageSize, page * pageSize)
     .map((row) => row.id);
 
@@ -230,6 +242,21 @@ export async function bulkSetCustomerVerification(ids, status) {
   return Number(data ?? 0);
 }
 
+export async function updateCustomerVerification(
+  verificationId,
+  { idType, frontPath, backPath },
+) {
+  const { data, error } = await supabase.rpc('admin_update_customer_verification', {
+    p_verification_id: verificationId,
+    p_id_type: idType,
+    p_id_front_url: frontPath,
+    p_id_back_url: backPath ?? null,
+  });
+  if (error) throw error;
+  invalidate('users');
+  return data;
+}
+
 export async function resolveUserAvatar(path) {
   if (!path) return '';
   if (/^https?:\/\//i.test(path)) return path;
@@ -253,16 +280,23 @@ export const loadUserVerificationDocs = cacheable(
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
+    const isRemote = (path) => /^https?:\/\//i.test(path ?? '');
     const [front, back] = await Promise.all([
-      supabase.storage.from('verification-documents').createSignedUrl(data.id_front_url, 900),
-      data.id_back_url
-        ? supabase.storage.from('verification-documents').createSignedUrl(data.id_back_url, 900)
-        : Promise.resolve({ data: null, error: null }),
+      isRemote(data.id_front_url)
+        ? Promise.resolve({ data: { signedUrl: data.id_front_url }, error: null })
+        : supabase.storage.from('verification-documents').createSignedUrl(data.id_front_url, 900),
+      isRemote(data.id_back_url)
+        ? Promise.resolve({ data: { signedUrl: data.id_back_url }, error: null })
+        : data.id_back_url
+          ? supabase.storage.from('verification-documents').createSignedUrl(data.id_back_url, 900)
+          : Promise.resolve({ data: null, error: null }),
     ]);
     return {
       id: data.id,
       status: data.status,
       idType: data.id_type,
+      frontPath: data.id_front_url ?? '',
+      backPath: data.id_back_url ?? '',
       frontUrl: front.data?.signedUrl ?? '',
       backUrl: back.data?.signedUrl ?? '',
     };

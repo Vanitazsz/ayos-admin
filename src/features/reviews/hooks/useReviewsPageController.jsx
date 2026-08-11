@@ -3,9 +3,12 @@ import { useEffect, useState } from 'react';
 import { Star, ThumbsUp, ThumbsDown, AlertTriangle } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { usePagination } from '../../../hooks/usePagination';
+import { useDateFilter } from '../../../hooks/useDateFilter';
+import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
 
 export function useReviewsPageController() {
   const toast = useToast();
+  const dateFilter = useDateFilter({ canModify: true });
   const [reviews, setReviews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,13 +34,19 @@ export function useReviewsPageController() {
     void refresh();
     return subscribe('reviews', refresh);
   }, []);
-  const filteredReviews = reviews.filter((r) => {
+  const matchedReviews = reviews.filter((r) => {
     const matchesSearch =
       r.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.worker.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.comment.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRating = filterRating === 'All' || r.rating.toString() === filterRating;
     return matchesSearch && matchesRating;
+  });
+  const filteredReviews = applyDateFilter(matchedReviews, {
+    field: dateFilter.field,
+    range: dateFilter.effectiveRange,
+    sort: dateFilter.sort,
+    getDate: (r) => getRowDate(r, dateFilter.field) ?? getRowDate(r, 'created'),
   });
   const {
     currentPage,
@@ -108,6 +117,7 @@ export function useReviewsPageController() {
     setSearchTerm,
     filterRating,
     setFilterRating,
+    dateFilter,
     currentPage,
     setCurrentPage,
     isLoading,

@@ -82,6 +82,7 @@ export const loadTrash = cacheable('trash', { ttl: 60_000 }, async () => {
       email: emailById.get(row.entity_id),
       deletedBy: namesById.get(row.deleted_by) ?? row.deleted_by,
       deletedDate: new Date(row.deleted_at).toLocaleDateString(),
+      deleted_at: row.deleted_at,
       restoreDeadline: 'Retention policy',
       snapshot: row.snapshot,
       skillCount:

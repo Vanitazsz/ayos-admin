@@ -5,8 +5,11 @@ import { useDataFetch } from '../../../hooks/useDataFetch';
 import { useRealtime } from '../../../hooks/useRealtime';
 import { useActiveSessionCount } from '../../../hooks/useActiveSessionCount';
 import { usePagination } from '../../../hooks/usePagination';
+import { useDateFilter } from '../../../hooks/useDateFilter';
+import { applyDateFilter } from '../../../lib/dateFilter';
 
 export function useAuditLogsPageController() {
+  const dateFilter = useDateFilter({ canModify: false });
   const { data: logs, isLoading, error, refresh } = useDataFetch(loadAuditLogs, []);
   useRealtime('audit_logs', refresh);
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,13 +17,18 @@ export function useAuditLogsPageController() {
   const activeSessions = useActiveSessionCount();
 
   const safeLogs = logs ?? [];
-  const filteredLogs = safeLogs.filter((l) => {
+  const matchedLogs = safeLogs.filter((l) => {
     const matchesSearch =
       l.admin.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.ip.includes(searchTerm);
     const matchesModule = filterModule === 'All' || l.module === filterModule;
     return matchesSearch && matchesModule;
+  });
+  const filteredLogs = applyDateFilter(matchedLogs, {
+    field: 'created',
+    range: dateFilter.effectiveRange,
+    sort: dateFilter.sort,
   });
   const {
     currentPage,
@@ -59,6 +67,7 @@ export function useAuditLogsPageController() {
     setSearchTerm,
     filterModule,
     setFilterModule,
+    dateFilter,
     currentPage,
     setCurrentPage,
     filteredLogs,

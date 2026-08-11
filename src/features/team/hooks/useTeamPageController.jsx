@@ -3,6 +3,7 @@ import { ShieldCheck, UserCheck, UserX } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import { useServerPagination } from '../../../hooks/useServerPagination';
+import { useDateFilter } from '../../../hooks/useDateFilter';
 import {
   inviteMember,
   loadRoles,
@@ -32,6 +33,7 @@ const messageFrom = (error) => {
 export function useTeamPageController() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('All');
+  const dateFilter = useDateFilter({ canModify: true });
   const [roles, setRoles] = useState([]);
   const [roleMenuOpenId, setRoleMenuOpenId] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
@@ -58,8 +60,16 @@ export function useTeamPageController() {
 
   const fetchPage = useCallback(
     ({ page, pageSize }) =>
-      loadTeamPage({ search: searchQuery, role: filterRole, page, pageSize }),
-    [searchQuery, filterRole],
+      loadTeamPage({
+        search: searchQuery,
+        role: filterRole,
+        sort: dateFilter.sort,
+        field: dateFilter.field,
+        dateRange: dateFilter.effectiveRange,
+        page,
+        pageSize,
+      }),
+    [searchQuery, filterRole, dateFilter],
   );
 
   const {
@@ -72,7 +82,10 @@ export function useTeamPageController() {
     currentPage,
     setCurrentPage,
     totalPages,
-  } = useServerPagination({ fetchPage, filterKey: `${filterRole}` });
+  } = useServerPagination({
+    fetchPage,
+    filterKey: `${filterRole}|${dateFilter.sort}|${dateFilter.field}|${dateFilter.preset}|${dateFilter.customRange.from}|${dateFilter.customRange.to}`,
+  });
 
   const refresh = useCallback(async () => {
     await refreshMembers();
@@ -253,6 +266,7 @@ export function useTeamPageController() {
       setSearchQuery,
       filterRole,
       setFilterRole,
+      dateFilter,
       roles,
       currentPage,
       setCurrentPage,
@@ -293,6 +307,7 @@ export function useTeamPageController() {
       isLoading,
       searchQuery,
       filterRole,
+      dateFilter,
       roles,
       currentPage,
       setCurrentPage,

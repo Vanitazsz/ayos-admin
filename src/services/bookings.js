@@ -1,5 +1,6 @@
 import { supabase, status, identity } from './adminShared';
 import { cacheable, invalidate } from '../lib/cacheable';
+import { applyDateFilter, getRowDate } from '../lib/dateFilter';
 
 const dedupeByPath = (items) => {
   const seen = new Set();
@@ -99,7 +100,7 @@ const BOOKING_PAGE_SELECT =
   'id,service_request_id,status,version,created_at,agreed_service_amount,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),service_requests(description,scheduled_at,addresses(line1,barangay,city),service_categories(name),match_candidates(worker_id,score,eligible,worker_profiles:worker_id(display_name)),request_media(storage_path,content_type)),payments(method,status,service_amount,homeowner_platform_charge,refunds(status,reason)),cancellations(reason,fee_amount,refund_amount,resolution_status),booking_status_events(from_status,to_status,reason,created_at)';
 
 const BOOKING_KEY_SELECT =
-  'id,status,created_at,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),service_requests(description,scheduled_at)';
+  'id,status,created_at,updated_at,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),service_requests(description,scheduled_at,request_media(storage_path,content_type))';
 
 const bookingStats = (keys, todayStr) => ({
   today: keys.filter(
@@ -120,6 +121,10 @@ const bookingStats = (keys, todayStr) => ({
 export async function loadBookingsPageRaw({
   search = '',
   status: filterStatus = 'All',
+  media = [],
+  sort = 'newest',
+  field = 'created',
+  dateRange = null,
   page = 1,
   pageSize = 10,
 } = {}) {
@@ -161,8 +166,27 @@ export async function loadBookingsPageRaw({
       : filterStatus === 'Trashed'
         ? matched.filter((row) => trashById.has(row.id))
         : matched.filter((row) => status(row.status) === filterStatus);
-  const count = statusFiltered.length;
-  const pageIds = statusFiltered
+  const mediaFiltered =
+    media.length === 0
+      ? statusFiltered
+      : statusFiltered.filter((row) => {
+          const items = row.service_requests?.request_media ?? [];
+          const hasImage = items.some((item) => item.content_type?.startsWith('image/'));
+          const hasVoice = items.some(
+            (item) => item.content_type && !item.content_type.startsWith('image/'),
+          );
+          return (
+            (media.includes('image') && hasImage) || (media.includes('voice') && hasVoice)
+          );
+        });
+  const ordered = applyDateFilter(mediaFiltered, {
+    field,
+    range: dateRange,
+    sort,
+    getDate: (row) => getRowDate(row, field) ?? getRowDate(row, 'created'),
+  });
+  const count = ordered.length;
+  const pageIds = ordered
     .slice((page - 1) * pageSize, page * pageSize)
     .map((row) => row.id);
 
@@ -199,6 +223,21 @@ export const loadBookingsForUser = cacheable(
       .from('bookings')
       .select(BOOKING_PAGE_SELECT)
       .eq('user_account_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return (data ?? []).map(mapBooking);
+  },
+);
+
+export const loadBookingsForWorker = cacheable(
+  'bookings',
+  { ttl: 30_000 },
+  async (workerId, { limit = 10 } = {}) => {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(BOOKING_PAGE_SELECT)
+      .eq('worker_account_id', workerId)
       .order('created_at', { ascending: false })
       .limit(limit);
     if (error) throw error;

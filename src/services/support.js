@@ -42,7 +42,7 @@ export const loadSupport = cacheable('support', { ttl: 60_000, key: 'tickets' },
   const { data, error } = await supabase
     .from('support_tickets')
     .select(
-      'id,subject,description,status,category,priority,created_at,owner:accounts!support_tickets_owner_id_fkey(user_profiles(display_name),worker_profiles(display_name),admin_profiles(display_name)),assignee:admin_profiles!support_tickets_assigned_admin_id_fkey(display_name),support_ticket_messages(id,body,created_at,sender_id,sender:accounts!support_ticket_messages_sender_id_fkey(user_profiles(display_name),worker_profiles(display_name),admin_profiles(display_name)))',
+      'id,subject,description,status,category,priority,created_at,updated_at,owner:accounts!support_tickets_owner_id_fkey(user_profiles(display_name),worker_profiles(display_name),admin_profiles(display_name)),assignee:admin_profiles!support_tickets_assigned_admin_id_fkey(display_name),support_ticket_messages(id,body,created_at,sender_id,sender:accounts!support_ticket_messages_sender_id_fkey(user_profiles(display_name),worker_profiles(display_name),admin_profiles(display_name)))',
     )
     .order('created_at', { ascending: false });
   if (error) throw error;
@@ -57,6 +57,8 @@ export const loadSupport = cacheable('support', { ttl: 60_000, key: 'tickets' },
     assignedTo: row.assignee?.display_name ?? '',
     messageCount: row.support_ticket_messages?.length ?? 0,
     description: row.description,
+    created_at: row.created_at,
+    updated_at: row.updated_at ?? null,
     messages: (row.support_ticket_messages ?? [])
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
       .map((message) => ({

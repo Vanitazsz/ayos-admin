@@ -1,4 +1,5 @@
 import { supabase } from './adminShared';
+import { applyDateFilter, getRowDate } from '../lib/dateFilter';
 
 const rpcErrorMessage = (error) => {
   const message = error?.message;
@@ -31,6 +32,9 @@ export async function loadTeam() {
 export async function loadTeamPage({
   search = '',
   role = 'All',
+  sort = 'newest',
+  field = 'created',
+  dateRange = null,
   page = 1,
   pageSize = 10,
 } = {}) {
@@ -44,6 +48,12 @@ export async function loadTeamPage({
         (row.role_name ?? '').toLowerCase().includes(term)) &&
       (role === 'All' || row.admin_role === role),
   );
+  const ordered = applyDateFilter(matched, {
+    field,
+    range: dateRange,
+    sort,
+    getDate: (row) => getRowDate(row, field) ?? getRowDate(row, 'created'),
+  });
   const stats = {
     total: rows.length,
     superAdmins: rows.filter((row) => row.admin_role === 'SUPER_ADMIN').length,
@@ -51,8 +61,8 @@ export async function loadTeamPage({
     suspended: rows.filter((row) => row.status === 'SUSPENDED').length,
   };
   return {
-    rows: matched.slice((page - 1) * pageSize, page * pageSize),
-    count: matched.length,
+    rows: ordered.slice((page - 1) * pageSize, page * pageSize),
+    count: ordered.length,
     stats,
   };
 }

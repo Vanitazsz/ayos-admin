@@ -23,6 +23,7 @@ import {
   Coins,
   ArchiveRestore,
   MapPinned,
+  Upload,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
@@ -44,6 +45,7 @@ import {
   TabsTrigger,
 } from '../../../components/ui/Tabs';
 import { money, moneyFromMinor } from '../../../services/adminShared';
+import DateFilter from '../../../components/ui/DateFilter';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -61,6 +63,7 @@ export function WorkersView({ model }) {
     setFilterStatus,
     filterVerified,
     setFilterVerified,
+    dateFilter,
     currentPage,
     setCurrentPage,
     selectedWorker,
@@ -113,9 +116,28 @@ export function WorkersView({ model }) {
     handleBulkStatus,
     handleBulkVerification,
     verificationDocs,
+    isEditingVerification,
+    workerVerificationDraft,
+    setWorkerVerificationDraft,
+    isSavingVerification,
+    enterVerificationEdit,
+    cancelVerificationEdit,
+    handleSaveVerificationEdit,
     confirm,
     closeConfirm,
   } = model;
+
+  const ID_TYPE_OPTIONS = [
+    { value: 'NATIONAL_ID', label: 'National ID' },
+    { value: 'DRIVERS_LICENSE', label: "Driver's License" },
+    { value: 'PASSPORT', label: 'Passport' },
+    { value: 'UMID', label: 'UMID' },
+    { value: 'PRC_ID', label: 'PRC ID' },
+    { value: 'POSTAL_ID', label: 'Postal ID' },
+    { value: 'VOTERS_ID', label: "Voter's ID" },
+    { value: 'TIN_ID', label: 'TIN ID' },
+    { value: 'OTHER', label: 'Other' },
+  ];
   return (
     <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -174,6 +196,7 @@ export function WorkersView({ model }) {
           />
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
+          <DateFilter model={dateFilter} />
           <div className="w-full sm:w-44">
             <Select
               icon={ShieldCheck}
@@ -697,15 +720,110 @@ export function WorkersView({ model }) {
             </div>
 
             <div className="border-t border-border pt-6">
-              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
-                Identity Verification
-              </h4>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+                  Identity Verification
+                </h4>
+                {verificationDocs?.id && !isEditingVerification && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={enterVerificationEdit}
+                  >
+                    Edit
+                  </Button>
+                )}
+              </div>
               {verificationDocs === undefined ? (
                 <p className="text-sm text-foreground-lighter">Loading verification documents…</p>
               ) : verificationDocs === null ? (
                 <p className="text-sm text-foreground-lighter">
                   Couldn't load verification documents.
                 </p>
+              ) : isEditingVerification ? (
+                <div className="space-y-4">
+                  <Select
+                    label="Document Type"
+                    value={workerVerificationDraft?.idType ?? ''}
+                    onChange={(event) =>
+                      setWorkerVerificationDraft({
+                        ...workerVerificationDraft,
+                        idType: event.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Select document type…</option>
+                    {ID_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {(workerVerificationDraft?.documents ?? []).map((doc, index) => (
+                      <div key={index}>
+                        <p className="mb-2 text-sm font-medium text-foreground">
+                          Document {index + 1}
+                        </p>
+                        {doc.preview ? (
+                          <img
+                            src={doc.preview}
+                            alt={`ID document ${index + 1}`}
+                            className="mb-2 aspect-[4/3] w-full rounded-lg border border-border bg-surface-200 object-cover"
+                          />
+                        ) : (
+                          <p className="mb-2 text-sm text-foreground-lighter">
+                            No document
+                          </p>
+                        )}
+                        <label className="flex h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-foreground-muted transition-colors hover:border-brand-400 hover:text-brand-500">
+                          <Upload size={18} />
+                          <span className="text-xs">
+                            {doc.preview ? 'Replace' : 'Upload'} document
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/heic"
+                            className="hidden"
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              if (!file) return;
+                              setWorkerVerificationDraft((current) => ({
+                                ...current,
+                                documents: (current?.documents ?? []).map((existing, i) =>
+                                  i === index
+                                    ? {
+                                        ...existing,
+                                        file,
+                                        preview: URL.createObjectURL(file),
+                                      }
+                                    : existing,
+                                ),
+                              }));
+                            }}
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={isSavingVerification}
+                      onClick={cancelVerificationEdit}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      isLoading={isSavingVerification}
+                      onClick={() => void handleSaveVerificationEdit()}
+                    >
+                      Save Changes
+                    </Button>
+                  </div>
+                </div>
               ) : verificationDocs.documents.length === 0 ? (
                 <p className="text-sm text-foreground-lighter">No verification submitted.</p>
               ) : (

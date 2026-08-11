@@ -13,9 +13,13 @@ import { useNavigate } from 'react-router-dom';
 import { Layers, ArrowUpRight, CheckCircle, Grid } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { usePagination } from '../../../hooks/usePagination';
+import { useDateFilter } from '../../../hooks/useDateFilter';
+import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
 
 export function useServicesPageController() {
   const navigate = useNavigate();
+  const skillDateFilter = useDateFilter({ canModify: true });
+  const industryDateFilter = useDateFilter({ canModify: true });
   const [skills, setSkills] = useState([]);
   const [industriesData, setIndustriesData] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -90,18 +94,22 @@ export function useServicesPageController() {
     [industriesData],
   );
 
-  const filteredSkills = useMemo(
-    () =>
-      skills.filter((skill) => {
-        const matchesSearch =
-          skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          skill.id.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesIndustry =
-          filterIndustry === 'All Statuses' || skill.industry === filterIndustry;
-        return matchesSearch && matchesIndustry;
-      }),
-    [skills, searchTerm, filterIndustry],
-  );
+  const filteredSkills = useMemo(() => {
+    const matched = skills.filter((skill) => {
+      const matchesSearch =
+        skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        skill.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesIndustry =
+        filterIndustry === 'All Statuses' || skill.industry === filterIndustry;
+      return matchesSearch && matchesIndustry;
+    });
+    return applyDateFilter(matched, {
+      field: skillDateFilter.field,
+      range: skillDateFilter.effectiveRange,
+      sort: skillDateFilter.sort,
+      getDate: (row) => getRowDate(row, skillDateFilter.field) ?? getRowDate(row, 'created'),
+    });
+  }, [skills, searchTerm, filterIndustry, skillDateFilter]);
 
   const {
     currentPage,
@@ -110,22 +118,26 @@ export function useServicesPageController() {
     pageData: paginatedSkills,
   } = usePagination(filteredSkills, 8);
 
-  const filteredIndustries = useMemo(
-    () =>
-      industriesData.filter((industry) => {
-        const term = industrySearch.trim().toLowerCase();
-        const matchesSearch =
-          !term ||
-          industry.name.toLowerCase().includes(term) ||
-          industry.id.toLowerCase().includes(term) ||
-          industry.description.toLowerCase().includes(term);
-        const matchesStatus =
-          filterIndustryStatus === 'All' ||
-          industry.status === filterIndustryStatus;
-        return matchesSearch && matchesStatus;
-      }),
-    [industriesData, industrySearch, filterIndustryStatus],
-  );
+  const filteredIndustries = useMemo(() => {
+    const matched = industriesData.filter((industry) => {
+      const term = industrySearch.trim().toLowerCase();
+      const matchesSearch =
+        !term ||
+        industry.name.toLowerCase().includes(term) ||
+        industry.id.toLowerCase().includes(term) ||
+        industry.description.toLowerCase().includes(term);
+      const matchesStatus =
+        filterIndustryStatus === 'All' ||
+        industry.status === filterIndustryStatus;
+      return matchesSearch && matchesStatus;
+    });
+    return applyDateFilter(matched, {
+      field: industryDateFilter.field,
+      range: industryDateFilter.effectiveRange,
+      sort: industryDateFilter.sort,
+      getDate: (row) => getRowDate(row, industryDateFilter.field) ?? getRowDate(row, 'created'),
+    });
+  }, [industriesData, industrySearch, filterIndustryStatus, industryDateFilter]);
 
   const stats = useMemo(
     () => [
@@ -362,6 +374,8 @@ export function useServicesPageController() {
       setSearchTerm,
       filterIndustry,
       setFilterIndustry,
+      skillDateFilter,
+      industryDateFilter,
       activeTab,
       setActiveTab,
       currentPage,
@@ -410,6 +424,8 @@ export function useServicesPageController() {
     [
       searchTerm,
       filterIndustry,
+      skillDateFilter,
+      industryDateFilter,
       industrySearch,
       filterIndustryStatus,
       activeTab,

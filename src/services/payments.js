@@ -1,5 +1,6 @@
 import { supabase, status } from './adminShared';
 import { cacheable, invalidate } from '../lib/cacheable';
+import { applyDateFilter, getRowDate } from '../lib/dateFilter';
 
 export const mapPayment = (row) => ({
   id: row.id,
@@ -13,13 +14,15 @@ export const mapPayment = (row) => ({
   status: row.status === 'SUCCESSFUL' ? 'Completed' : status(row.status),
   type: 'Payment',
   date: new Date(row.created_at).toLocaleDateString(),
+  created_at: row.created_at,
+  updated_at: row.updated_at ?? null,
 });
 
 const PAYMENT_PAGE_SELECT =
-  'id,booking_id,service_amount,commission_amount,worker_net_amount,method,status,created_at,bookings(user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name))';
+  'id,booking_id,service_amount,commission_amount,worker_net_amount,method,status,created_at,updated_at,bookings(user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name))';
 
 const PAYMENT_KEY_SELECT =
-  'id,status,method,created_at,service_amount,commission_amount,bookings(user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name))';
+  'id,status,method,created_at,updated_at,service_amount,commission_amount,bookings(user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name))';
 
 const paymentStatus = (raw) => (raw === 'SUCCESSFUL' ? 'Completed' : status(raw));
 
@@ -28,6 +31,7 @@ export async function loadPaymentsPageRaw({
   type = 'All',
   tab = 'transactions',
   sort = 'newest',
+  field = 'created',
   dateRange = null,
   page = 1,
   pageSize = 10,
@@ -79,21 +83,14 @@ export async function loadPaymentsPageRaw({
       const method = status(row.method);
       if (method !== 'Cash' && method !== 'Bank Transfer') return false;
     }
-    if (dateRange) {
-      const created = new Date(row.created_at).getTime();
-      const from = dateRange.from ? new Date(dateRange.from).getTime() : -Infinity;
-      const to = dateRange.to ? new Date(dateRange.to).getTime() : Infinity;
-      if (created < from || created > to) return false;
-    }
     return true;
   });
-  const ordered = matched
-    .slice()
-    .sort((a, b) =>
-      sort === 'oldest'
-        ? new Date(a.created_at) - new Date(b.created_at)
-        : new Date(b.created_at) - new Date(a.created_at),
-    );
+  const ordered = applyDateFilter(matched, {
+    field,
+    range: dateRange,
+    sort,
+    getDate: (row) => getRowDate(row, field) ?? getRowDate(row, 'created'),
+  });
   const count = ordered.length;
   const pageIds = ordered
     .slice((page - 1) * pageSize, page * pageSize)

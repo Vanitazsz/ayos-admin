@@ -25,6 +25,7 @@ export const loadAuditLogs = cacheable('audit-logs', { ttl: 30_000 }, async () =
   return (data ?? []).map((row) => ({
     id: row.id,
     timestamp: new Date(row.created_at).toLocaleString(),
+    created_at: row.created_at,
     admin: accountName(row.actor) ?? '',
     action: status(row.action),
     module: row.entity_type ?? '',

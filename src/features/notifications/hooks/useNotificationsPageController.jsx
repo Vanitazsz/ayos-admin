@@ -11,9 +11,12 @@ import { useRealtime } from '../../../hooks/useRealtime';
 import { useToast } from '../../../context/ToastContext';
 import { NOTIFICATION_STATUS_BADGE, badgeFor } from '../../../services/statusMeta';
 import { usePagination } from '../../../hooks/usePagination';
+import { useDateFilter } from '../../../hooks/useDateFilter';
+import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
 
 export function useNotificationsPageController() {
   const toast = useToast();
+  const dateFilter = useDateFilter({ canModify: true });
   const { data: notifications, isLoading, error, refresh } = useDataFetch(loadNotifications, []);
   useRealtime('notification_campaigns', refresh);
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,10 +25,16 @@ export function useNotificationsPageController() {
   const [campaign, setCampaign] = useState({ title: '', audience: 'EVERYONE', message: '' });
 
   const safeNotifs = notifications ?? [];
-  const filteredNotifs = safeNotifs.filter((n) => {
+  const matchedNotifs = safeNotifs.filter((n) => {
     const matchesSearch = n.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'All' || n.type === filterType;
     return matchesSearch && matchesType;
+  });
+  const filteredNotifs = applyDateFilter(matchedNotifs, {
+    field: dateFilter.field,
+    range: dateFilter.effectiveRange,
+    sort: dateFilter.sort,
+    getDate: (row) => getRowDate(row, dateFilter.field) ?? getRowDate(row, 'created'),
   });
   const {
     currentPage,
@@ -94,6 +103,7 @@ export function useNotificationsPageController() {
     setSearchTerm,
     filterType,
     setFilterType,
+    dateFilter,
     currentPage,
     setCurrentPage,
     isModalOpen,
