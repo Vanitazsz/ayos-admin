@@ -25,8 +25,10 @@ import {
   Trash2,
   Settings,
   MapPinned,
+  Users2,
   Search,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const navigation = [
   { group: 'Dashboard', items: [{ title: 'Go to Dashboard', to: '/admin/dashboard', icon: Home }] },
@@ -66,11 +68,11 @@ const navigation = [
   {
     group: 'Administration',
     items: [
+      { title: 'Team & Roles', to: '/admin/team', icon: Users2, requiredPermission: 'team.view' },
       { title: 'Audit Logs', to: '/admin/auditlogs', icon: ClipboardList },
       { title: 'Trash', to: '/admin/trash', icon: Trash2 },
       { title: 'Platform Settings', to: '/admin/settings', icon: Settings },
       { title: 'Locations', to: '/admin/locations', icon: MapPinned },
-
     ],
   },
 ];
@@ -78,6 +80,16 @@ const navigation = [
 const CommandPalette = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const filteredNavigation = navigation
+    .map(({ group, items }) => ({
+      group,
+      items: items.filter(
+        (item) => !item.requiredPermission || user?.permissions?.includes(item.requiredPermission),
+      ),
+    }))
+    .filter(({ items }) => items.length > 0);
 
   useEffect(() => {
     const openPalette = () => setIsOpen(true);
@@ -121,7 +133,7 @@ const CommandPalette = () => {
         <CommandEmpty className="py-12 text-center text-sm text-foreground-lighter">
           No results found.
         </CommandEmpty>
-        {navigation.map(({ group, items }, index) => (
+        {filteredNavigation.map(({ group, items }, index) => (
           <React.Fragment key={group}>
             <CommandGroup
               heading={group}
@@ -139,7 +151,7 @@ const CommandPalette = () => {
                 </CommandItem>
               ))}
             </CommandGroup>
-            {index < navigation.length - 1 && (
+            {index < filteredNavigation.length - 1 && (
               <CommandSeparator className="mx-1 my-1 h-px bg-border" />
             )}
           </React.Fragment>

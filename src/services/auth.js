@@ -13,6 +13,11 @@ export async function requestPasswordReset(email) {
   if (error) throw error;
 }
 
+export async function updatePassword(newPassword) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
 export async function loadSystemStatus(signal) {
   const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/health`, {
     headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },

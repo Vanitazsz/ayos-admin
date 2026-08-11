@@ -9,6 +9,7 @@ import {
   Trash2,
   Eye,
   User,
+  ExternalLink,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
@@ -35,6 +36,12 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '../../../components/ui/DropdownMenu';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from '../../../components/ui/Tooltip';
 
 export function BookingsView({ model }) {
   const {
@@ -66,8 +73,10 @@ export function BookingsView({ model }) {
     handleViewDetails,
     openAction,
     submitAction,
+    goToTrash,
   } = model;
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
@@ -117,6 +126,7 @@ export function BookingsView({ model }) {
             <option value="Ongoing">Ongoing</option>
             <option value="Completed">Completed</option>
             <option value="Cancelled">Cancelled</option>
+            <option value="Trashed">Trashed</option>
           </Select>
         </div>
       </div>
@@ -148,95 +158,135 @@ export function BookingsView({ model }) {
                 ]}
               />
             ) : paginatedBookings.length > 0 ? (
-              paginatedBookings.map((booking) => (
-                <TableRow
-                  key={booking.id}
-                  onClick={() => handleViewDetails(booking)}
-                  className="cursor-pointer"
-                >
-                  <TableCell className="whitespace-nowrap">
-                    <div className="max-w-[220px] truncate text-sm font-medium text-foreground" title={booking.id}>
-                      {booking.id}
-                    </div>
-                    <div className="text-xs text-foreground-lighter mt-1 flex items-center">
-                      <Calendar size={12} className="mr-1" /> {booking.date}
-                    </div>
-                    <div className="text-xs text-foreground-lighter mt-1 flex items-center">
-                      <Clock size={12} className="mr-1" /> {booking.schedule} ({booking.duration})
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div
-                      className="max-w-[260px] truncate text-sm font-medium text-foreground"
-                      title={booking.service}
-                    >
-                      {booking.service}
-                    </div>
-                    <div className="text-xs text-foreground-lighter">{booking.category}</div>
-                    <div className="text-xs text-foreground-lighter mt-1 truncate" title={booking.address}>
-                      <MapPin size={12} className="inline mr-1" /> {booking.address}
-                    </div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="text-sm text-foreground flex items-center">
-                      <User size={14} className="mr-1 text-foreground-muted" /> {booking.customer}
-                    </div>
-                    <div
-                      className={`text-xs mt-1 font-medium ${!booking.worker ? 'text-destructive' : 'text-brand-600'}`}
-                    >
-                      Worker: {booking.worker}
-                    </div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="text-sm font-medium text-foreground">
-                      {money(booking.price)}
-                    </div>
-                    <div className="text-xs text-foreground-lighter">{booking.payment}</div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}
-                    >
-                      {booking.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-right font-medium" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          aria-label={`Open actions for ${booking.id}`}
-                          className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
+              paginatedBookings.map((booking) => {
+                const trashed = Boolean(booking.isTrashed);
+                const row = (
+                  <TableRow
+                    key={booking.id}
+                    onClick={() =>
+                      trashed ? goToTrash(booking.trashEntryId) : handleViewDetails(booking)
+                    }
+                    className={`cursor-pointer ${trashed ? 'opacity-55 grayscale' : ''}`}
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      <div className="max-w-[220px] truncate text-sm font-medium text-foreground" title={booking.id}>
+                        {booking.id}
+                      </div>
+                      <div className="text-xs text-foreground-lighter mt-1 flex items-center">
+                        <Calendar size={12} className="mr-1" /> {booking.date}
+                      </div>
+                      <div className="text-xs text-foreground-lighter mt-1 flex items-center">
+                        <Clock size={12} className="mr-1" /> {booking.schedule} ({booking.duration})
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div
+                        className="max-w-[260px] truncate text-sm font-medium text-foreground"
+                        title={booking.service}
+                      >
+                        {booking.service}
+                      </div>
+                      <div className="text-xs text-foreground-lighter">{booking.category}</div>
+                      <div className="text-xs text-foreground-lighter mt-1 truncate" title={booking.address}>
+                        <MapPin size={12} className="inline mr-1" /> {booking.address}
+                      </div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="text-sm text-foreground flex items-center">
+                        <User size={14} className="mr-1 text-foreground-muted" /> {booking.customer}
+                      </div>
+                      <div
+                        className={`text-xs mt-1 font-medium ${!booking.worker ? 'text-destructive' : 'text-brand-600'}`}
+                      >
+                        Worker: {booking.worker}
+                      </div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="text-sm font-medium text-foreground">
+                        {money(booking.price)}
+                      </div>
+                      <div className="text-xs text-foreground-lighter">{booking.payment}</div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {trashed ? (
+                        <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-warning/10 text-warning-600 dark:text-warning-400">
+                          In Trash
+                        </span>
+                      ) : (
+                        <span
+                          className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}
                         >
-                          <MoreVertical size={20} />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-52">
-                        <DropdownMenuItem
-                          onSelect={() => handleViewDetails(booking)}
-                          className="cursor-pointer"
-                        >
-                          <Eye className="mr-2" /> View Details
-                        </DropdownMenuItem>
-                        {!['Completed', 'Cancelled'].includes(booking.status) && (
-                          <DropdownMenuItem
-                            onSelect={() => openAction('reassign', booking)}
-                            className="cursor-pointer"
-                          >
-                            <User className="mr-2" /> Reassign Worker
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onSelect={() => openAction('cancel', booking)}
-                          className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
-                        >
-                          <Trash2 className="mr-2" /> Move to Trash
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
+                          {booking.status}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-right font-medium" onClick={(e) => e.stopPropagation()}>
+                      {trashed ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              aria-label={`Open actions for ${booking.id}`}
+                              className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
+                            >
+                              <MoreVertical size={20} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem
+                              onSelect={() => goToTrash(booking.trashEntryId)}
+                              className="cursor-pointer"
+                            >
+                              <ExternalLink className="mr-2" /> View in Trash
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              aria-label={`Open actions for ${booking.id}`}
+                              className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
+                            >
+                              <MoreVertical size={20} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-52">
+                            <DropdownMenuItem
+                              onSelect={() => handleViewDetails(booking)}
+                              className="cursor-pointer"
+                            >
+                              <Eye className="mr-2" /> View Details
+                            </DropdownMenuItem>
+                            {!['Completed', 'Cancelled'].includes(booking.status) && (
+                              <DropdownMenuItem
+                                onSelect={() => openAction('reassign', booking)}
+                                className="cursor-pointer"
+                              >
+                                <User className="mr-2" /> Reassign Worker
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onSelect={() => openAction('cancel', booking)}
+                              className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
+                            >
+                              <Trash2 className="mr-2" /> Move to Trash
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+                return trashed ? (
+                  <Tooltip key={booking.id} delayDuration={150}>
+                    <TooltipTrigger asChild>{row}</TooltipTrigger>
+                    <TooltipContent>In trash — click to open in Trash</TooltipContent>
+                  </Tooltip>
+                ) : (
+                  row
+                );
+              })
             ) : (
               <TableRow hover={false}>
                 <TableCell colSpan="6" className="py-12 text-center">
@@ -359,7 +409,7 @@ export function BookingsView({ model }) {
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
                 Customer Attachments
               </h4>
-              {selectedBooking.media === undefined ? (
+              {selectedBooking.media === undefined || Array.isArray(selectedBooking.media) ? (
                 <Skeleton className="h-24 w-full rounded-lg" />
               ) : selectedBooking.media === null ? (
                 <p className="text-sm text-foreground-lighter">Couldn't load attachments.</p>
@@ -519,5 +569,6 @@ export function BookingsView({ model }) {
         variant="primary"
       />
     </div>
+    </TooltipProvider>
   );
 }

@@ -1,6 +1,7 @@
 import { supabase, status, identity } from './adminShared';
+import { cacheable, invalidate } from '../lib/cacheable';
 
-export async function loadReviews() {
+export const loadReviews = cacheable('reviews', { ttl: 60_000 }, async () => {
   const { data, error } = await supabase
     .from('reviews')
     .select(
@@ -19,10 +20,11 @@ export async function loadReviews() {
     status: status(row.moderation_status),
     reportCount: null,
   }));
-}
+});
 
 export async function moderateReview(id, decision) {
   const { data, error } = await supabase.rpc('moderate_review', { review_id: id, decision });
   if (error) throw error;
+  invalidate('reviews');
   return data;
 }

@@ -98,6 +98,7 @@ export function WorkersView({ model }) {
     toggleStatus,
     toggleWorkerVerification,
     approveWorker,
+    handleApproveDocs,
     openRemarksModal,
     submitRemarks,
     selectedIds,
@@ -740,6 +741,24 @@ export function WorkersView({ model }) {
                       </a>
                     ))}
                   </div>
+                  {verificationDocs.status !== 'APPROVED' && (
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="warning"
+                        onClick={() => openRemarksModal(selectedWorker)}
+                      >
+                        <AlertCircle size={15} /> Request Docs
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={!selectedWorker.verificationId}
+                        onClick={() => void handleApproveDocs()}
+                      >
+                        <CheckCircle size={15} /> Approve
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

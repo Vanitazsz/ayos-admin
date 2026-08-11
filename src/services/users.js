@@ -1,10 +1,18 @@
 import { supabase, status, identity } from './adminShared';
+import { cacheable, invalidate } from '../lib/cacheable';
 
 const asProfile = (row) =>
   Array.isArray(row.user_profiles) ? row.user_profiles[0] : row.user_profiles;
 
-const normalizeVerificationStatus = (value) =>
-  String(value ?? '').trim().toLowerCase() === 'verified' ? 'verified' : 'unverified';
+const asLocation = (profile) =>
+  Array.isArray(profile?.locations) ? profile.locations[0] : profile?.locations;
+
+const normalizeVerificationStatus = (value) => {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (normalized === 'verified') return 'verified';
+  if (normalized === '' || normalized === 'unverified') return 'unverified';
+  return 'pending';
+};
 
 export const mapUser = (row) => {
   const profile = asProfile(row);
@@ -17,8 +25,8 @@ export const mapUser = (row) => {
     address: [row.addresses?.[0]?.line1, row.addresses?.[0]?.barangay, row.addresses?.[0]?.city]
       .filter(Boolean)
       .join(', '),
-    location: profile?.locations?.[0]?.name ?? '',
-    locationId: profile?.locations?.[0]?.id ?? null,
+    location: asLocation(profile)?.name ?? '',
+    locationId: asLocation(profile)?.id ?? null,
     registeredAt: new Date(row.created_at).toLocaleDateString(),
     status: status(row.status),
     bookings: profile?.bookings?.[0]?.count ?? 0,
@@ -34,7 +42,7 @@ const USER_PAGE_SELECT =
 const USER_KEY_SELECT =
   'id,email,status,created_at,user_profiles(display_name,verification_status,locations!user_profiles_location_id_fkey(id,name))';
 
-export async function loadUsersPage({
+export async function loadUsersPageRaw({
   search = '',
   status = 'All',
   verified = 'All',
@@ -88,7 +96,7 @@ export async function loadUsersPage({
   const matchesLocation = (row) => {
     if (location === 'All') return true;
     const profile = asProfile(row);
-    return (profile?.locations?.[0]?.name ?? '') === location;
+    return (asLocation(profile)?.name ?? '') === location;
   };
   const matched = allKeys.filter(
     (row) =>
@@ -126,43 +134,49 @@ export async function loadUsersPage({
   };
 }
 
-export async function loadCustomerVerifications() {
-  const { data: rows, error } = await supabase
-    .from('customer_verifications')
-    .select('*')
-    .eq('status', 'pending')
-    .order('created_at');
-  if (error) {
-    if (error.code === '42P01' || error.code === 'PGRST205') return [];
-    throw error;
-  }
-  const ids = [...new Set((rows ?? []).map((row) => row.customer_id))];
-  const { data: accounts, error: accountError } = ids.length
-    ? await supabase.from('accounts').select('id,email,user_profiles(display_name)').in('id', ids)
-    : { data: [], error: null };
-  if (accountError) throw accountError;
-  const byId = new Map((accounts ?? []).map((account) => [account.id, account]));
-  return Promise.all(
-    (rows ?? []).map(async (row) => {
-      const account = byId.get(row.customer_id);
-      const [front, back] = await Promise.all([
-        supabase.storage.from('verification-documents').createSignedUrl(row.id_front_url, 900),
-        row.id_back_url
-          ? supabase.storage.from('verification-documents').createSignedUrl(row.id_back_url, 900)
-          : Promise.resolve({ data: null, error: null }),
-      ]);
-      if (front.error) throw front.error;
-      if (back.error) throw back.error;
-      return {
-        ...row,
-        customerName: identity(account?.user_profiles?.display_name, 'Verification customer'),
-        email: account?.email ?? '',
-        frontUrl: front.data?.signedUrl ?? '',
-        backUrl: back.data?.signedUrl ?? '',
-      };
-    }),
-  );
-}
+export const loadUsersPage = cacheable('users', { ttl: 60_000 }, loadUsersPageRaw);
+
+export const loadCustomerVerifications = cacheable(
+  'users',
+  { ttl: 60_000 },
+  async () => {
+    const { data: rows, error } = await supabase
+      .from('customer_verifications')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at');
+    if (error) {
+      if (error.code === '42P01' || error.code === 'PGRST205') return [];
+      throw error;
+    }
+    const ids = [...new Set((rows ?? []).map((row) => row.customer_id))];
+    const { data: accounts, error: accountError } = ids.length
+      ? await supabase.from('accounts').select('id,email,user_profiles(display_name)').in('id', ids)
+      : { data: [], error: null };
+    if (accountError) throw accountError;
+    const byId = new Map((accounts ?? []).map((account) => [account.id, account]));
+    return Promise.all(
+      (rows ?? []).map(async (row) => {
+        const account = byId.get(row.customer_id);
+        const [front, back] = await Promise.all([
+          supabase.storage.from('verification-documents').createSignedUrl(row.id_front_url, 900),
+          row.id_back_url
+            ? supabase.storage.from('verification-documents').createSignedUrl(row.id_back_url, 900)
+            : Promise.resolve({ data: null, error: null }),
+        ]);
+        if (front.error) throw front.error;
+        if (back.error) throw back.error;
+        return {
+          ...row,
+          customerName: identity(account?.user_profiles?.display_name, 'Verification customer'),
+          email: account?.email ?? '',
+          frontUrl: front.data?.signedUrl ?? '',
+          backUrl: back.data?.signedUrl ?? '',
+        };
+      }),
+    );
+  },
+);
 
 export async function reviewCustomerVerification(id, decision, notes) {
   const { data, error } = await supabase.rpc('admin_review_customer_verification', {
@@ -171,6 +185,7 @@ export async function reviewCustomerVerification(id, decision, notes) {
     p_notes: notes || null,
   });
   if (error) throw error;
+  invalidate('users');
   return data;
 }
 
@@ -181,6 +196,7 @@ export async function updateUser(id, displayName, mobile) {
     p_mobile: mobile || null,
   });
   if (error) throw error;
+  invalidate('users');
   return data;
 }
 
@@ -190,6 +206,7 @@ export async function updateUserEmail(id, email) {
     p_email: email,
   });
   if (error) throw error;
+  invalidate('users');
   return data;
 }
 
@@ -199,6 +216,7 @@ export async function setCustomerVerification(id, status) {
     p_status: status,
   });
   if (error) throw error;
+  invalidate('users');
   return data;
 }
 
@@ -208,6 +226,7 @@ export async function bulkSetCustomerVerification(ids, status) {
     p_status: status,
   });
   if (error) throw error;
+  invalidate('users');
   return Number(data ?? 0);
 }
 
@@ -221,27 +240,31 @@ export async function resolveUserAvatar(path) {
   return data.signedUrl;
 }
 
-export async function loadUserVerificationDocs(accountId) {
-  const { data, error } = await supabase
-    .from('customer_verifications')
-    .select('id,id_type,status,id_front_url,id_back_url')
-    .eq('customer_id', accountId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return null;
-  const [front, back] = await Promise.all([
-    supabase.storage.from('verification-documents').createSignedUrl(data.id_front_url, 900),
-    data.id_back_url
-      ? supabase.storage.from('verification-documents').createSignedUrl(data.id_back_url, 900)
-      : Promise.resolve({ data: null, error: null }),
-  ]);
-  return {
-    id: data.id,
-    status: data.status,
-    idType: data.id_type,
-    frontUrl: front.data?.signedUrl ?? '',
-    backUrl: back.data?.signedUrl ?? '',
-  };
-}
+export const loadUserVerificationDocs = cacheable(
+  'users',
+  { ttl: 30_000 },
+  async (accountId) => {
+    const { data, error } = await supabase
+      .from('customer_verifications')
+      .select('id,id_type,status,id_front_url,id_back_url')
+      .eq('customer_id', accountId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    const [front, back] = await Promise.all([
+      supabase.storage.from('verification-documents').createSignedUrl(data.id_front_url, 900),
+      data.id_back_url
+        ? supabase.storage.from('verification-documents').createSignedUrl(data.id_back_url, 900)
+        : Promise.resolve({ data: null, error: null }),
+    ]);
+    return {
+      id: data.id,
+      status: data.status,
+      idType: data.id_type,
+      frontUrl: front.data?.signedUrl ?? '',
+      backUrl: back.data?.signedUrl ?? '',
+    };
+  },
+);

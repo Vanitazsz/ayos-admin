@@ -1,15 +1,18 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+import RequirePermission from './components/RequirePermission';
 import AdminLayout from './layouts/AdminLayout';
 import Skeleton from './components/ui/Skeleton';
 
 const Login = React.lazy(() => import('./pages/auth/Login'));
 const ForgotPassword = React.lazy(() => import('./pages/auth/ForgotPassword'));
+const CreateAccount = React.lazy(() => import('./pages/auth/CreateAccount'));
 const Terms = React.lazy(() => import('./pages/legal/Terms'));
 const Privacy = React.lazy(() => import('./pages/legal/Privacy'));
 const Dashboard = React.lazy(() => import('./pages/admin/Dashboard'));
 const Users = React.lazy(() => import('./pages/admin/Users'));
+const Team = React.lazy(() => import('./pages/admin/Team'));
 const Workers = React.lazy(() => import('./pages/admin/Workers'));
 const Bookings = React.lazy(() => import('./pages/admin/Bookings'));
 const Services = React.lazy(() => import('./pages/admin/Services'));
@@ -44,6 +47,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/create-account" element={<CreateAccount />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
 
@@ -77,6 +81,14 @@ function App() {
             <Route path="reports" element={<Reports />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="notifications" element={<Notifications />} />
+            <Route
+              path="team"
+              element={
+                <RequirePermission permission="team.view">
+                  <Team />
+                </RequirePermission>
+              }
+            />
             <Route path="auditlogs" element={<AuditLogs />} />
             <Route path="trash" element={<Trash />} />
             <Route path="settings" element={<Settings />} />

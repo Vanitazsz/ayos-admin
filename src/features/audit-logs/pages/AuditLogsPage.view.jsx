@@ -1,7 +1,21 @@
-import { Search, Filter, Monitor, Smartphone, Globe, CheckCircle, XCircle } from 'lucide-react';
+import {
+  Search,
+  Filter,
+  Monitor,
+  Smartphone,
+  Globe,
+  CheckCircle,
+  XCircle,
+  ShieldAlert,
+} from 'lucide-react';
 import Pagination from '../../../components/ui/Pagination';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import StatCard from '../../../components/ui/StatCard';
+import Input from '../../../components/ui/Input';
+import Select from '../../../components/ui/Select';
+import { Badge } from '../../../components/ui/Badge';
+import { Alert } from '../../../components/ui/Alert';
+import EmptyState from '../../../components/ui/EmptyState';
 import {
   Table,
   TableHeader,
@@ -35,12 +49,9 @@ export function AuditLogsView({ model }) {
         </div>
       </div>
       {error && (
-        <div
-          role="alert"
-          className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
+        <Alert variant="danger" className="mb-4">
           {error}
-        </div>
+        </Alert>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat, index) => (
@@ -50,31 +61,29 @@ export function AuditLogsView({ model }) {
 
       <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="relative w-full sm:w-96">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-foreground-muted" />
-          </div>
-          <input
-            type="text"
+          <Input
+            icon={Search}
             aria-label="Search by Admin, Action, or IP..."
             placeholder="Search by Admin, Action, or IP..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus:ring-ring focus:border-brand-500 text-sm"
           />
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
-          <Filter size={18} className="text-foreground-lighter" />
-          <select
-            className="w-full flex-1 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"
-            value={filterModule}
-            onChange={(e) => setFilterModule(e.target.value)}
-          >
-            <option value="All">All Modules</option>
-            <option value="Auth">Authentication</option>
-            <option value="Workers">Workers</option>
-            <option value="Bookings">Bookings</option>
-            <option value="Payments">Payments</option>
-          </select>
+          <div className="w-full sm:w-48">
+            <Select
+              icon={Filter}
+              aria-label="Filter by module"
+              value={filterModule}
+              onChange={(e) => setFilterModule(e.target.value)}
+            >
+              <option value="All">All Modules</option>
+              <option value="Auth">Authentication</option>
+              <option value="Workers">Workers</option>
+              <option value="Bookings">Bookings</option>
+              <option value="Payments">Payments</option>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -102,18 +111,24 @@ export function AuditLogsView({ model }) {
                 <TableRow key={log.id}>
                   <TableCell className="whitespace-nowrap text-foreground-lighter">{log.timestamp}</TableCell>
                   <TableCell className="whitespace-nowrap font-medium text-foreground">
-                    {log.admin}
+                    {log.admin || '—'}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    <span className="bg-surface-200 px-2 py-0.5 rounded text-xs">{log.module}</span>
+                    {log.module ? (
+                      <Badge variant="default">{log.module}</Badge>
+                    ) : (
+                      <span className="text-foreground-lighter">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="font-medium text-foreground">{log.action}</div>
-                    <div className="text-xs text-foreground-lighter mt-1">Target: {log.target}</div>
+                    <div className="text-xs text-foreground-lighter mt-1">
+                      Target: {log.target || '—'}
+                    </div>
                   </TableCell>
                   <TableCell className="hidden lg:table-cell whitespace-nowrap">
                     <div className="flex items-center text-xs text-foreground-lighter">
-                      <Globe size={12} className="mr-1" /> {log.ip}
+                      <Globe size={12} className="mr-1" /> {log.ip || '—'}
                     </div>
                   </TableCell>
                   <TableCell className="hidden lg:table-cell whitespace-nowrap">
@@ -123,26 +138,32 @@ export function AuditLogsView({ model }) {
                       ) : (
                         <Monitor size={14} className="mr-2 text-foreground-muted" />
                       )}
-                      {log.device} • {log.browser}
+                      {[log.device, log.browser].filter(Boolean).join(' • ') || '—'}
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-right">
                     {log.status === 'Success' ? (
-                      <span className="inline-flex items-center text-success font-medium">
-                        <CheckCircle size={14} className="mr-1" /> Success
-                      </span>
+                      <Badge variant="success">
+                        <CheckCircle size={12} /> Success
+                      </Badge>
                     ) : log.status === 'Failed' ? (
-                      <span className="inline-flex items-center text-destructive font-medium">
-                        <XCircle size={14} className="mr-1" /> Failed
-                      </span>
-                    ) : null}
+                      <Badge variant="danger">
+                        <XCircle size={12} /> Failed
+                      </Badge>
+                    ) : (
+                      <span className="text-foreground-lighter">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow hover={false}>
-                <TableCell colSpan="7" className="py-12 text-center text-foreground-lighter">
-                  No audit logs found.
+                <TableCell colSpan="7" className="p-0">
+                  <EmptyState
+                    icon={ShieldAlert}
+                    title="No audit logs found"
+                    description="No audit logs found matching your criteria."
+                  />
                 </TableCell>
               </TableRow>
             )}

@@ -1,6 +1,7 @@
 import { supabase, status } from './adminShared';
+import { cacheable, invalidate } from '../lib/cacheable';
 
-export async function loadNotifications() {
+export const loadNotifications = cacheable('notifications', { ttl: 60_000 }, async () => {
   const { data, error } = await supabase
     .from('notifications')
     .select('id,title,body,audience,status,created_at,notification_deliveries(status,read_at)')
@@ -21,7 +22,7 @@ export async function loadNotifications() {
       openRate: deliveries.length ? `${Math.round((read / deliveries.length) * 100)}%` : '0%',
     };
   });
-}
+});
 
 export async function createCampaign(input) {
   const { data, error } = await supabase.rpc('admin_create_notification_draft', {
@@ -31,16 +32,19 @@ export async function createCampaign(input) {
     p_category: 'GENERAL',
   });
   if (error) throw error;
+  invalidate('notifications');
   return data;
 }
 
 export async function deleteCampaign(id) {
   const { error } = await supabase.rpc('admin_archive_notification', { p_notification_id: id });
   if (error) throw error;
+  invalidate('notifications');
 }
 
 export async function publishCampaign(id) {
   const { data, error } = await supabase.rpc('admin_publish_campaign', { p_campaign_id: id });
   if (error) throw error;
+  invalidate('notifications');
   return data;
 }

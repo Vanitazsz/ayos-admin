@@ -613,22 +613,30 @@ export function DashboardView({ model }) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {systemNotifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className="flex items-start space-x-3 p-3 bg-info/5 border border-info/20 rounded-lg"
-                >
-                  <div className="p-1.5 bg-info/10 text-info rounded-md">
-                    <Bell size={16} />
+            {systemNotifications.length === 0 ? (
+              <EmptyState
+                icon={Bell}
+                title="No notifications"
+                description="You're all caught up. Important alerts will appear here."
+              />
+            ) : (
+              <div className="space-y-4">
+                {systemNotifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className="flex items-start space-x-3 p-3 bg-info/5 border border-info/20 rounded-lg"
+                  >
+                    <div className="p-1.5 bg-info/10 text-info rounded-md">
+                      <Bell size={16} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-info">{notification.title}</p>
+                      <p className="text-xs text-foreground-light mt-1">{notification.message}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-info">{notification.title}</p>
-                    <p className="text-xs text-foreground-light mt-1">{notification.message}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

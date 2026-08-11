@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { cacheable } from '../lib/cacheable';
 
 const status = (value) =>
   String(value ?? '')
@@ -12,7 +13,7 @@ const accountName = (account) =>
   account?.admin_profiles?.display_name ??
   null;
 
-export async function loadAuditLogs() {
+export const loadAuditLogs = cacheable('audit-logs', { ttl: 30_000 }, async () => {
   const { data, error } = await supabase
     .from('audit_logs')
     .select(
@@ -31,7 +32,8 @@ export async function loadAuditLogs() {
     status: row.metadata?.status ? status(row.metadata.status) : '',
     device: row.metadata?.device ?? '',
     browser: row.metadata?.browser ?? '',
+    isMobile: /iPhone|iPad|Android|Mobile/i.test(row.metadata?.device ?? ''),
     ip: row.metadata?.ip_address ?? '',
     metadata: row.metadata,
   }));
-}
+});

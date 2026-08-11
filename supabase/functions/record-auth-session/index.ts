@@ -1,6 +1,15 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
   const url = Deno.env.get('SUPABASE_URL');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -32,7 +41,7 @@ Deno.serve(async (req) => {
   });
   const { error: insertError } = await adminClient.from('authentication_events').insert({
     account_id: data.user.id,
-    ip_address: ipAddress || null,
+    ip_address: looksLikeIp(ipAddress) ? ipAddress : null,
     user_agent: userAgent || null,
     event_type: 'sign_in',
   });
@@ -43,9 +52,17 @@ Deno.serve(async (req) => {
   return json({ ok: true });
 });
 
+function looksLikeIp(value: string): boolean {
+  if (!value) return false;
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(value)) {
+    return value.split('.').every((part) => Number(part) <= 255);
+  }
+  return value.includes(':') && /^[0-9a-fA-F:.]+$/.test(value);
+}
+
 function json(body: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(body), {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: { 'Content-Type': 'application/json', ...corsHeaders, ...init?.headers },
   });
 }
