@@ -40,10 +40,12 @@ export function useServicesPageController() {
   );
   const [mostBooked, setMostBooked] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const toast = useToast();
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const [value, booked, trashed] = await Promise.all([
         loadCatalog(),
@@ -66,6 +68,8 @@ export function useServicesPageController() {
         }),
       );
       setMostBooked(booked);
+    } catch (err) {
+      setError(err?.message ?? 'Failed to load industries and skills');
     } finally {
       setIsLoading(false);
     }
@@ -363,6 +367,7 @@ export function useServicesPageController() {
       currentPage,
       setCurrentPage,
       isLoading,
+      error,
       isSkillModalOpen,
       setIsSkillModalOpen,
       isIndustryModalOpen,
@@ -410,6 +415,7 @@ export function useServicesPageController() {
       activeTab,
       currentPage,
       isLoading,
+      error,
       isSkillModalOpen,
       isIndustryModalOpen,
       modalMode,

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowLeft, Clock } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowLeft, Clock } from 'lucide-react';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { Label } from '../../../components/ui/Label';
@@ -48,6 +48,16 @@ export function CreateAccountView({ model }) {
               A-yos Admin
             </span>
           </div>
+          {step !== 'details' && (
+            <div className="hidden items-center md:ml-10 md:flex md:pr-4">
+              <div className="flex h-[26px] items-center rounded-md bg-card border border-border px-2.5 py-1 shadow-sm">
+                <Mail className="size-3.5 text-success" />
+                <span className="ml-1.5 text-xs font-medium text-foreground">
+                  Protected by email verification.
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -257,10 +267,6 @@ export function CreateAccountView({ model }) {
                 )}
               </div>
 
-              <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-foreground-lighter">
-                <ShieldCheck size={14} className="text-success" />
-                Protected by email verification.
-              </div>
             </>
           )}
         </main>

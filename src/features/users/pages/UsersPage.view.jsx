@@ -367,7 +367,7 @@ export function UsersView({ model }) {
                       <TableCell>
                         <div className="flex items-center">
                           <div className="w-10 h-10 rounded-full bg-brand-500/10 text-brand-600 flex items-center justify-center font-bold text-sm shrink-0 mr-3">
-                            {user.name.charAt(0)}
+                            {user.name?.charAt?.(0)}
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium text-foreground">{user.name}</div>

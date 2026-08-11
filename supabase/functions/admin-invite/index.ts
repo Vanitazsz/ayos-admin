@@ -3,9 +3,15 @@ import { Resend } from 'npm:resend@4';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { status: 204 });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   const url = Deno.env.get('SUPABASE_URL');
@@ -165,6 +171,6 @@ function escapeHtml(value: string): string {
 function json(body: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(body), {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: { 'Content-Type': 'application/json', ...corsHeaders, ...init?.headers },
   });
 }

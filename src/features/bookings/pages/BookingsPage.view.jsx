@@ -409,7 +409,7 @@ export function BookingsView({ model }) {
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
                 Customer Attachments
               </h4>
-              {selectedBooking.media === undefined ? (
+              {selectedBooking.media === undefined || Array.isArray(selectedBooking.media) ? (
                 <Skeleton className="h-24 w-full rounded-lg" />
               ) : selectedBooking.media === null ? (
                 <p className="text-sm text-foreground-lighter">Couldn't load attachments.</p>

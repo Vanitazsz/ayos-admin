@@ -56,6 +56,7 @@ export function ServicesView({ model }) {
     currentPage,
     setCurrentPage,
     isLoading,
+    error,
     isSkillModalOpen,
     setIsSkillModalOpen,
     isIndustryModalOpen,
@@ -112,6 +113,15 @@ export function ServicesView({ model }) {
           {activeTab === 'skills' ? 'Skill' : 'Industry'}
         </button>
       </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {error}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex space-x-4 mb-6 border-b border-border">

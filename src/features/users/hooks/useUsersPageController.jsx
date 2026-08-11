@@ -198,6 +198,10 @@ export function useUsersPageController() {
     [selectedVerification, reviewNotes, refresh, toast],
   );
 
+  const syncSelectedUser = useCallback((patch) => {
+    setSelectedUser((current) => (current ? { ...current, ...patch } : current));
+  }, []);
+
   const reviewUserDocs = useCallback(
     (decision) => {
       if (!selectedUser || !verificationDocs?.id) return;
@@ -389,10 +393,6 @@ export function useUsersPageController() {
   const cancelEdit = useCallback(() => {
     setIsEditing(false);
     setEditDraft({ name: '', email: '', phone: '' });
-  }, []);
-
-  const syncSelectedUser = useCallback((patch) => {
-    setSelectedUser((current) => (current ? { ...current, ...patch } : current));
   }, []);
 
   const saveUser = useCallback(

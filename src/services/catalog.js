@@ -1,7 +1,10 @@
 import { supabase } from './adminShared';
 import { cacheable, invalidate } from '../lib/cacheable';
 
-export const loadCatalog = cacheable('catalog', { ttl: 15 * 60_000 }, async () => {
+export const loadCatalog = cacheable(
+  'catalog',
+  { ttl: 15 * 60_000, key: 'industries-skills' },
+  async () => {
   const [
     { data: industries, error: industryError },
     { data: skills, error: skillError },
@@ -44,7 +47,10 @@ export const loadCatalog = cacheable('catalog', { ttl: 15 * 60_000 }, async () =
   };
 });
 
-export const loadTrashedEntries = cacheable('catalog', { ttl: 60_000 }, async () => {
+export const loadTrashedEntries = cacheable(
+  'catalog',
+  { ttl: 60_000, key: 'trashed' },
+  async () => {
   const { data, error } = await supabase
     .from('trash_entries')
     .select('id, entity_type, entity_id')
@@ -60,7 +66,7 @@ export const loadTrashedEntries = cacheable('catalog', { ttl: 60_000 }, async ()
 
 export const loadMostBookedService = cacheable(
   'catalog',
-  { ttl: 5 * 60_000 },
+  { ttl: 5 * 60_000, key: 'most-booked' },
   async () => {
     const { data, error } = await supabase.rpc('admin_most_booked_service');
     if (error) throw error;

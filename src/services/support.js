@@ -1,7 +1,7 @@
 import { supabase, status, identity, accountName } from './adminShared';
 import { cacheable, invalidate } from '../lib/cacheable';
 
-export const loadSafetyCases = cacheable('support', { ttl: 60_000 }, async () => {
+export const loadSafetyCases = cacheable('support', { ttl: 60_000, key: 'safety-cases' }, async () => {
   const [reportsResult, disputesResult] = await Promise.all([
     supabase
       .from('account_reports')
@@ -38,7 +38,7 @@ export const loadSafetyCases = cacheable('support', { ttl: 60_000 }, async () =>
   ].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
 });
 
-export const loadSupport = cacheable('support', { ttl: 60_000 }, async () => {
+export const loadSupport = cacheable('support', { ttl: 60_000, key: 'tickets' }, async () => {
   const { data, error } = await supabase
     .from('support_tickets')
     .select(

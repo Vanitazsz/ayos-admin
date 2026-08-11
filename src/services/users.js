@@ -4,6 +4,9 @@ import { cacheable, invalidate } from '../lib/cacheable';
 const asProfile = (row) =>
   Array.isArray(row.user_profiles) ? row.user_profiles[0] : row.user_profiles;
 
+const asLocation = (profile) =>
+  Array.isArray(profile?.locations) ? profile.locations[0] : profile?.locations;
+
 const normalizeVerificationStatus = (value) => {
   const normalized = String(value ?? '').trim().toLowerCase();
   if (normalized === 'verified') return 'verified';
@@ -22,8 +25,8 @@ export const mapUser = (row) => {
     address: [row.addresses?.[0]?.line1, row.addresses?.[0]?.barangay, row.addresses?.[0]?.city]
       .filter(Boolean)
       .join(', '),
-    location: profile?.locations?.[0]?.name ?? '',
-    locationId: profile?.locations?.[0]?.id ?? null,
+    location: asLocation(profile)?.name ?? '',
+    locationId: asLocation(profile)?.id ?? null,
     registeredAt: new Date(row.created_at).toLocaleDateString(),
     status: status(row.status),
     bookings: profile?.bookings?.[0]?.count ?? 0,
@@ -93,7 +96,7 @@ export async function loadUsersPageRaw({
   const matchesLocation = (row) => {
     if (location === 'All') return true;
     const profile = asProfile(row);
-    return (profile?.locations?.[0]?.name ?? '') === location;
+    return (asLocation(profile)?.name ?? '') === location;
   };
   const matched = allKeys.filter(
     (row) =>

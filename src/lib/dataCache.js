@@ -1,4 +1,4 @@
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 const STORAGE_PREFIX = `ayos:tablecache:v${CACHE_VERSION}`;
 const MAX_PERSISTED_BYTES = 256 * 1024;
 const MAX_ENTRIES_PER_SCOPE = 25;
@@ -66,8 +66,8 @@ const hashKey = (text) => {
   return (hash >>> 0).toString(36);
 };
 
-const fullKey = (scope, args) =>
-  `${STORAGE_PREFIX}:${currentUserId}:${scope}:${hashKey(stableKey(args))}`;
+const fullKey = (scope, args, subkey = '') =>
+  `${STORAGE_PREFIX}:${currentUserId}:${scope}:${subkey}:${hashKey(stableKey(args))}`;
 
 const isFresh = (entry, now) =>
   entry && entry.at > 0 && now - entry.at < entry.ttl;
@@ -115,8 +115,8 @@ const evictScope = (scope) => {
   }
 };
 
-export const getCache = (scope, args) => {
-  const key = fullKey(scope, args);
+export const getCache = (scope, args, subkey) => {
+  const key = fullKey(scope, args, subkey);
   const now = Date.now();
   const memory = memoryCache.get(key);
   if (memory) {
@@ -134,10 +134,15 @@ export const getCache = (scope, args) => {
   return undefined;
 };
 
-export const setCache = (scope, args, data, { ttl = 60_000, persist = true } = {}) => {
+export const setCache = (
+  scope,
+  args,
+  data,
+  { ttl = 60_000, persist = true, subkey = '' } = {},
+) => {
   if (ttl < MIN_PERSISTED_MS) persist = false;
   const entry = { at: Date.now(), ttl, data };
-  const key = fullKey(scope, args);
+  const key = fullKey(scope, args, subkey);
   memoryCache.set(key, entry);
   evictScope(scope);
   if (persist) {

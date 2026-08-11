@@ -23,6 +23,9 @@ const messageFrom = (error) => {
   if (/UNKNOWN_ROLE/.test(message)) {
     return 'The selected role is not recognized.';
   }
+  if (/Failed to send a request to the Edge Function/.test(message)) {
+    return 'Unable to reach the invitation service. Please try again.';
+  }
   return message || 'The request could not be completed.';
 };
 

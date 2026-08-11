@@ -32,6 +32,7 @@ export const loadAuditLogs = cacheable('audit-logs', { ttl: 30_000 }, async () =
     status: row.metadata?.status ? status(row.metadata.status) : '',
     device: row.metadata?.device ?? '',
     browser: row.metadata?.browser ?? '',
+    isMobile: /iPhone|iPad|Android|Mobile/i.test(row.metadata?.device ?? ''),
     ip: row.metadata?.ip_address ?? '',
     metadata: row.metadata,
   }));

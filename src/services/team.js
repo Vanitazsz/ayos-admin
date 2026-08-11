@@ -7,6 +7,18 @@ const rpcErrorMessage = (error) => {
   return marker ? marker[1] : message;
 };
 
+const edgeFunctionError = async (error) => {
+  if (error?.name === 'FunctionsHttpError' && error.context) {
+    try {
+      const body = await error.context.json();
+      if (body?.error) return String(body.error);
+    } catch {
+      /* fall back to the generic message below */
+    }
+  }
+  return rpcErrorMessage(error);
+};
+
 export async function loadTeam() {
   const { data, error } = await supabase.rpc('admin_list_team');
   if (error) throw error;
@@ -80,6 +92,6 @@ export async function inviteMember({ email, displayName, role, redirectTo }) {
       redirect_to: redirectTo,
     },
   });
-  if (error) throw new Error(rpcErrorMessage(error));
+  if (error) throw new Error(await edgeFunctionError(error));
   return data;
 }
