@@ -16,7 +16,7 @@ const style = {
   layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
 };
 
-export default function SubdivisionMapPicker({ latitude, longitude, onChange }) {
+export default function LocationMapPicker({ latitude, longitude, onChange }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);

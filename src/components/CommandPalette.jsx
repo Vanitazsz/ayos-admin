@@ -25,7 +25,6 @@ import {
   Trash2,
   Settings,
   MapPinned,
-  Crown,
   Search,
 } from 'lucide-react';
 
@@ -70,8 +69,8 @@ const navigation = [
       { title: 'Audit Logs', to: '/admin/auditlogs', icon: ClipboardList },
       { title: 'Trash', to: '/admin/trash', icon: Trash2 },
       { title: 'Platform Settings', to: '/admin/settings', icon: Settings },
-      { title: 'Subdivisions', to: '/admin/subdivisions', icon: MapPinned },
-      { title: 'Subscriptions', to: '/admin/subscriptions', icon: Crown },
+      { title: 'Locations', to: '/admin/locations', icon: MapPinned },
+
     ],
   },
 ];
