@@ -20,6 +20,7 @@ import {
   ArrowLeft,
   X,
   ArchiveRestore,
+  MapPinned,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { formatDateTime, money } from '../../../services/adminShared';
@@ -282,6 +283,7 @@ export function UsersView({ model }) {
                     </TableHead>
                   ) : null}
                   <TableHead scope="col">User Details</TableHead>
+                  <TableHead scope="col" className="hidden xl:table-cell">Location</TableHead>
                   <TableHead scope="col" className="hidden lg:table-cell">Contact</TableHead>
                   <TableHead scope="col" className="hidden lg:table-cell">Registration Date</TableHead>
                   <TableHead scope="col">Bookings</TableHead>
@@ -309,6 +311,7 @@ export function UsersView({ model }) {
                           </div>
                         ),
                       },
+                      { className: 'hidden xl:table-cell' },
                       { className: 'hidden lg:table-cell' },
                       { className: 'hidden lg:table-cell' },
                       {},
@@ -327,7 +330,7 @@ export function UsersView({ model }) {
                   />
                 ) : currentUsers.length === 0 ? (
                   <TableRow hover={false}>
-                    <TableCell colSpan={isSelectionActive ? 8 : 7} className="h-64 text-center">
+                    <TableCell colSpan={isSelectionActive ? 9 : 8} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center text-foreground-lighter">
                         <Search className="h-12 w-12 text-foreground-muted mb-4" />
                         <p className="text-lg font-medium text-foreground">
@@ -364,11 +367,24 @@ export function UsersView({ model }) {
                           <div className="w-10 h-10 rounded-full bg-brand-500/10 text-brand-600 flex items-center justify-center font-bold text-sm shrink-0 mr-3">
                             {user.name.charAt(0)}
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <div className="font-medium text-foreground">{user.name}</div>
-                            <div className="text-xs text-foreground-lighter">{user.id}</div>
+                            <div
+                              className="truncate max-w-[8rem] min-w-0 text-xs text-foreground-lighter"
+                              title={user.id}
+                            >
+                              {user.id}
+                            </div>
                           </div>
                         </div>
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell">
+                        <span className="flex items-center text-sm text-foreground-light">
+                          <MapPinned className="h-3.5 w-3.5 mr-1.5 shrink-0 text-foreground-muted" />
+                          <span className="truncate max-w-[8rem] min-w-0" title={user.location}>
+                            {user.location || '—'}
+                          </span>
+                        </span>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
                         <div className="flex flex-col space-y-1">

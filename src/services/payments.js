@@ -1,9 +1,9 @@
-import { supabase, status, identity } from './adminShared';
+import { supabase, status } from './adminShared';
 
 export const mapPayment = (row) => ({
   id: row.id,
   bookingId: row.booking_id,
-  customer: identity(row.bookings?.user_profiles?.display_name, 'Payment customer'),
+  customer: row.bookings?.user_profiles?.display_name ?? '',
   worker: row.bookings?.worker_profiles?.display_name ?? '',
   amount: Number(row.service_amount),
   fee: Number(row.commission_amount),
@@ -26,6 +26,8 @@ export async function loadPaymentsPage({
   search = '',
   type = 'All',
   tab = 'transactions',
+  sort = 'newest',
+  dateRange = null,
   page = 1,
   pageSize = 10,
 } = {}) {
@@ -76,10 +78,23 @@ export async function loadPaymentsPage({
       const method = status(row.method);
       if (method !== 'Cash' && method !== 'Bank Transfer') return false;
     }
+    if (dateRange) {
+      const created = new Date(row.created_at).getTime();
+      const from = dateRange.from ? new Date(dateRange.from).getTime() : -Infinity;
+      const to = dateRange.to ? new Date(dateRange.to).getTime() : Infinity;
+      if (created < from || created > to) return false;
+    }
     return true;
   });
-  const count = matched.length;
-  const pageIds = matched
+  const ordered = matched
+    .slice()
+    .sort((a, b) =>
+      sort === 'oldest'
+        ? new Date(a.created_at) - new Date(b.created_at)
+        : new Date(b.created_at) - new Date(a.created_at),
+    );
+  const count = ordered.length;
+  const pageIds = ordered
     .slice((page - 1) * pageSize, page * pageSize)
     .map((row) => row.id);
 

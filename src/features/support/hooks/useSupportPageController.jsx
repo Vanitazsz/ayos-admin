@@ -56,26 +56,22 @@ export function useSupportPageController() {
     {
       label: 'Open Tickets',
       value: tickets.filter((t) => t.status === 'Open').length,
-      icon: <MessageSquare className="text-brand-500" />,
-      bg: 'bg-brand-500/10',
+      icon: MessageSquare,
     },
     {
       label: 'High Priority',
       value: tickets.filter((t) => t.priority === 'High' && t.status !== 'Resolved').length,
-      icon: <AlertCircle className="text-destructive" />,
-      bg: 'bg-destructive/10',
+      icon: AlertCircle,
     },
     {
       label: 'Pending User',
       value: tickets.filter((t) => t.status === 'Pending').length,
-      icon: <Clock className="text-warning" />,
-      bg: 'bg-warning/10',
+      icon: Clock,
     },
     {
       label: 'Resolved',
       value: tickets.filter((t) => t.status === 'Resolved').length,
-      icon: <CheckCircle className="text-success" />,
-      bg: 'bg-success/10',
+      icon: CheckCircle,
     },
   ];
   const getPriorityColor = (priority) => {

@@ -7,8 +7,6 @@ import {
   Copy,
   Wrench,
   Grid,
-  ToggleLeft,
-  ToggleRight,
   Box,
   MoreVertical,
   Eye,
@@ -94,7 +92,6 @@ export function ServicesView({ model }) {
     handleOpenAddIndustryModal,
     handleOpenEditIndustryModal,
     handleDeactivateIndustry,
-    toggleIndustryStatus,
     handleSaveIndustry,
   } = model;
   return (
@@ -429,21 +426,15 @@ export function ServicesView({ model }) {
                             In Trash
                           </span>
                         ) : (
-                          <button
-                            onClick={() => toggleIndustryStatus(industry.id)}
-                            className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                          <span
+                            className={`inline-flex px-3 py-1.5 rounded-full text-xs font-medium ${
                               industry.status === 'Enabled'
-                                ? 'bg-success/10 text-success-600 dark:text-success-400 hover:bg-success/20'
-                                : 'bg-surface-200 text-foreground hover:bg-surface-300'
+                                ? 'bg-success/10 text-success-600 dark:text-success-400'
+                                : 'bg-surface-200 text-foreground'
                             }`}
                           >
-                            {industry.status === 'Enabled' ? (
-                              <ToggleRight size={16} />
-                            ) : (
-                              <ToggleLeft size={16} />
-                            )}
-                            <span>{industry.status}</span>
-                          </button>
+                            {industry.status === 'Enabled' ? 'Deactivate' : 'Activate'}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell

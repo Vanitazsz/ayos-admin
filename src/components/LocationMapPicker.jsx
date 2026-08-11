@@ -16,7 +16,7 @@ const style = {
   layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
 };
 
-export default function SubdivisionMapPicker({ latitude, longitude, onChange }) {
+export default function LocationMapPicker({ latitude, longitude, onChange, readOnly = false }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
@@ -30,7 +30,7 @@ export default function SubdivisionMapPicker({ latitude, longitude, onChange }) 
     const center = initialCenterRef.current;
     const map = new maplibregl.Map({ container: containerRef.current, style, center, zoom: 14 });
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
-    const marker = new maplibregl.Marker({ color: '#0B63D6', draggable: true })
+    const marker = new maplibregl.Marker({ color: '#0B63D6', draggable: !readOnly })
       .setLngLat(center)
       .addTo(map);
     const publish = () => {
@@ -39,6 +39,7 @@ export default function SubdivisionMapPicker({ latitude, longitude, onChange }) 
     };
     marker.on('dragend', publish);
     map.on('click', (event) => {
+      if (readOnly) return;
       marker.setLngLat(event.lngLat);
       publish();
     });
@@ -50,7 +51,7 @@ export default function SubdivisionMapPicker({ latitude, longitude, onChange }) 
       markerRef.current = null;
       mapRef.current = null;
     };
-  }, []);
+  }, [readOnly]);
 
   useEffect(() => {
     const lat = Number(latitude);

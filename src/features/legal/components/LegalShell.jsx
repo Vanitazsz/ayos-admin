@@ -1,40 +1,58 @@
 import { Link } from 'react-router-dom';
 import { ChevronLeft, FileText } from 'lucide-react';
 
-export function LegalShell({ title, effectiveDate, children }) {
+export function LegalShell({ title, effectiveDate, variant = 'public', children }) {
+  const admin = variant === 'admin';
+  const backTo = admin ? '/admin/profile' : '/login';
+  const backLabel = admin ? 'Back to Profile' : 'Back to sign in';
+
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans">
-      {/* Top Nav */}
-      <nav className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-sm">
-        <div className="mx-auto w-full max-w-4xl px-8 pt-6 pb-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between sm:h-10">
-            <Link
-              to="/login"
-              className="flex shrink-0 grow items-center space-x-3 lg:grow-0"
-              aria-label="A-yos Admin"
-            >
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-500/15 font-display text-base font-bold text-brand-700 dark:text-brand-300">
-                A
-              </div>
-              <span className="font-display text-lg font-bold tracking-tight text-foreground">
-                A-yos Admin
+    <div
+      className={
+        admin
+          ? 'font-sans'
+          : 'min-h-screen bg-background flex flex-col font-sans'
+      }
+    >
+      {!admin && (
+        /* Top Nav */
+        <nav className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-sm">
+          <div className="mx-auto w-full max-w-4xl px-8 pt-6 pb-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between sm:h-10">
+              <Link
+                to="/login"
+                className="flex shrink-0 grow items-center space-x-3 lg:grow-0"
+                aria-label="A-yos Admin"
+              >
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-500/15 font-display text-base font-bold text-brand-700 dark:text-brand-300">
+                  A
+                </div>
+                <span className="font-display text-lg font-bold tracking-tight text-foreground">
+                  A-yos Admin
+                </span>
+              </Link>
+              <span className="hidden items-center gap-2 text-sm text-foreground-lighter sm:flex">
+                <FileText className="size-4" />
+                Legal
               </span>
-            </Link>
-            <span className="hidden items-center gap-2 text-sm text-foreground-lighter sm:flex">
-              <FileText className="size-4" />
-              Legal
-            </span>
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
       {/* Content */}
-      <main className="flex-1 w-full max-w-3xl mx-auto px-5 sm:px-8 py-10">
+      <main
+        className={
+          admin
+            ? 'w-full max-w-3xl mx-auto py-6'
+            : 'flex-1 w-full max-w-3xl mx-auto px-5 sm:px-8 py-10'
+        }
+      >
         <Link
-          to="/login"
+          to={backTo}
           className="inline-flex items-center gap-1 text-sm font-medium text-brand-link hover:underline transition-colors mb-6"
         >
-          <ChevronLeft className="size-4" /> Back to sign in
+          <ChevronLeft className="size-4" /> {backLabel}
         </Link>
 
         <article>
@@ -52,22 +70,24 @@ export function LegalShell({ title, effectiveDate, children }) {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card">
-        <div className="mx-auto w-full max-w-3xl px-5 sm:px-8 py-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-          <p className="text-xs text-foreground-lighter">
-            &copy; {new Date().getFullYear()} A-yos Platform. All rights reserved.
-          </p>
-          <div className="flex items-center gap-4 text-xs text-foreground-lighter">
-            <Link to="/terms" className="hover:text-foreground transition-colors">
-              Terms of Service
-            </Link>
-            <span aria-hidden="true">·</span>
-            <Link to="/privacy" className="hover:text-foreground transition-colors">
-              Privacy Policy
-            </Link>
+      {!admin && (
+        <footer className="border-t border-border bg-card">
+          <div className="mx-auto w-full max-w-3xl px-5 sm:px-8 py-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+            <p className="text-xs text-foreground-lighter">
+              &copy; {new Date().getFullYear()} A-yos Platform. All rights reserved.
+            </p>
+            <div className="flex items-center gap-4 text-xs text-foreground-lighter">
+              <Link to="/terms" className="hover:text-foreground transition-colors">
+                Terms of Service
+              </Link>
+              <span aria-hidden="true">·</span>
+              <Link to="/privacy" className="hover:text-foreground transition-colors">
+                Privacy Policy
+              </Link>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 }

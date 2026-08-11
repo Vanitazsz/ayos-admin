@@ -10,6 +10,8 @@ export {
   restoreIndustryFromTrash,
   restoreSkillFromTrash,
   hardDeleteAccountFromTrash,
+  hardDeleteBookingFromTrash,
+  hardDeletePaymentFromTrash,
   hardDeleteIndustryFromTrash,
   hardDeleteSkillFromTrash,
 } from '../../../services/trash';

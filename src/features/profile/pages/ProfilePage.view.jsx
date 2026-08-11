@@ -210,7 +210,7 @@ export function ProfileView({ model }) {
             </h3>
             <div className="space-y-3">
               <Link
-                to="/terms"
+                to="/admin/terms"
                 className="flex items-center justify-between w-full text-sm bg-card border border-border-strong text-foreground-light py-2 px-3 rounded-lg font-medium hover:bg-surface-200 transition-colors"
               >
                 <span className="flex items-center">
@@ -219,7 +219,7 @@ export function ProfileView({ model }) {
                 <ChevronDown size={16} className="text-foreground-muted rotate-[-90deg]" />
               </Link>
               <Link
-                to="/privacy"
+                to="/admin/privacy"
                 className="flex items-center justify-between w-full text-sm bg-card border border-border-strong text-foreground-light py-2 px-3 rounded-lg font-medium hover:bg-surface-200 transition-colors"
               >
                 <span className="flex items-center">

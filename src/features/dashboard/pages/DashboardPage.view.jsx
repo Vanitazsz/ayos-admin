@@ -166,7 +166,7 @@ export function DashboardView({ model }) {
       ) : null}
 
       {/* Stat Cards Grid */}
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           title="Total Commission Revenue"
           value={money(metrics.commission_total ?? 0)}
@@ -460,18 +460,16 @@ export function DashboardView({ model }) {
             <CardDescription>Latest actions across the platform.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="isolate">
               {activities.map((activity, index) => (
                 <div
                   key={activity.id}
-                  className="flex items-start animate-fade-in-up transition-all duration-500"
+                  className="relative flex items-start pb-4 last:pb-0 animate-fade-in-up transition-all duration-500"
                 >
-                  <div className="relative">
-                    <div className="w-1.5 h-1.5 mt-2 rounded-full bg-foreground-lighter"></div>
-                    {index !== activities.length - 1 && (
-                      <div className="absolute top-4 left-0.5 w-px h-full bg-border transition-all duration-300"></div>
-                    )}
-                  </div>
+                  <div className="relative z-10 mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground-lighter"></div>
+                  {index !== activities.length - 1 && (
+                    <div className="absolute top-2 left-[2.5px] bottom-[-0.5rem] w-px bg-border transition-all duration-300"></div>
+                  )}
                   <div className="ml-4 space-y-1">
                     <p className="text-sm font-medium text-foreground">{activity.user}</p>
                     <p className="text-sm text-foreground-lighter">{activity.action}</p>

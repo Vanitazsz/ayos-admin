@@ -1,10 +1,11 @@
 import { LegalShell, LegalSection } from '../components/LegalShell';
 
-export function TermsView() {
+export function TermsView({ variant }) {
   return (
     <LegalShell
       title="Terms of Service"
       effectiveDate="August 10, 2026"
+      variant={variant}
     >
       <LegalSection heading="1. Acceptance of Terms">
         <p>

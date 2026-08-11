@@ -23,8 +23,9 @@ const AuditLogs = React.lazy(() => import('./pages/admin/AuditLogs'));
 const Trash = React.lazy(() => import('./pages/admin/Trash'));
 const Settings = React.lazy(() => import('./pages/admin/Settings'));
 const Profile = React.lazy(() => import('./pages/admin/Profile'));
-const Subdivisions = React.lazy(() => import('./pages/admin/Subdivisions'));
-const Subscriptions = React.lazy(() => import('./pages/admin/Subscriptions'));
+const AdminTerms = React.lazy(() => import('./pages/admin/Terms'));
+const AdminPrivacy = React.lazy(() => import('./pages/admin/Privacy'));
+const Locations = React.lazy(() => import('./pages/admin/Locations'));
 const NotFound = React.lazy(() => import('./pages/admin/NotFound'));
 
 function PageSpinner() {
@@ -79,9 +80,11 @@ function App() {
             <Route path="auditlogs" element={<AuditLogs />} />
             <Route path="trash" element={<Trash />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="subdivisions" element={<Subdivisions />} />
-            <Route path="subscriptions" element={<Subscriptions />} />
+            <Route path="locations" element={<Locations />} />
+            <Route path="subdivisions" element={<Navigate to="/admin/locations" replace />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="terms" element={<AdminTerms />} />
+            <Route path="privacy" element={<AdminPrivacy />} />
             <Route path="not-found" element={<NotFound />} />
             <Route path="*" element={<Navigate to="/admin/not-found" replace />} />
           </Route>

@@ -15,6 +15,7 @@ import {
   subscribe,
   updateUser,
   updateUserEmail,
+  loadLocations,
 } from '../logic/UsersPageLogic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Badge from '../../../components/ui/Badge';
@@ -26,6 +27,8 @@ export function useUsersPageController() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterVerified, setFilterVerified] = useState('All');
+  const [filterLocation, setFilterLocation] = useState('All');
+  const [locations, setLocations] = useState([]);
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [activeTab, setActiveTab] = useState('customers');
   const [verifications, setVerifications] = useState([]);
@@ -65,10 +68,11 @@ export function useUsersPageController() {
         search: searchQuery,
         status: filterStatus,
         verified: filterVerified,
+        location: filterLocation,
         page,
         pageSize,
       }),
-    [searchQuery, filterStatus, filterVerified],
+    [searchQuery, filterStatus, filterVerified, filterLocation],
   );
 
   const {
@@ -83,7 +87,7 @@ export function useUsersPageController() {
     totalPages,
   } = useServerPagination({
     fetchPage: fetchUsers,
-    filterKey: `${filterStatus}|${filterVerified}`,
+    filterKey: `${filterStatus}|${filterVerified}|${filterLocation}`,
   });
 
   const loadVerifications = useCallback(async () => {
@@ -101,6 +105,20 @@ export function useUsersPageController() {
     await refreshUsers();
     await loadVerifications();
   }, [refreshUsers, loadVerifications]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadLocations()
+      .then((loadedLocations) => {
+        if (!cancelled) setLocations(loadedLocations ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setLocations([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const stats = useMemo(
     () => [
@@ -224,7 +242,7 @@ export function useUsersPageController() {
 
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [searchQuery, filterStatus, filterVerified]);
+  }, [searchQuery, filterStatus, filterVerified, filterLocation]);
 
   const handleBulkStatus = useCallback(
     async (nextStatus) => {
@@ -522,6 +540,9 @@ export function useUsersPageController() {
       setFilterStatus,
       filterVerified,
       setFilterVerified,
+      filterLocation,
+      setFilterLocation,
+      locations,
       currentPage,
       setCurrentPage,
       actionMenuOpenId,
@@ -587,6 +608,8 @@ export function useUsersPageController() {
       searchQuery,
       filterStatus,
       filterVerified,
+      filterLocation,
+      locations,
       currentPage,
       actionMenuOpenId,
       activeTab,

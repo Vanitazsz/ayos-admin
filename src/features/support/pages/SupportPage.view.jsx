@@ -4,6 +4,7 @@ import Pagination from '../../../components/ui/Pagination';
 import { formatDateTime } from '../../../services/adminShared';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import StatCard from '../../../components/ui/StatCard';
 
 export function SupportView({ model }) {
   const {
@@ -41,18 +42,9 @@ export function SupportView({ model }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat, index) => (
-          <div
-            key={index}
-            className="bg-card rounded-xl shadow-sm border border-border p-6 flex items-center"
-          >
-            <div className={`p-4 rounded-lg ${stat.bg} mr-4`}>{stat.icon}</div>
-            <div>
-              <p className="text-sm text-foreground-lighter font-medium">{stat.label}</p>
-              <h3 className="text-2xl font-bold text-foreground">{stat.value}</h3>
-            </div>
-          </div>
+          <StatCard key={index} title={stat.label} value={stat.value} icon={stat.icon} />
         ))}
       </div>
 

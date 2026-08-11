@@ -22,6 +22,7 @@ import {
   X,
   Coins,
   ArchiveRestore,
+  MapPinned,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
@@ -151,6 +152,15 @@ export function WorkersView({ model }) {
         </TabsList>
       </Tabs>
 
+      {loadError ? (
+        <div
+          role="alert"
+          className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {loadError}
+        </div>
+      ) : null}
+
       {/* Filters and Search */}
       <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="w-full sm:w-96">
@@ -191,15 +201,6 @@ export function WorkersView({ model }) {
           </div>
         </div>
       </div>
-
-      {loadError ? (
-        <div
-          role="alert"
-          className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
-          {loadError}
-        </div>
-      ) : null}
 
       {isSelectionActive ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-xl border-x border-t border-border bg-brand-500/5 px-4 py-2.5">
@@ -284,6 +285,9 @@ export function WorkersView({ model }) {
               <TableHead scope="col">
                 Category
               </TableHead>
+              <TableHead scope="col" className="hidden xl:table-cell">
+                Location
+              </TableHead>
               <TableHead scope="col">
                 Rating
               </TableHead>
@@ -319,6 +323,7 @@ export function WorkersView({ model }) {
                     ),
                   },
                   {},
+                  { className: 'hidden xl:table-cell' },
                   {},
                   { className: 'hidden xl:table-cell' },
                   { className: 'hidden lg:table-cell' },
@@ -359,9 +364,14 @@ export function WorkersView({ model }) {
                           {worker.name.charAt(0)}
                         </div>
                       </div>
-                      <div className="ml-4">
+                      <div className="ml-4 min-w-0">
                         <div className="text-sm font-medium text-foreground">{worker.name}</div>
-                        <div className="text-sm text-foreground-lighter">{worker.id}</div>
+                        <div
+                          className="truncate max-w-[8rem] min-w-0 text-sm text-foreground-lighter"
+                          title={worker.id}
+                        >
+                          {worker.id}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
@@ -373,6 +383,17 @@ export function WorkersView({ model }) {
                       {(worker.categories ?? []).join(', ') || '—'}
                     </div>
                     <div className="text-sm text-foreground-lighter">{worker.experience} yrs exp</div>
+                  </TableCell>
+                  <TableCell className="hidden xl:table-cell">
+                    <div className="flex items-center text-sm text-foreground">
+                      <MapPinned size={16} className="text-brand-600 mr-2 shrink-0" />
+                      <span
+                        className="truncate max-w-[8rem] min-w-0"
+                        title={worker.location}
+                      >
+                        {worker.location || '—'}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center text-sm text-foreground">

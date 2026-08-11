@@ -9,9 +9,14 @@ import {
   Sparkles,
   Users,
   Briefcase,
-  Info,
   CheckCircle2,
 } from 'lucide-react';
+import { Button } from '../../../components/ui/Button';
+import Input from '../../../components/ui/Input';
+import Switch from '../../../components/ui/Switch';
+import { Badge } from '../../../components/ui/Badge';
+import { Alert } from '../../../components/ui/Alert';
+import { Card } from '../../../components/ui/Card';
 import { money } from '../../../services/adminShared';
 
 export function CommissionFeeSettings({
@@ -154,7 +159,7 @@ export function CommissionFeeSettings({
   return (
     <div className="space-y-6">
       {/* Header & Quick Action Presets */}
-      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+      <Card className="p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5 mb-5">
           <div>
             <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
@@ -166,25 +171,20 @@ export function CommissionFeeSettings({
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onResetDefaults}
-              className="inline-flex items-center gap-1.5 px-3 py-2 border border-border-strong rounded-lg text-xs font-medium text-foreground-light hover:bg-surface-200 transition-colors"
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onResetDefaults}>
               <RotateCcw size={14} />
               Reset Defaults
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="md"
               onClick={handleSave}
-              disabled={isSaving}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 shadow-sm"
+              isLoading={isSaving}
+              loadingText="Saving Changes…"
             >
-              {isSaving ? (
-                <>Saving Changes…</>
-              ) : saveSuccess ? (
+              {saveSuccess ? (
                 <>
-                  <CheckCircle2 size={16} className="text-emerald-300" />
+                  <CheckCircle2 size={16} className="text-success-300" />
                   Saved!
                 </>
               ) : (
@@ -193,14 +193,14 @@ export function CommissionFeeSettings({
                   Save Fee Settings
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Presets Selection */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={16} className="text-amber-500" />
+            <Sparkles size={16} className="text-warning-500" />
             <span className="text-xs font-semibold text-foreground-light uppercase tracking-wider">
               Quick Fee Presets
             </span>
@@ -209,13 +209,11 @@ export function CommissionFeeSettings({
             <button
               type="button"
               onClick={() => handleApplyPreset('standard')}
-              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group"
+              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring"
             >
               <div className="font-semibold text-foreground group-hover:text-brand-600 flex items-center justify-between">
                 Standard Model
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-700 font-bold">
-                  10% Worker
-                </span>
+                <Badge variant="primary">10% Worker</Badge>
               </div>
               <p className="text-foreground-lighter mt-1 text-[11px]">
                 10% Worker commission, ₱0 User fee
@@ -225,13 +223,11 @@ export function CommissionFeeSettings({
             <button
               type="button"
               onClick={() => handleApplyPreset('shared')}
-              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group"
+              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring"
             >
               <div className="font-semibold text-foreground group-hover:text-brand-600 flex items-center justify-between">
                 Shared Fee Model
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-info/10 text-info font-bold">
-                  5% / 5%
-                </span>
+                <Badge variant="info">5% / 5%</Badge>
               </div>
               <p className="text-foreground-lighter mt-1 text-[11px]">
                 5% Worker commission + 5% User fee
@@ -241,13 +237,11 @@ export function CommissionFeeSettings({
             <button
               type="button"
               onClick={() => handleApplyPreset('flat_user')}
-              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group"
+              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring"
             >
               <div className="font-semibold text-foreground group-hover:text-brand-600 flex items-center justify-between">
                 Flat Customer Fee
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold">
-                  ₱30 Flat
-                </span>
+                <Badge variant="success">₱30 Flat</Badge>
               </div>
               <p className="text-foreground-lighter mt-1 text-[11px]">
                 ₱0 Worker commission, ₱30 Customer booking fee
@@ -257,13 +251,11 @@ export function CommissionFeeSettings({
             <button
               type="button"
               onClick={() => handleApplyPreset('promo_zero')}
-              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group"
+              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring"
             >
               <div className="font-semibold text-foreground group-hover:text-brand-600 flex items-center justify-between">
                 Zero Fee Promo
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold">
-                  0% Promo
-                </span>
+                <Badge variant="warning">0% Promo</Badge>
               </div>
               <p className="text-foreground-lighter mt-1 text-[11px]">
                 0% Worker commission, ₱0 User fee
@@ -271,12 +263,12 @@ export function CommissionFeeSettings({
             </button>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Main Grid: User Fee Config & Worker Fee Config */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Worker Commission Settings */}
-        <div className="bg-card rounded-xl shadow-sm border border-border p-6 flex flex-col justify-between">
+        <Card className="p-6 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
               <div className="flex items-center gap-3">
@@ -290,15 +282,11 @@ export function CommissionFeeSettings({
                   </p>
                 </div>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={feeSettings.workerFeeEnabled}
-                  onChange={(e) => updateSetting('workerFeeEnabled', e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-surface-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
-              </label>
+              <Switch
+                checked={feeSettings.workerFeeEnabled}
+                onCheckedChange={(checked) => updateSetting('workerFeeEnabled', checked)}
+                aria-label="Enable worker commission fee"
+              />
             </div>
 
             {feeSettings.workerFeeEnabled ? (
@@ -311,8 +299,9 @@ export function CommissionFeeSettings({
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
+                      aria-pressed={feeSettings.workerFeeType === 'percentage'}
                       onClick={() => updateSetting('workerFeeType', 'percentage')}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors ${
+                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring ${
                         feeSettings.workerFeeType === 'percentage'
                           ? 'border-brand-500 bg-brand-500/10 text-brand-700 font-semibold'
                           : 'border-border-strong text-foreground-lighter hover:bg-surface-200'
@@ -323,8 +312,9 @@ export function CommissionFeeSettings({
                     </button>
                     <button
                       type="button"
+                      aria-pressed={feeSettings.workerFeeType === 'fixed'}
                       onClick={() => updateSetting('workerFeeType', 'fixed')}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors ${
+                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring ${
                         feeSettings.workerFeeType === 'fixed'
                           ? 'border-brand-500 bg-brand-500/10 text-brand-700 font-semibold'
                           : 'border-border-strong text-foreground-lighter hover:bg-surface-200'
@@ -343,7 +333,7 @@ export function CommissionFeeSettings({
                       Commission Percentage Rate (%)
                     </label>
                     <div className="relative">
-                      <input
+                      <Input
                         type="number"
                         min="0"
                         max="50"
@@ -352,9 +342,9 @@ export function CommissionFeeSettings({
                         onChange={(e) =>
                           updateSetting('workerCommissionRate', Math.max(0, Number(e.target.value)))
                         }
-                        className="w-full pl-3 pr-10 py-2 border border-border-strong rounded-lg text-sm font-semibold focus:ring-ring focus:border-brand-500"
+                        inputClassName="pr-10"
                       />
-                      <span className="absolute right-3 top-2.5 text-xs text-foreground-lighter font-bold">
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
                         %
                       </span>
                     </div>
@@ -368,10 +358,10 @@ export function CommissionFeeSettings({
                       Fixed Commission Amount per Job (₱)
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs text-foreground-lighter font-bold">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
                         ₱
                       </span>
-                      <input
+                      <Input
                         type="number"
                         min="0"
                         step="5"
@@ -379,7 +369,7 @@ export function CommissionFeeSettings({
                         onChange={(e) =>
                           updateSetting('workerFixedFee', Math.max(0, Number(e.target.value)))
                         }
-                        className="w-full pl-7 pr-3 py-2 border border-border-strong rounded-lg text-sm font-semibold focus:ring-ring focus:border-brand-500"
+                        inputClassName="pl-7"
                       />
                     </div>
                   </div>
@@ -391,10 +381,10 @@ export function CommissionFeeSettings({
                     Minimum Fee Floor (₱)
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-xs text-foreground-lighter font-bold">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
                       ₱
                     </span>
-                    <input
+                    <Input
                       type="number"
                       min="0"
                       step="5"
@@ -402,7 +392,7 @@ export function CommissionFeeSettings({
                       onChange={(e) =>
                         updateSetting('workerMinFee', Math.max(0, Number(e.target.value)))
                       }
-                      className="w-full pl-7 pr-3 py-2 border border-border-strong rounded-lg text-sm focus:ring-ring focus:border-brand-500"
+                      inputClassName="pl-7"
                     />
                   </div>
                   <p className="text-[11px] text-foreground-lighter mt-1">
@@ -420,11 +410,10 @@ export function CommissionFeeSettings({
                       Automatically deduct commission when releasing worker payouts
                     </p>
                   </div>
-                  <input
-                    type="checkbox"
+                  <Switch
                     checked={feeSettings.workerAutoDeduct}
-                    onChange={(e) => updateSetting('workerAutoDeduct', e.target.checked)}
-                    className="rounded border-border-strong text-brand-600 focus:ring-brand-500 h-4 w-4"
+                    onCheckedChange={(checked) => updateSetting('workerAutoDeduct', checked)}
+                    aria-label="Auto-deduct commission from payout"
                   />
                 </div>
               </div>
@@ -435,16 +424,15 @@ export function CommissionFeeSettings({
             )}
           </div>
 
-          <div className="mt-4 p-3 rounded-lg bg-brand-500/5 border border-brand-500/20 text-xs flex items-start gap-2">
-            <Info size={16} className="text-brand-600 shrink-0 mt-0.5" />
+          <Alert className="mt-4 border-brand-500/20 bg-brand-500/5">
             <span className="text-foreground-light">
               Worker commission is deducted from the service provider when the booking reaches Completed status.
             </span>
-          </div>
-        </div>
+          </Alert>
+        </Card>
 
         {/* User / Customer Fee Settings */}
-        <div className="bg-card rounded-xl shadow-sm border border-border p-6 flex flex-col justify-between">
+        <Card className="p-6 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
               <div className="flex items-center gap-3">
@@ -458,15 +446,11 @@ export function CommissionFeeSettings({
                   </p>
                 </div>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={feeSettings.userFeeEnabled}
-                  onChange={(e) => updateSetting('userFeeEnabled', e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-surface-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-info"></div>
-              </label>
+              <Switch
+                checked={feeSettings.userFeeEnabled}
+                onCheckedChange={(checked) => updateSetting('userFeeEnabled', checked)}
+                aria-label="Enable user service fee"
+              />
             </div>
 
             {feeSettings.userFeeEnabled ? (
@@ -479,8 +463,9 @@ export function CommissionFeeSettings({
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
+                      aria-pressed={feeSettings.userFeeType === 'percentage'}
                       onClick={() => updateSetting('userFeeType', 'percentage')}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors ${
+                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring ${
                         feeSettings.userFeeType === 'percentage'
                           ? 'border-info bg-info/10 text-info font-semibold'
                           : 'border-border-strong text-foreground-lighter hover:bg-surface-200'
@@ -491,8 +476,9 @@ export function CommissionFeeSettings({
                     </button>
                     <button
                       type="button"
+                      aria-pressed={feeSettings.userFeeType === 'fixed'}
                       onClick={() => updateSetting('userFeeType', 'fixed')}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors ${
+                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring ${
                         feeSettings.userFeeType === 'fixed'
                           ? 'border-info bg-info/10 text-info font-semibold'
                           : 'border-border-strong text-foreground-lighter hover:bg-surface-200'
@@ -511,7 +497,7 @@ export function CommissionFeeSettings({
                       User Service Fee Percentage (%)
                     </label>
                     <div className="relative">
-                      <input
+                      <Input
                         type="number"
                         min="0"
                         max="30"
@@ -520,9 +506,9 @@ export function CommissionFeeSettings({
                         onChange={(e) =>
                           updateSetting('userFeeRate', Math.max(0, Number(e.target.value)))
                         }
-                        className="w-full pl-3 pr-10 py-2 border border-border-strong rounded-lg text-sm font-semibold focus:ring-ring focus:border-brand-500"
+                        inputClassName="pr-10"
                       />
-                      <span className="absolute right-3 top-2.5 text-xs text-foreground-lighter font-bold">
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
                         %
                       </span>
                     </div>
@@ -533,10 +519,10 @@ export function CommissionFeeSettings({
                       Fixed Booking Service Fee (₱)
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs text-foreground-lighter font-bold">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
                         ₱
                       </span>
-                      <input
+                      <Input
                         type="number"
                         min="0"
                         step="5"
@@ -544,7 +530,7 @@ export function CommissionFeeSettings({
                         onChange={(e) =>
                           updateSetting('userFixedFee', Math.max(0, Number(e.target.value)))
                         }
-                        className="w-full pl-7 pr-3 py-2 border border-border-strong rounded-lg text-sm font-semibold focus:ring-ring focus:border-brand-500"
+                        inputClassName="pl-7"
                       />
                     </div>
                   </div>
@@ -556,10 +542,10 @@ export function CommissionFeeSettings({
                     Minimum Customer Fee (₱)
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-xs text-foreground-lighter font-bold">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
                       ₱
                     </span>
-                    <input
+                    <Input
                       type="number"
                       min="0"
                       step="5"
@@ -567,7 +553,7 @@ export function CommissionFeeSettings({
                       onChange={(e) =>
                         updateSetting('userMinFee', Math.max(0, Number(e.target.value)))
                       }
-                      className="w-full pl-7 pr-3 py-2 border border-border-strong rounded-lg text-sm focus:ring-ring focus:border-brand-500"
+                      inputClassName="pl-7"
                     />
                   </div>
                 </div>
@@ -577,12 +563,11 @@ export function CommissionFeeSettings({
                   <label className="block text-xs font-semibold text-foreground-light mb-1">
                     Customer Invoice Label
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={feeSettings.userFeeLabel}
                     onChange={(e) => updateSetting('userFeeLabel', e.target.value)}
                     placeholder="e.g. Platform Service Fee"
-                    className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:ring-ring focus:border-brand-500"
                   />
                   <p className="text-[11px] text-foreground-lighter mt-1">
                     This text will be shown on customer receipt line items.
@@ -596,20 +581,19 @@ export function CommissionFeeSettings({
             )}
           </div>
 
-          <div className="mt-4 p-3 rounded-lg bg-info/5 border border-info/20 text-xs flex items-start gap-2">
-            <Info size={16} className="text-info shrink-0 mt-0.5" />
+          <Alert variant="info" className="mt-4">
             <span className="text-foreground-light">
               User service fee is added directly to the total booking charge during checkout.
             </span>
-          </div>
-        </div>
+          </Alert>
+        </Card>
       </div>
 
       {/* Live Revenue & Fee Breakdown Simulator */}
-      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+      <Card className="p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-6">
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-500 font-bold">
+            <div className="h-9 w-9 bg-warning-500/10 rounded-lg flex items-center justify-center text-warning-500 font-bold">
               <Calculator size={20} />
             </div>
             <div>
@@ -623,16 +607,16 @@ export function CommissionFeeSettings({
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-foreground-light">Sample Job Subtotal:</span>
             <div className="relative w-36">
-              <span className="absolute left-2.5 top-1.5 text-xs text-foreground-lighter font-bold">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
                 ₱
               </span>
-              <input
+              <Input
                 type="number"
                 min="50"
                 step="50"
                 value={sampleAmount}
                 onChange={(e) => setSampleAmount(Math.max(1, Number(e.target.value)))}
-                className="w-full pl-6 pr-2 py-1.5 border border-border-strong rounded-lg text-xs font-bold text-foreground focus:ring-ring focus:border-brand-500"
+                inputClassName="pl-6 pr-2 text-xs font-bold"
               />
             </div>
           </div>
@@ -695,7 +679,7 @@ export function CommissionFeeSettings({
           </div>
           <div className="h-4 w-full bg-surface-200 rounded-full overflow-hidden flex">
             <div
-              className="bg-emerald-500 h-full transition-all duration-300 flex items-center justify-center text-[10px] text-white font-bold"
+              className="bg-success-500 h-full transition-all duration-300 flex items-center justify-center text-[10px] text-white font-bold"
               style={{ width: `${simulation.workerPct}%` }}
               title={`Worker Net: ${money(simulation.workerNet)}`}
             >
@@ -710,7 +694,7 @@ export function CommissionFeeSettings({
             </div>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

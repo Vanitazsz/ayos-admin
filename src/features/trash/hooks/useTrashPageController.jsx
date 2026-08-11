@@ -9,6 +9,8 @@ import {
   restoreIndustryFromTrash,
   restoreSkillFromTrash,
   hardDeleteAccountFromTrash,
+  hardDeleteBookingFromTrash,
+  hardDeletePaymentFromTrash,
   hardDeleteIndustryFromTrash,
   hardDeleteSkillFromTrash,
 } from '../logic/TrashPageLogic';
@@ -33,6 +35,7 @@ export function useTrashPageController() {
   const items = raw ?? Object.fromEntries(tabs.map((tab) => [tab, []]));
   const [searchTerm, setSearchTerm] = useState('');
   const [accountToDelete, setAccountToDelete] = useState(null);
+  const [bookingToDelete, setBookingToDelete] = useState(null);
   const [confirm, setConfirm] = useState({
     isOpen: false,
     title: '',
@@ -80,6 +83,10 @@ export function useTrashPageController() {
     else if (item.type === 'Skill') await hardDeleteSkillFromTrash(item.id);
     else if (item.type === 'User' || item.type === 'Worker')
       await hardDeleteAccountFromTrash(item.id, item.email);
+    else if (item.type === 'Booking')
+      await hardDeleteBookingFromTrash(item.id, item.entityId);
+    else if (item.type === 'Payment')
+      await hardDeletePaymentFromTrash(item.id, item.entityId);
     else await permanentlyDeleteTrash(item.id, item.entityId);
   };
 
@@ -102,6 +109,15 @@ export function useTrashPageController() {
     if (!accountToDelete) throw new Error('No account selected.');
     await hardDeleteAccountFromTrash(accountToDelete.trashId, confirmation);
     await refresh();
+    toast.success('Account permanently deleted', `${accountToDelete.name}'s account was permanently removed from trash.`);
+  };
+  const handleDeleteBookingFromTrash = async (item) => {
+    await deleteItem(item);
+    await refresh();
+    toast.success(
+      `${item.type} permanently deleted`,
+      `${item.item} was permanently removed from trash.`,
+    );
   };
   const handlePermanentDelete = (item) => {
     if (item.type === 'User' || item.type === 'Worker') {
@@ -115,6 +131,10 @@ export function useTrashPageController() {
         name: item.item,
         email: item.email,
       });
+      return;
+    }
+    if (item.type === 'Booking' || item.type === 'Payment') {
+      setBookingToDelete(item);
       return;
     }
     const permanent =
@@ -131,6 +151,10 @@ export function useTrashPageController() {
         try {
           await deleteItem(item);
           await refresh();
+          toast.success(
+            `${item.type} permanently deleted`,
+            `${item.item} was permanently removed from trash.`,
+          );
         } catch (error) {
           toast.error('Delete failed', error.message);
         }
@@ -162,6 +186,10 @@ export function useTrashPageController() {
         try {
           for (const item of filteredItems) await deleteItem(item);
           await refresh();
+          toast.success(
+            'Trash emptied',
+            `Permanently deleted ${filteredItems.length} ${activeTab.toLowerCase()}.`,
+          );
         } catch (error) {
           toast.error('Delete failed', error.message);
         }
@@ -192,5 +220,8 @@ export function useTrashPageController() {
     accountToDelete,
     setAccountToDelete,
     handleDeleteAccountFromTrash,
+    bookingToDelete,
+    setBookingToDelete,
+    handleDeleteBookingFromTrash,
   };
 }

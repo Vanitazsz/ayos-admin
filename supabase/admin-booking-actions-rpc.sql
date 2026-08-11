@@ -431,6 +431,165 @@ begin
 end;
 $$;
 
+create or replace function public.admin_hard_delete_booking_from_trash(
+  p_trash_id uuid,
+  p_confirmation text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  entry public.trash_entries;
+  v_booking_id uuid;
+  v_service_request_id uuid;
+  v_payment_ids uuid[];
+  v_review_ids uuid[];
+begin
+  if not public.is_admin(true) then
+    raise exception using errcode = '42501', message = 'AAL2_ADMIN_REQUIRED';
+  end if;
+
+  select item.* into entry
+  from public.trash_entries item
+  where item.id = p_trash_id and item.restored_at is null
+  for update;
+
+  if entry.id is null or entry.entity_type <> 'booking' then
+    raise exception using errcode = 'P0002', message = 'TRASH_ENTRY_NOT_FOUND';
+  end if;
+
+  if trim(coalesce(p_confirmation, '')) <> 'DELETE ' || entry.entity_id then
+    raise exception using errcode = '22023', message = 'DELETE_CONFIRMATION_MISMATCH';
+  end if;
+
+  select b.id into v_booking_id
+  from public.bookings b
+  where b.id = entry.entity_id::uuid;
+
+  if v_booking_id is null then
+    -- Booking row is already gone; remove the orphaned trash entry.
+    delete from public.trash_entries where id = entry.id;
+
+    insert into public.audit_logs(actor_id, action, entity_type, entity_id)
+    values (auth.uid(), 'BOOKING_HARD_DELETED_FROM_TRASH', 'booking', entry.entity_id);
+    return;
+  end if;
+
+  select service_request_id into v_service_request_id
+  from public.bookings where id = v_booking_id;
+
+  select coalesce(array_agg(id), '{}') into v_payment_ids
+  from public.payments where booking_id = v_booking_id;
+  select coalesce(array_agg(id), '{}') into v_review_ids
+  from public.reviews where booking_id = v_booking_id;
+
+  perform public._admin_hard_delete_triggers(true);
+
+  -- leaves under payments
+  delete from cash_confirmations where payment_id = any(v_payment_ids);
+  delete from receipts where payment_id = any(v_payment_ids);
+  delete from refunds where payment_id = any(v_payment_ids);
+  -- leaves under reviews
+  delete from review_ai_insights where review_id = any(v_review_ids);
+  delete from review_media where review_id = any(v_review_ids);
+  delete from review_replies where review_id = any(v_review_ids);
+  delete from review_reports where review_id = any(v_review_ids);
+  delete from review_votes where review_id = any(v_review_ids);
+  -- leaves under bookings
+  delete from account_reports where booking_id = v_booking_id;
+  delete from booking_disputes where booking_id = v_booking_id;
+  delete from booking_proof_media where booking_id = v_booking_id;
+  delete from booking_status_events where booking_id = v_booking_id;
+  delete from cancellations where booking_id = v_booking_id;
+  delete from location_updates where booking_id = v_booking_id;
+  delete from route_snapshots where booking_id = v_booking_id;
+  delete from support_tickets where booking_id = v_booking_id;
+  delete from wallet_transactions where booking_id = v_booking_id;
+  delete from worker_feedback where booking_id = v_booking_id;
+  delete from payments where booking_id = v_booking_id;
+  delete from reviews where booking_id = v_booking_id;
+  delete from conversations where booking_id = v_booking_id;
+  -- children of the linked service request
+  delete from ai_analysis_jobs where service_request_id = v_service_request_id;
+  delete from live_dispatch_sessions where service_request_id = v_service_request_id;
+  delete from match_candidates where service_request_id = v_service_request_id;
+  delete from request_bids where service_request_id = v_service_request_id;
+  delete from request_media where service_request_id = v_service_request_id;
+  delete from service_request_dispatches where service_request_id = v_service_request_id;
+  delete from bookings where id = v_booking_id;
+  delete from service_requests where id = v_service_request_id;
+
+  perform public._admin_hard_delete_triggers(false);
+
+  delete from public.trash_entries where id = entry.id;
+
+  insert into public.audit_logs(actor_id, action, entity_type, entity_id)
+  values (auth.uid(), 'BOOKING_HARD_DELETED_FROM_TRASH', 'booking', entry.entity_id);
+end
+$$;
+
+
+create or replace function public.admin_hard_delete_payment_from_trash(
+  p_trash_id uuid,
+  p_confirmation text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  entry public.trash_entries;
+  v_payment_id uuid;
+begin
+  if not public.is_admin(true) then
+    raise exception using errcode = '42501', message = 'AAL2_ADMIN_REQUIRED';
+  end if;
+
+  select item.* into entry
+  from public.trash_entries item
+  where item.id = p_trash_id and item.restored_at is null
+  for update;
+
+  if entry.id is null or entry.entity_type <> 'payment' then
+    raise exception using errcode = 'P0002', message = 'TRASH_ENTRY_NOT_FOUND';
+  end if;
+
+  if trim(coalesce(p_confirmation, '')) <> 'DELETE ' || entry.entity_id then
+    raise exception using errcode = '22023', message = 'DELETE_CONFIRMATION_MISMATCH';
+  end if;
+
+  select p.id into v_payment_id
+  from public.payments p
+  where p.id = entry.entity_id::uuid;
+
+  if v_payment_id is null then
+    -- Payment row is already gone; remove the orphaned trash entry.
+    delete from public.trash_entries where id = entry.id;
+
+    insert into public.audit_logs(actor_id, action, entity_type, entity_id)
+    values (auth.uid(), 'PAYMENT_HARD_DELETED_FROM_TRASH', 'payment', entry.entity_id);
+    return;
+  end if;
+
+  perform public._admin_hard_delete_triggers(true);
+
+  delete from cash_confirmations where payment_id = v_payment_id;
+  delete from receipts where payment_id = v_payment_id;
+  delete from refunds where payment_id = v_payment_id;
+  delete from payments where id = v_payment_id;
+
+  perform public._admin_hard_delete_triggers(false);
+
+  delete from public.trash_entries where id = entry.id;
+
+  insert into public.audit_logs(actor_id, action, entity_type, entity_id)
+  values (auth.uid(), 'PAYMENT_HARD_DELETED_FROM_TRASH', 'payment', entry.entity_id);
+end
+$$;
+
 revoke execute on function public.admin_cancel_booking(uuid, text) from public, anon;
 grant execute on function public.admin_cancel_booking(uuid, text) to authenticated;
 
@@ -445,5 +604,11 @@ grant execute on function public.admin_restore_payment_from_trash(uuid) to authe
 
 revoke execute on function public.admin_reassign_booking(uuid, uuid, text) from public, anon;
 grant execute on function public.admin_reassign_booking(uuid, uuid, text) to authenticated;
+
+revoke execute on function public.admin_hard_delete_booking_from_trash(uuid, text) from public, anon;
+grant execute on function public.admin_hard_delete_booking_from_trash(uuid, text) to authenticated;
+
+revoke execute on function public.admin_hard_delete_payment_from_trash(uuid, text) from public, anon;
+grant execute on function public.admin_hard_delete_payment_from_trash(uuid, text) to authenticated;
 
 notify pgrst, 'reload schema';

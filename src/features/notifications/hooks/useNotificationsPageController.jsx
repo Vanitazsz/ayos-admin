@@ -37,26 +37,22 @@ export function useNotificationsPageController() {
     {
       label: 'Sent',
       value: safeNotifs.filter((n) => n.status === 'Sent').length,
-      icon: <Send className="text-brand-500" />,
-      bg: 'bg-brand-500/10',
+      icon: Send,
     },
     {
       label: 'Scheduled',
       value: safeNotifs.filter((n) => n.status === 'Scheduled').length,
-      icon: <Clock className="text-warning" />,
-      bg: 'bg-warning/10',
+      icon: Clock,
     },
     {
       label: 'Drafts',
       value: safeNotifs.filter((n) => n.status === 'Draft').length,
-      icon: <MessageSquare className="text-foreground-lighter" />,
-      bg: 'bg-surface-200',
+      icon: MessageSquare,
     },
     {
       label: 'Failed',
       value: safeNotifs.filter((n) => n.status === 'Failed').length,
-      icon: <XCircle className="text-destructive" />,
-      bg: 'bg-destructive/10',
+      icon: XCircle,
     },
   ];
   const getTypeIcon = (type) => {

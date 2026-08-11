@@ -1,17 +1,26 @@
 export {
+  bulkSetAccountStatus,
   bulkSetWorkerStatus,
   setAccountStatus,
   softDeleteAccount,
   restoreAccountFromTrash,
 } from '../../../services/accounts';
-export { subscribe } from '../../../services/realtime';
+export {
+  bulkSetCustomerVerification,
+  loadUsersPage,
+  loadUserVerificationDocs,
+  setCustomerVerification,
+  resolveUserAvatar,
+  updateUser,
+  updateUserEmail,
+} from '../../../services/users';
 export {
   bulkSetWorkerVerification,
   loadWorkerVerificationDocs,
   loadWorkers,
-  reviewWorker,
   updateWorker,
   updateWorkerEmail,
 } from '../../../services/workers';
+export { loadBookingsForUser, resolveBookingMedia } from '../../../services/bookings';
 export { loadCatalog } from '../../../services/catalog';
 export { loadLocations } from '../../../services/locations';

@@ -26,7 +26,6 @@ import {
   Activity,
   Megaphone,
   MapPinned,
-  Crown,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import {
@@ -92,8 +91,8 @@ const navigationGroups = [
       { name: 'Audit Logs', to: '/admin/auditlogs', icon: ClipboardList },
       { name: 'Trash', to: '/admin/trash', icon: Trash2 },
       { name: 'Settings', to: '/admin/settings', icon: Settings },
-      { name: 'Subdivisions', to: '/admin/subdivisions', icon: MapPinned },
-      { name: 'Subscriptions', to: '/admin/subscriptions', icon: Crown },
+      { name: 'Locations', to: '/admin/locations', icon: MapPinned },
+
     ],
   },
 ];
