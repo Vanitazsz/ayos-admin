@@ -1,10 +1,11 @@
 import { LegalShell, LegalSection } from '../components/LegalShell';
 
-export function PrivacyView() {
+export function PrivacyView({ variant }) {
   return (
     <LegalShell
       title="Privacy Policy"
       effectiveDate="August 10, 2026"
+      variant={variant}
     >
       <LegalSection heading="1. Introduction">
         <p>
