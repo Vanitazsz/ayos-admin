@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ShieldCheck, CheckCircle } from 'lucide-react';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { Label } from '../../../components/ui/Label';
@@ -10,6 +10,15 @@ export function LoginView({ model }) {
     error,
     handleSubmit,
     isLoading,
+    isRecovery,
+    newPassword,
+    setNewPassword,
+    confirmPassword,
+    setConfirmPassword,
+    showNewPassword,
+    setShowNewPassword,
+    resetComplete,
+    signupComplete,
     password,
     setEmail,
     setPassword,
@@ -17,6 +26,7 @@ export function LoginView({ model }) {
     showPassword,
     systemStatus,
   } = model;
+
   return (
     <div className="relative flex min-h-screen flex-col bg-background font-sans">
       {/* Top Nav */}
@@ -45,14 +55,26 @@ export function LoginView({ model }) {
         {/* Left Column - Sign In Form */}
         <main className="flex flex-1 shrink-0 flex-col items-center px-5 pt-16 pb-8 border-r border-border shadow-lg bg-card">
           <div className="flex-1 flex w-full max-w-[384px] flex-col justify-center">
-            <div className="mb-10">
-              <h1 className="font-display mt-8 mb-2 text-3xl font-bold tracking-tight text-foreground">
-                Welcome Back
-              </h1>
-              <p className="text-sm text-foreground-light">
-                Please sign in to your administrator account.
-              </p>
-            </div>
+            {isRecovery ? (
+              <div className="mb-10">
+                <h1 className="font-display mt-8 mb-2 text-3xl font-bold tracking-tight text-foreground">
+                  Set a new password
+                </h1>
+                <p className="text-sm text-foreground-light">
+                  Enter your new password below. You&apos;ll be asked to sign in again
+                  afterwards.
+                </p>
+              </div>
+            ) : (
+              <div className="mb-10">
+                <h1 className="font-display mt-8 mb-2 text-3xl font-bold tracking-tight text-foreground">
+                  Welcome Back
+                </h1>
+                <p className="text-sm text-foreground-light">
+                  Please sign in to your administrator account.
+                </p>
+              </div>
+            )}
 
             {error && (
               <div className="mb-6 bg-danger/10 border-l-4 border-danger p-4 rounded-r-lg flex items-start">
@@ -60,7 +82,83 @@ export function LoginView({ model }) {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {resetComplete && (
+              <div className="mb-6 bg-success/10 border-l-4 border-success p-4 rounded-r-lg flex items-start">
+                <CheckCircle className="size-4 text-success mt-0.5 mr-2" />
+                <div className="flex-1 text-sm text-success font-medium">
+                  Your password has been updated. Sign in with your new password.
+                </div>
+              </div>
+            )}
+
+            {signupComplete && (
+              <div className="mb-6 bg-success/10 border-l-4 border-success p-4 rounded-r-lg flex items-start">
+                <CheckCircle className="size-4 text-success mt-0.5 mr-2" />
+                <div className="flex-1 text-sm text-success font-medium">
+                  Account created successfully. Sign in with your email and password.
+                </div>
+              </div>
+            )}
+
+            {isRecovery ? (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="new-password"
+                      type={showNewPassword ? 'text' : 'password'}
+                      placeholder="At least 8 characters"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      icon={Lock}
+                      inputClassName="h-[34px] rounded-md pr-10 text-base md:text-sm leading-4"
+                      required
+                      minLength={8}
+                    />
+                    <button
+                      type="button"
+                      title={showNewPassword ? 'Hide password' : 'Show password'}
+                      aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                      className="absolute right-1 top-1 flex h-[26px] items-center justify-center rounded-md px-1.5 text-foreground-muted hover:text-foreground focus:outline-none"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                    >
+                      {showNewPassword ? (
+                        <EyeOff className="size-3.5" />
+                      ) : (
+                        <Eye className="size-3.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirm-password"
+                      type={showNewPassword ? 'text' : 'password'}
+                      placeholder="Re-enter your new password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      icon={Lock}
+                      inputClassName="h-[34px] rounded-md pr-10 text-base md:text-sm leading-4"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-[42px] px-4 text-base"
+                  size="lg"
+                  isLoading={isLoading}
+                >
+                  Update Password
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="email">Email Address</Label>
                   <Input
@@ -103,9 +201,27 @@ export function LoginView({ model }) {
                       className="absolute right-1 top-1 flex h-[26px] items-center justify-center rounded-md px-1.5 text-foreground-muted hover:text-foreground focus:outline-none"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                      {showPassword ? (
+                        <EyeOff className="size-3.5" />
+                      ) : (
+                        <Eye className="size-3.5" />
+                      )}
                     </button>
                   </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="text-xs text-foreground-lighter">
+                    Don&apos;t have an account?{' '}
+                    <Link
+                      to="/create-account"
+                      className="underline transition decoration-inherit hover:decoration-foreground text-inherit hover:text-foreground font-medium"
+                    >
+                      Create one
+                    </Link>
+                  </span>
+                  <span className="h-px flex-1 bg-border" />
                 </div>
 
                 <Button
@@ -117,6 +233,7 @@ export function LoginView({ model }) {
                   Sign in to Dashboard
                 </Button>
               </form>
+            )}
           </div>
 
           <div className="text-center text-balance">

@@ -1,6 +1,7 @@
 import { supabase } from './adminShared';
+import { cacheable } from '../lib/cacheable';
 
-export async function loadAnalytics() {
+export const loadAnalytics = cacheable('analytics', { ttl: 30_000, persist: false }, async () => {
   const [
     { data: summary, error: summaryError },
     { data: topServices, error: topServicesError },
@@ -18,13 +19,17 @@ export async function loadAnalytics() {
     topServices: topServices ?? [],
     revenueSeries: revenueSeries ?? [],
   };
-}
+});
 
-export async function loadWorkerEarnings() {
-  const { data, error } = await supabase.rpc('admin_analytics_summary');
-  if (error) throw error;
-  return {
-    totalEarnings: Number(data?.[0]?.worker_earnings_total ?? 0),
-    workerCount: Number(data?.[0]?.workers_with_earnings ?? 0),
-  };
-}
+export const loadWorkerEarnings = cacheable(
+  'analytics',
+  { ttl: 30_000, persist: false },
+  async () => {
+    const { data, error } = await supabase.rpc('admin_analytics_summary');
+    if (error) throw error;
+    return {
+      totalEarnings: Number(data?.[0]?.worker_earnings_total ?? 0),
+      workerCount: Number(data?.[0]?.workers_with_earnings ?? 0),
+    };
+  },
+);

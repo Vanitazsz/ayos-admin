@@ -1,6 +1,7 @@
 import { supabase } from './adminShared';
+import { cacheable, invalidate } from '../lib/cacheable';
 
-export async function loadCatalog() {
+export const loadCatalog = cacheable('catalog', { ttl: 15 * 60_000 }, async () => {
   const [
     { data: industries, error: industryError },
     { data: skills, error: skillError },
@@ -41,9 +42,9 @@ export async function loadCatalog() {
       workers: row.worker_skills?.[0]?.count ?? 0,
     })),
   };
-}
+});
 
-export async function loadTrashedEntries() {
+export const loadTrashedEntries = cacheable('catalog', { ttl: 60_000 }, async () => {
   const { data, error } = await supabase
     .from('trash_entries')
     .select('id, entity_type, entity_id')
@@ -55,13 +56,17 @@ export async function loadTrashedEntries() {
     entityType: row.entity_type,
     entityId: row.entity_id,
   }));
-}
+});
 
-export async function loadMostBookedService() {
-  const { data, error } = await supabase.rpc('admin_most_booked_service');
-  if (error) throw error;
-  return data;
-}
+export const loadMostBookedService = cacheable(
+  'catalog',
+  { ttl: 5 * 60_000 },
+  async () => {
+    const { data, error } = await supabase.rpc('admin_most_booked_service');
+    if (error) throw error;
+    return data;
+  },
+);
 
 export async function saveSkill(value, industries) {
   const industry = industries.find((item) => item.name === value.industry);
@@ -76,6 +81,7 @@ export async function saveSkill(value, industries) {
     p_is_active: value.status === 'Active',
   });
   if (error) throw error;
+  invalidate('catalog');
   return data;
 }
 
@@ -84,6 +90,7 @@ export async function moveSkillToTrash(id) {
     p_skill_id: id,
   });
   if (error) throw error;
+  invalidate('catalog');
   return data;
 }
 
@@ -92,6 +99,7 @@ export async function moveIndustryToTrash(id) {
     p_industry_id: id,
   });
   if (error) throw error;
+  invalidate('catalog');
   return data;
 }
 
@@ -107,5 +115,6 @@ export async function saveIndustry(value) {
     p_is_active: value.status === 'Enabled',
   });
   if (error) throw error;
+  invalidate('catalog');
   return data;
 }

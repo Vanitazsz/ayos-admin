@@ -6,6 +6,7 @@ import {
   subscribe,
 } from '../logic/BookingsPageLogic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, CheckCircle, PlayCircle } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { BOOKING_STATUS_BADGE, badgeFor } from '../../../services/statusMeta';
@@ -13,6 +14,7 @@ import { useServerPagination } from '../../../hooks/useServerPagination';
 
 export function useBookingsPageController() {
   const toast = useToast();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -95,6 +97,14 @@ export function useBookingsPageController() {
   const toggleActionMenu = useCallback((id) => {
     setActionMenuOpenId((current) => (current === id ? null : id));
   }, []);
+
+  const goToTrash = useCallback(
+    (trashEntryId) => {
+      if (!trashEntryId) return;
+      navigate(`/admin/trash?tab=Bookings&entry=${trashEntryId}`);
+    },
+    [navigate],
+  );
 
   const handleViewDetails = useCallback(async (booking) => {
     setSelectedBooking(booking);
@@ -188,6 +198,7 @@ export function useBookingsPageController() {
       handleViewDetails,
       openAction,
       submitAction,
+      goToTrash,
     }),
     [
       searchTerm,
@@ -213,6 +224,7 @@ export function useBookingsPageController() {
       handleViewDetails,
       openAction,
       submitAction,
+      goToTrash,
       closeConfirm,
       setFilterStatus,
       setCurrentPage,

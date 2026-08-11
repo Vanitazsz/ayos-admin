@@ -1,4 +1,5 @@
 import { supabase, status } from './adminShared';
+import { cacheable, invalidate } from '../lib/cacheable';
 
 export const mapPayment = (row) => ({
   id: row.id,
@@ -22,7 +23,7 @@ const PAYMENT_KEY_SELECT =
 
 const paymentStatus = (raw) => (raw === 'SUCCESSFUL' ? 'Completed' : status(raw));
 
-export async function loadPaymentsPage({
+export async function loadPaymentsPageRaw({
   search = '',
   type = 'All',
   tab = 'transactions',
@@ -114,11 +115,14 @@ export async function loadPaymentsPage({
   };
 }
 
+export const loadPaymentsPage = cacheable('payments', { ttl: 60_000 }, loadPaymentsPageRaw);
+
 export async function movePaymentToTrash(id, reason) {
   const { data, error } = await supabase.rpc('admin_move_payment_to_trash', {
     p_payment_id: id,
     p_reason: reason,
   });
   if (error) throw error;
+  invalidate('payments');
   return data;
 }

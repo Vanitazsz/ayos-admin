@@ -1,4 +1,5 @@
 import { supabase, status } from './adminShared';
+import { cacheable } from '../lib/cacheable';
 
 const buildRevenueSeries = (rows) =>
   (rows ?? []).map((row) => {
@@ -28,7 +29,10 @@ const buildBookings = (series) =>
     return map;
   }, new Map()).values()];
 
-export async function loadDashboard() {
+export const loadDashboard = cacheable(
+  'dashboard',
+  { ttl: 30_000, persist: false },
+  async () => {
   const [overview, revenuePayload] = await Promise.all([
     supabase.rpc('admin_dashboard_overview'),
     supabase.rpc('admin_dashboard_revenue'),
@@ -57,4 +61,4 @@ export async function loadDashboard() {
     recentUsers: value.recent_users ?? [],
     systemNotifications: value.system_notifications ?? [],
   };
-}
+});

@@ -173,16 +173,31 @@ const TransactionsTab = ({ model, onOpenAction, onViewDetails }) => (
             />
           ) : model.paginatedTxns.length > 0 ? (
             model.paginatedTxns.map((txn) => (
-              <TableRow key={txn.id}>
+              <TableRow
+                key={txn.id}
+                onClick={() => onViewDetails(txn)}
+                className="cursor-pointer"
+              >
                 <TableCell className="whitespace-nowrap">
                   <div className="flex items-center text-sm font-medium text-foreground">
                     <span className="max-w-44 truncate">{txn.customer || '—'}</span>
                     <ArrowRight className="mx-1.5 size-3 shrink-0 text-foreground-muted" />
                     <span className="max-w-44 truncate">{txn.worker || '—'}</span>
                   </div>
-                  <div className="mt-0.5 text-xs text-foreground-lighter">
-                    <span className="font-mono">{txn.id}</span> · Booking:{' '}
-                    {txn.bookingId}
+                  <div className="mt-0.5 flex items-center gap-1 text-xs text-foreground-lighter">
+                    <span
+                      className="min-w-0 max-w-[8rem] truncate font-mono"
+                      title={txn.id}
+                    >
+                      {txn.id}
+                    </span>
+                    <span className="shrink-0">· Booking:</span>
+                    <span
+                      className="min-w-0 max-w-[8rem] truncate"
+                      title={txn.bookingId}
+                    >
+                      {txn.bookingId}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell className="whitespace-nowrap">
@@ -214,6 +229,7 @@ const TransactionsTab = ({ model, onOpenAction, onViewDetails }) => (
                     <DropdownMenuTrigger asChild>
                       <button
                         aria-label={`Open actions for ${txn.id}`}
+                        onClick={(e) => e.stopPropagation()}
                         className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
                       >
                         <MoreVertical size={20} />
@@ -505,7 +521,9 @@ export function PaymentsView({ model }) {
             <div className="border-t border-border pt-4 space-y-4">
               <div className="flex justify-between py-2 border-b border-border">
                 <span className="text-foreground-lighter">Transaction ID</span>
-                <span className="font-medium text-foreground">{selectedTxn.id}</span>
+                <span className="max-w-[16rem] font-mono font-medium text-foreground text-right break-all select-all">
+                  {selectedTxn.id}
+                </span>
               </div>
               <div className="flex justify-between py-2 border-b border-border">
                 <span className="text-foreground-lighter">Date</span>
@@ -527,14 +545,28 @@ export function PaymentsView({ model }) {
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
                 Involved Parties
               </h4>
-              <div className="space-y-4">
-                <div className="bg-card border border-border p-4 rounded-lg">
-                  <p className="text-xs text-foreground-lighter mb-1">Customer (Payer)</p>
-                  <p className="font-medium text-foreground">{selectedTxn.customer}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-card border border-border rounded-lg p-3">
+                  <p className="text-xs text-foreground-lighter mb-2">Customer (Payer)</p>
+                  <div className="flex items-center">
+                    <div className="h-8 w-8 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-600 text-xs font-bold mr-2 shrink-0">
+                      {(selectedTxn.customer || '?').charAt(0)}
+                    </div>
+                    <span className="min-w-0 text-sm font-medium text-foreground break-words">
+                      {selectedTxn.customer || '—'}
+                    </span>
+                  </div>
                 </div>
-                <div className="bg-card border border-border p-4 rounded-lg">
-                  <p className="text-xs text-foreground-lighter mb-1">Worker (Payee)</p>
-                  <p className="font-medium text-foreground">{selectedTxn.worker}</p>
+                <div className="bg-card border border-border rounded-lg p-3">
+                  <p className="text-xs text-foreground-lighter mb-2">Worker (Payee)</p>
+                  <div className="flex items-center">
+                    <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center text-success text-xs font-bold mr-2 shrink-0">
+                      {(selectedTxn.worker || '?').charAt(0)}
+                    </div>
+                    <span className="min-w-0 text-sm font-medium text-foreground break-words">
+                      {selectedTxn.worker || '—'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

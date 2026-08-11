@@ -26,8 +26,10 @@ import {
   Activity,
   Megaphone,
   MapPinned,
+  Users2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useAuth } from '../context/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,11 +90,11 @@ const navigationGroups = [
     title: 'Administration',
     icon: ShieldCheck,
     items: [
+      { name: 'Team', to: '/admin/team', icon: Users2, requiredPermission: 'team.view' },
       { name: 'Audit Logs', to: '/admin/auditlogs', icon: ClipboardList },
       { name: 'Trash', to: '/admin/trash', icon: Trash2 },
       { name: 'Settings', to: '/admin/settings', icon: Settings },
       { name: 'Locations', to: '/admin/locations', icon: MapPinned },
-
     ],
   },
 ];
@@ -237,6 +239,16 @@ const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
   });
   const [isHovered, setIsHovered] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
+
+  const filteredGroups = navigationGroups
+    .map((group) => ({
+      ...group,
+      items: group.items?.filter(
+        (item) => !item.requiredPermission || user?.permissions?.includes(item.requiredPermission),
+      ),
+    }))
+    .filter((group) => !group.items || group.items.length > 0);
 
   useEffect(() => {
     setIsMobileOpen(false);
@@ -305,7 +317,7 @@ const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
           aria-label="Administrator navigation"
           className="flex-1 overflow-y-auto overflow-x-hidden pb-2 pt-2 custom-scrollbar"
         >
-          {navigationGroups.map((group, index) => (
+          {filteredGroups.map((group, index) => (
             <React.Fragment key={group.title}>
               {index > 0 && (
                 <div className="mx-auto my-1 h-px w-[calc(100%-1rem)] bg-sidebar-border" />

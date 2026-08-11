@@ -198,6 +198,54 @@ export function useUsersPageController() {
     [selectedVerification, reviewNotes, refresh, toast],
   );
 
+  const reviewUserDocs = useCallback(
+    (decision) => {
+      if (!selectedUser || !verificationDocs?.id) return;
+      const label = decision === 'approved' ? 'Approve' : 'Reject';
+      setConfirm({
+        isOpen: true,
+        title: `${label} Verification`,
+        message: `${label} the submitted documents for ${selectedUser.name}?`,
+        onConfirm: async () => {
+          setReviewing(true);
+          try {
+            await reviewCustomerVerification(verificationDocs.id, decision, reviewNotes);
+            syncSelectedUser({
+              verified: decision === 'approved',
+              verificationStatus: decision === 'approved' ? 'verified' : 'unverified',
+            });
+            try {
+              const docs = await loadUserVerificationDocs(selectedUser.id);
+              setVerificationDocs(
+                docs ?? { status: 'NOT_SUBMITTED', idType: '', frontUrl: '', backUrl: '' },
+              );
+            } catch {
+              setVerificationDocs(null);
+            }
+            setReviewNotes('');
+            await refresh();
+            toast.success(
+              label,
+              `${selectedUser.name}'s verification was ${
+                decision === 'approved' ? 'approved' : 'rejected'
+              }.`,
+            );
+          } catch (error) {
+            toast.error(
+              'Verification failed',
+              error instanceof Error
+                ? error.message
+                : 'Unable to complete verification.',
+            );
+          } finally {
+            setReviewing(false);
+          }
+        },
+      });
+    },
+    [selectedUser, verificationDocs, reviewNotes, refresh, syncSelectedUser, toast],
+  );
+
   const toggleActionMenu = useCallback(
     (id) => {
       setActionMenuOpenId((current) => (current === id ? null : id));
@@ -581,6 +629,7 @@ export function useUsersPageController() {
       itemsPerPage: 10,
       refresh,
       decide,
+      reviewUserDocs,
       toggleActionMenu,
       handleViewProfile,
       enterEditMode,
@@ -633,6 +682,7 @@ export function useUsersPageController() {
       actionLoadingId,
       refresh,
       decide,
+      reviewUserDocs,
       toggleActionMenu,
       handleViewProfile,
       enterEditMode,

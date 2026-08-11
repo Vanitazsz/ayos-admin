@@ -1,4 +1,5 @@
 import { supabase } from './adminShared';
+import { invalidate } from '../lib/cacheable';
 
 export async function deleteAccount(id, email) {
   const { error } = await supabase.rpc('admin_delete_account', {
@@ -6,6 +7,9 @@ export async function deleteAccount(id, email) {
     p_confirmation_email: email,
   });
   if (error) throw error;
+  invalidate('users');
+  invalidate('workers');
+  invalidate('trash');
 }
 
 export async function previewAccountPurge(id) {
@@ -28,6 +32,8 @@ export async function setAccountStatus(id, nextStatus) {
     next_status: nextStatus,
   });
   if (error) throw error;
+  invalidate('users');
+  invalidate('workers');
   return data;
 }
 
@@ -37,6 +43,8 @@ export async function bulkSetAccountStatus(ids, nextStatus) {
     p_next_status: nextStatus,
   });
   if (error) throw error;
+  invalidate('users');
+  invalidate('workers');
   return Number(data ?? 0);
 }
 
@@ -46,6 +54,7 @@ export async function bulkSetWorkerStatus(ids, nextStatus) {
     p_next_status: nextStatus,
   });
   if (error) throw error;
+  invalidate('workers');
   return Number(data ?? 0);
 }
 
@@ -54,6 +63,9 @@ export async function softDeleteAccount(id) {
     p_account_id: id,
   });
   if (error) throw error;
+  invalidate('users');
+  invalidate('workers');
+  invalidate('trash');
   return data;
 }
 
@@ -62,5 +74,8 @@ export async function restoreAccountFromTrash(trashId) {
     p_trash_id: trashId,
   });
   if (error) throw error;
+  invalidate('users');
+  invalidate('workers');
+  invalidate('trash');
   return data;
 }

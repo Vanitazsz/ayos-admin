@@ -1,6 +1,7 @@
 import { supabase, status, identity } from './adminShared';
+import { cacheable, invalidate } from '../lib/cacheable';
 
-export async function loadWorkers() {
+export async function loadWorkersRaw() {
   const { data, error } = await supabase
     .from('worker_profiles')
     .select(
@@ -98,6 +99,8 @@ export async function loadWorkers() {
   });
 }
 
+export const loadWorkers = cacheable('workers', { ttl: 60_000 }, loadWorkersRaw);
+
 export async function reviewWorker(verificationId, decision, notes) {
   const { data, error } = await supabase.rpc('review_worker_verification', {
     verification_id: verificationId,
@@ -105,6 +108,7 @@ export async function reviewWorker(verificationId, decision, notes) {
     notes,
   });
   if (error) throw error;
+  invalidate('workers');
   return data;
 }
 
@@ -125,6 +129,7 @@ export async function updateWorker(id, value) {
     p_rate_minors: rateMinors,
   });
   if (error) throw error;
+  invalidate('workers');
   return data;
 }
 
@@ -134,6 +139,7 @@ export async function bulkSetWorkerVerification(ids, status) {
     p_status: status,
   });
   if (error) throw error;
+  invalidate('workers');
   return Number(data ?? 0);
 }
 
@@ -143,31 +149,36 @@ export async function updateWorkerEmail(id, email) {
     p_email: email,
   });
   if (error) throw error;
+  invalidate('workers');
   return data;
 }
 
-export async function loadWorkerVerificationDocs(workerId) {
-  const { data, error } = await supabase
-    .from('worker_verifications')
-    .select('id,status,identity_data,document_paths')
-    .eq('worker_id', workerId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return null;
-  const paths = Array.isArray(data.document_paths) ? data.document_paths : [];
-  const signed = await Promise.all(
-    paths.map((path) =>
-      supabase.storage.from('verification-documents').createSignedUrl(path, 900),
-    ),
-  );
-  return {
-    id: data.id,
-    status: data.status,
-    idType: data.identity_data?.idType ?? '',
-    documents: signed
-      .map((result) => result.data?.signedUrl ?? '')
-      .filter(Boolean),
-  };
-}
+export const loadWorkerVerificationDocs = cacheable(
+  'workers',
+  { ttl: 30_000 },
+  async (workerId) => {
+    const { data, error } = await supabase
+      .from('worker_verifications')
+      .select('id,status,identity_data,document_paths')
+      .eq('worker_id', workerId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    const paths = Array.isArray(data.document_paths) ? data.document_paths : [];
+    const signed = await Promise.all(
+      paths.map((path) =>
+        supabase.storage.from('verification-documents').createSignedUrl(path, 900),
+      ),
+    );
+    return {
+      id: data.id,
+      status: data.status,
+      idType: data.identity_data?.idType ?? '',
+      documents: signed
+        .map((result) => result.data?.signedUrl ?? '')
+        .filter(Boolean),
+    };
+  },
+);

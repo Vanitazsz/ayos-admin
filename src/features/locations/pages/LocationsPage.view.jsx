@@ -2,13 +2,7 @@ import {
   Search,
   Filter,
   MoreVertical,
-  Edit,
-  Trash2,
-  Ban,
   ShieldCheck,
-  ShieldOff,
-  CheckSquare,
-  CheckCheck,
   Mail,
   Phone,
   Eye,
@@ -16,14 +10,9 @@ import {
   Calendar,
   Clock,
   User,
-  UserCheck,
   ArrowLeft,
-  X,
-  ArchiveRestore,
   MapPinned,
   CheckCircle,
-  AlertCircle,
-  Star,
   Coins,
   UserX,
 } from 'lucide-react';
@@ -39,10 +28,7 @@ import {
   TableHead,
   TableCell,
 } from '../../../components/ui/Table';
-import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
-import Checkbox from '../../../components/ui/Checkbox';
-import Textarea from '../../../components/ui/Textarea';
 import Pagination from '../../../components/ui/Pagination';
 import {
   Tabs,
@@ -54,13 +40,11 @@ import Skeleton from '../../../components/ui/Skeleton';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import Drawer from '../../../components/ui/Drawer';
 import { Badge } from '../../../components/ui/Badge';
-import ConfirmModal from '../../../components/ui/ConfirmModal';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from '../../../components/ui/DropdownMenu';
 import LocationMapPicker from '../../../components/LocationMapPicker';
 
@@ -135,17 +119,6 @@ export function LocationsView({ model }) {
     setFilterVerified,
     filterLocation,
     setFilterLocation,
-    selectedUserIds,
-    selectedUserCount,
-    isUserSelectionActive,
-    userBulkAction,
-    isUserBulkLoading,
-    toggleSelectUser,
-    selectUser,
-    toggleSelectAllUsers,
-    clearUserSelection,
-    handleBulkUserStatus,
-    handleBulkUserVerification,
     // Workers tab
     filteredWorkers,
     paginatedWorkers,
@@ -162,18 +135,7 @@ export function LocationsView({ model }) {
     setWorkerFilterLocation,
     isWorkersLoading,
     workersError,
-    selectedWorkerIds,
-    selectedWorkerCount,
-    isWorkerSelectionActive,
-    workerBulkAction,
-    isWorkerBulkLoading,
-    toggleSelectWorker,
-    selectWorker,
-    toggleSelectAllWorkers,
-    clearWorkerSelection,
-    handleBulkWorkerStatus,
-    handleBulkWorkerVerification,
-    // Shared drawer + actions
+    // Shared drawer + read-only details
     isDrawerOpen,
     setIsDrawerOpen,
     selectedUser,
@@ -183,40 +145,11 @@ export function LocationsView({ model }) {
     isBookingsLoading,
     activeBooking,
     setActiveBooking,
-    isEditingUser,
-    editDraft,
-    setEditDraft,
-    isSavingUser,
-    enterEditUserMode,
-    cancelEditUser,
-    handleSaveUser,
-    handleToggleUserStatus,
-    handleToggleUserVerification,
     handleViewBooking,
     handleViewUserProfile,
-    handleMoveUserToTrash,
-    handleRestoreUser,
     selectedWorker,
     workerVerificationDocs,
-    editWorker,
-    setEditWorker,
-    isEditWorkerOpen,
-    setIsEditWorkerOpen,
-    isSavingWorker,
-    industryGroups,
-    toggleSkill,
-    toggleIndustry,
-    setWorkerRate,
-    handleEditWorker,
-    handleSaveWorker,
-    handleToggleWorkerStatus,
-    handleToggleWorkerVerification,
     handleViewWorkerDetails,
-    handleMoveWorkerToTrash,
-    handleRestoreWorker,
-    actionLoadingId,
-    confirm,
-    closeConfirm,
     getStatusBadge,
   } = model;
 
@@ -308,88 +241,14 @@ export function LocationsView({ model }) {
               </div>
             </CardHeader>
 
-            {isUserSelectionActive ? (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-brand-500/5 px-4 py-2.5">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-foreground">
-                    {selectedUserCount} selected
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearUserSelection}
-                    disabled={isUserBulkLoading}
-                  >
-                    <X size={14} className="mr-1.5" /> Clear
-                  </Button>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => void handleBulkUserStatus('SUSPENDED')}
-                    isLoading={isUserBulkLoading && userBulkAction === 'SUSPENDED'}
-                    disabled={isUserBulkLoading && userBulkAction !== 'SUSPENDED'}
-                  >
-                    <Ban size={14} /> Suspend
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => void handleBulkUserStatus('ACTIVE')}
-                    isLoading={isUserBulkLoading && userBulkAction === 'ACTIVE'}
-                    disabled={isUserBulkLoading && userBulkAction !== 'ACTIVE'}
-                  >
-                    <UserCheck size={14} /> Reactivate
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => void handleBulkUserVerification('verified')}
-                    isLoading={isUserBulkLoading && userBulkAction === 'verified'}
-                    disabled={isUserBulkLoading && userBulkAction !== 'verified'}
-                  >
-                    <ShieldCheck size={14} /> Verify
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void handleBulkUserVerification('unverified')}
-                    isLoading={isUserBulkLoading && userBulkAction === 'unverified'}
-                    disabled={isUserBulkLoading && userBulkAction !== 'unverified'}
-                  >
-                    <ShieldOff size={14} /> Unverify
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-
             <div className="min-h-[400px]">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {isUserSelectionActive ? (
-                      <TableHead scope="col" className="w-12 text-center">
-                        <div className="flex justify-center">
-                          <Checkbox
-                            aria-label="Select all users"
-                            checked={
-                              users.length > 0 && users.every((user) => selectedUserIds.has(user.id))
-                                ? true
-                                : selectedUserCount > 0
-                                  ? 'indeterminate'
-                                  : false
-                            }
-                            onCheckedChange={() => toggleSelectAllUsers(users)}
-                          />
-                        </div>
-                      </TableHead>
-                    ) : null}
                     <TableHead scope="col">User Details</TableHead>
                     <TableHead scope="col" className="hidden xl:table-cell">Location</TableHead>
                     <TableHead scope="col" className="hidden lg:table-cell">Contact</TableHead>
                     <TableHead scope="col" className="hidden lg:table-cell">Registration Date</TableHead>
-                    <TableHead scope="col">Bookings</TableHead>
-                    <TableHead scope="col" className="hidden xl:table-cell">Verification</TableHead>
-                    <TableHead scope="col">Status</TableHead>
                     <TableHead scope="col" className="text-right">
                       Actions
                     </TableHead>
@@ -399,7 +258,6 @@ export function LocationsView({ model }) {
                   {isUsersLoading ? (
                     <TableSkeleton
                       rows={6}
-                      withSelect={isUserSelectionActive}
                       columns={[
                         {
                           children: (
@@ -415,9 +273,6 @@ export function LocationsView({ model }) {
                         { className: 'hidden xl:table-cell' },
                         { className: 'hidden lg:table-cell' },
                         { className: 'hidden lg:table-cell' },
-                        {},
-                        { className: 'hidden xl:table-cell' },
-                        {},
                         {
                           className: 'text-right',
                           children: (
@@ -430,10 +285,7 @@ export function LocationsView({ model }) {
                     />
                   ) : users.length === 0 ? (
                     <TableRow hover={false}>
-                      <TableCell
-                        colSpan={isUserSelectionActive ? 9 : 8}
-                        className="h-64 text-center"
-                      >
+                      <TableCell colSpan={5} className="h-64 text-center">
                         <div className="flex flex-col items-center justify-center text-foreground-lighter">
                           <Search className="h-12 w-12 text-foreground-muted mb-4" />
                           <p className="text-lg font-medium text-foreground">No users found</p>
@@ -450,25 +302,19 @@ export function LocationsView({ model }) {
                         onClick={() => void handleViewUserProfile(user)}
                         className={`cursor-pointer ${user.isTrashed ? 'opacity-55 grayscale' : ''}`}
                       >
-                        {isUserSelectionActive ? (
-                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex justify-center">
-                              <Checkbox
-                                aria-label={`Select ${user.name}`}
-                                checked={selectedUserIds.has(user.id)}
-                                onCheckedChange={() => toggleSelectUser(user.id)}
-                              />
-                            </div>
-                          </TableCell>
-                        ) : null}
                         <TableCell>
                           <div className="flex items-center">
                             <div className="w-10 h-10 rounded-full bg-brand-500/10 text-brand-600 flex items-center justify-center font-bold text-sm shrink-0 mr-3">
                               {user.name.charAt(0)}
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <div className="font-medium text-foreground">{user.name}</div>
-                              <div className="text-xs text-foreground-lighter">{user.id}</div>
+                              <div
+                                className="truncate max-w-[9rem] min-w-0 text-xs text-foreground-lighter"
+                                title={user.id}
+                              >
+                                {user.id}
+                              </div>
                             </div>
                           </div>
                         </TableCell>
@@ -497,23 +343,6 @@ export function LocationsView({ model }) {
                         <TableCell className="hidden lg:table-cell text-foreground-lighter">
                           {user.registeredAt}
                         </TableCell>
-                        <TableCell>
-                          <span className="font-medium text-foreground bg-surface-200 px-2 py-1 rounded-md">
-                            {user.bookings}
-                          </span>
-                        </TableCell>
-                        <TableCell className="hidden xl:table-cell">
-                          {user.verified ? (
-                            <span className="inline-flex items-center text-xs font-medium text-success">
-                              <ShieldCheck size={14} className="mr-1" /> Verified
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center text-xs font-medium text-foreground-lighter">
-                              Unverified
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(user.status)}</TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -526,30 +355,10 @@ export function LocationsView({ model }) {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuItem
-                                onSelect={() => selectUser(user.id)}
-                                className="cursor-pointer"
-                              >
-                                <CheckSquare className="mr-2" /> Select
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onSelect={() => toggleSelectAllUsers(users)}
-                                className="cursor-pointer"
-                              >
-                                <CheckCheck className="mr-2" /> Select All
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
                                 onSelect={() => void handleViewUserProfile(user)}
                                 className="cursor-pointer"
                               >
                                 <Eye className="mr-2" /> More Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onSelect={() => void handleToggleUserStatus(user)}
-                                disabled={actionLoadingId === `${user.id}:status`}
-                                className="cursor-pointer"
-                              >
-                                <Ban className="mr-2" />
-                                {user.status === 'Active' ? 'Suspend' : 'Reactivate'}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -577,8 +386,8 @@ export function LocationsView({ model }) {
               <div className="w-full sm:w-96">
                 <Input
                   icon={Search}
-                  aria-label="Search workers by name, ID, or category..."
-                  placeholder="Search workers by name, ID, or category..."
+                  aria-label="Search workers by name, ID, or email..."
+                  placeholder="Search workers by name, ID, or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -628,91 +437,13 @@ export function LocationsView({ model }) {
               </div>
             </CardHeader>
 
-            {isWorkerSelectionActive ? (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-brand-500/5 px-4 py-2.5">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-foreground">
-                    {selectedWorkerCount} selected
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearWorkerSelection}
-                    disabled={isWorkerBulkLoading}
-                  >
-                    <X size={14} className="mr-1.5" /> Clear
-                  </Button>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => void handleBulkWorkerStatus('SUSPENDED')}
-                    isLoading={isWorkerBulkLoading && workerBulkAction === 'SUSPENDED'}
-                    disabled={isWorkerBulkLoading && workerBulkAction !== 'SUSPENDED'}
-                  >
-                    <Ban size={14} /> Suspend
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => void handleBulkWorkerStatus('ACTIVE')}
-                    isLoading={isWorkerBulkLoading && workerBulkAction === 'ACTIVE'}
-                    disabled={isWorkerBulkLoading && workerBulkAction !== 'ACTIVE'}
-                  >
-                    <UserCheck size={14} /> Reactivate
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => void handleBulkWorkerVerification('verified')}
-                    isLoading={isWorkerBulkLoading && workerBulkAction === 'verified'}
-                    disabled={isWorkerBulkLoading && workerBulkAction !== 'verified'}
-                  >
-                    <ShieldCheck size={14} /> Verify
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void handleBulkWorkerVerification('unverified')}
-                    isLoading={isWorkerBulkLoading && workerBulkAction === 'unverified'}
-                    disabled={isWorkerBulkLoading && workerBulkAction !== 'unverified'}
-                  >
-                    <ShieldOff size={14} /> Unverify
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-
             <div className="min-h-[400px]">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {isWorkerSelectionActive ? (
-                      <TableHead scope="col" className="w-12 text-center">
-                        <div className="flex justify-center">
-                          <Checkbox
-                            aria-label="Select all workers"
-                            checked={
-                              paginatedWorkers.length > 0 &&
-                              paginatedWorkers.every((worker) =>
-                                selectedWorkerIds.has(worker.id),
-                              )
-                                ? true
-                                : selectedWorkerCount > 0
-                                  ? 'indeterminate'
-                                  : false
-                            }
-                            onCheckedChange={() => toggleSelectAllWorkers(paginatedWorkers)}
-                          />
-                        </div>
-                      </TableHead>
-                    ) : null}
                     <TableHead scope="col">Worker</TableHead>
-                    <TableHead scope="col">Category</TableHead>
                     <TableHead scope="col" className="hidden xl:table-cell">Location</TableHead>
-                    <TableHead scope="col">Rating</TableHead>
-                    <TableHead scope="col" className="hidden xl:table-cell">Verification</TableHead>
-                    <TableHead scope="col" className="hidden lg:table-cell">Matching</TableHead>
-                    <TableHead scope="col">Status</TableHead>
+                    <TableHead scope="col" className="hidden lg:table-cell">Contact</TableHead>
                     <TableHead scope="col" className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -720,7 +451,6 @@ export function LocationsView({ model }) {
                   {isWorkersLoading ? (
                     <TableSkeleton
                       rows={6}
-                      withSelect={isWorkerSelectionActive}
                       columns={[
                         {
                           children: (
@@ -733,12 +463,8 @@ export function LocationsView({ model }) {
                             </div>
                           ),
                         },
-                        {},
-                        { className: 'hidden xl:table-cell' },
-                        {},
                         { className: 'hidden xl:table-cell' },
                         { className: 'hidden lg:table-cell' },
-                        {},
                         {
                           className: 'text-right',
                           children: (
@@ -751,10 +477,7 @@ export function LocationsView({ model }) {
                     />
                   ) : paginatedWorkers.length === 0 ? (
                     <TableRow hover={false}>
-                      <TableCell
-                        colSpan={isWorkerSelectionActive ? 9 : 8}
-                        className="h-64 text-center"
-                      >
+                      <TableCell colSpan={4} className="h-64 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <UserX size={48} className="text-foreground-muted mb-4" />
                           <h3 className="text-lg font-medium text-foreground">No workers found</h3>
@@ -771,17 +494,6 @@ export function LocationsView({ model }) {
                         onClick={() => void handleViewWorkerDetails(worker)}
                         className={`cursor-pointer ${worker.isTrashed ? 'opacity-55 grayscale' : ''}`}
                       >
-                        {isWorkerSelectionActive ? (
-                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex justify-center">
-                              <Checkbox
-                                aria-label={`Select ${worker.name}`}
-                                checked={selectedWorkerIds.has(worker.id)}
-                                onCheckedChange={() => toggleSelectWorker(worker.id)}
-                              />
-                            </div>
-                          </TableCell>
-                        ) : null}
                         <TableCell className="whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="h-10 w-10 flex-shrink-0">
@@ -789,23 +501,17 @@ export function LocationsView({ model }) {
                                 {worker.name.charAt(0)}
                               </div>
                             </div>
-                            <div className="ml-4">
+                            <div className="ml-4 min-w-0">
                               <div className="text-sm font-medium text-foreground">
                                 {worker.name}
                               </div>
-                              <div className="text-sm text-foreground-lighter">{worker.id}</div>
+                              <div
+                                className="truncate max-w-[9rem] min-w-0 text-sm text-foreground-lighter"
+                                title={worker.id}
+                              >
+                                {worker.id}
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <div
-                            className="max-w-[14rem] truncate text-sm text-foreground"
-                            title={(worker.categories ?? []).join(', ')}
-                          >
-                            {(worker.categories ?? []).join(', ') || '—'}
-                          </div>
-                          <div className="text-sm text-foreground-lighter">
-                            {worker.experience} yrs exp
                           </div>
                         </TableCell>
                         <TableCell className="hidden xl:table-cell whitespace-nowrap">
@@ -814,57 +520,22 @@ export function LocationsView({ model }) {
                             {worker.location || '—'}
                           </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <div className="flex items-center text-sm text-foreground">
-                            <Star size={16} className="text-warning mr-1 fill-current" />
-                            {worker.rating}
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="flex flex-col space-y-1">
+                            <span className="flex items-center text-sm text-foreground-light">
+                              <Mail className="h-3.5 w-3.5 mr-1.5 shrink-0 text-foreground-muted" />
+                              <span
+                                className="truncate max-w-[12rem] min-w-0"
+                                title={worker.email}
+                              >
+                                {worker.email}
+                              </span>
+                            </span>
+                            <span className="flex items-center text-sm text-foreground-light">
+                              <Phone className="h-3.5 w-3.5 mr-1.5 text-foreground-muted" />{' '}
+                              {worker.phone}
+                            </span>
                           </div>
-                          <div className="text-xs text-foreground-lighter">
-                            {worker.jobsCompleted} jobs
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden xl:table-cell whitespace-nowrap">
-                          {worker.verified ? (
-                            <Badge variant="success">
-                              <CheckCircle size={12} /> Verified
-                            </Badge>
-                          ) : worker.verificationId ? (
-                            <Badge variant="warning">
-                              <AlertCircle size={12} />{' '}
-                              {worker.verificationStatus.replaceAll('_', ' ')}
-                            </Badge>
-                          ) : (
-                            <Badge>Not submitted</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell whitespace-nowrap">
-                          {worker.matchingReady ? (
-                            <Badge variant="success">
-                              <CheckCircle size={12} /> Ready
-                            </Badge>
-                          ) : (
-                            <div>
-                              <Badge variant="warning">
-                                <AlertCircle size={12} /> Incomplete
-                              </Badge>
-                              <div className="mt-1 text-xs text-foreground-lighter">
-                                {worker.matchingMissing.join(', ')}
-                              </div>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <Badge
-                            variant={
-                              worker.status === 'Active'
-                                ? 'success'
-                                : worker.status === 'Suspended'
-                                  ? 'danger'
-                                  : 'default'
-                            }
-                          >
-                            {worker.status}
-                          </Badge>
                         </TableCell>
                         <TableCell
                           className="whitespace-nowrap text-right font-medium"
@@ -879,59 +550,13 @@ export function LocationsView({ model }) {
                                 <MoreVertical size={20} />
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52">
-                              <DropdownMenuItem
-                                onSelect={() => selectWorker(worker.id)}
-                                className="cursor-pointer"
-                              >
-                                <CheckSquare className="mr-2" /> Select
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onSelect={() => toggleSelectAllWorkers(paginatedWorkers)}
-                                className="cursor-pointer"
-                              >
-                                <CheckCheck className="mr-2" /> Select All
-                              </DropdownMenuItem>
+                            <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuItem
                                 onSelect={() => void handleViewWorkerDetails(worker)}
                                 className="cursor-pointer"
                               >
                                 <Eye className="mr-2" /> View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onSelect={() => handleEditWorker(worker)}
-                                className="cursor-pointer"
-                              >
-                                <Edit className="mr-2" /> Edit Worker
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onSelect={() => void handleToggleWorkerStatus(worker)}
-                                disabled={actionLoadingId === `${worker.id}:status`}
-                                className="cursor-pointer"
-                              >
-                                {worker.status === 'Active' ? (
-                                  <UserX className="mr-2" />
-                                ) : (
-                                  <UserCheck className="mr-2" />
-                                )}
-                                {worker.status === 'Active' ? 'Suspend' : 'Reactivate'}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              {worker.isTrashed ? (
-                                <DropdownMenuItem
-                                  onSelect={() => void handleRestoreWorker(worker)}
-                                  className="cursor-pointer"
-                                >
-                                  <ArchiveRestore className="mr-2" /> Restore
-                                </DropdownMenuItem>
-                              ) : (
-                                <DropdownMenuItem
-                                  onSelect={() => void handleMoveWorkerToTrash(worker)}
-                                  className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
-                                >
-                                  <Trash2 className="mr-2" /> Move to trash
-                                </DropdownMenuItem>
-                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -959,7 +584,6 @@ export function LocationsView({ model }) {
         onClose={() => {
           setIsDrawerOpen(false);
           setActiveBooking(null);
-          cancelEditUser();
         }}
         title={
           activeTab === 'workers'
@@ -990,46 +614,6 @@ export function LocationsView({ model }) {
                   )}
                 </div>
               </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {selectedWorker.isTrashed ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void handleRestoreWorker(selectedWorker)}
-                >
-                  <ArchiveRestore size={15} /> Restore
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handleEditWorker(selectedWorker)}
-                  >
-                    <Edit size={15} /> Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={selectedWorker.verified ? 'outline' : 'primary'}
-                    onClick={() => void handleToggleWorkerVerification(selectedWorker)}
-                    isLoading={actionLoadingId === `${selectedWorker.id}:verification`}
-                  >
-                    <ShieldCheck size={15} />
-                    {selectedWorker.verified ? 'Unverify' : 'Verify'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={selectedWorker.status === 'Active' ? 'warning' : 'primary'}
-                    onClick={() => void handleToggleWorkerStatus(selectedWorker)}
-                    isLoading={actionLoadingId === `${selectedWorker.id}:status`}
-                  >
-                    <Ban size={15} />
-                    {selectedWorker.status === 'Active' ? 'Suspend' : 'Reactivate'}
-                  </Button>
-                </>
-              )}
             </div>
 
             <div className="border-t border-border pt-6">
@@ -1174,20 +758,6 @@ export function LocationsView({ model }) {
                 </div>
               )}
             </div>
-
-            {!selectedWorker.isTrashed && (
-              <div className="border-t border-border pt-6">
-                <h4 className="text-sm font-semibold text-destructive uppercase tracking-wider mb-3">
-                  Danger Zone
-                </h4>
-                <Button
-                  variant="outline-danger"
-                  onClick={() => handleMoveWorkerToTrash(selectedWorker)}
-                >
-                  <Trash2 size={15} /> Move to trash
-                </Button>
-              </div>
-            )}
           </div>
         ) : activeBooking && selectedUser ? (
           <div className="space-y-6">
@@ -1392,97 +962,27 @@ export function LocationsView({ model }) {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {selectedUser.isTrashed ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void handleRestoreUser(selectedUser)}
-                >
-                  <ArchiveRestore size={15} /> Restore
-                </Button>
-              ) : (
-                <>
-                  <Button size="sm" variant="secondary" onClick={enterEditUserMode}>
-                    <Edit size={15} /> Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={selectedUser.verified ? 'outline' : 'primary'}
-                    onClick={() => void handleToggleUserVerification(selectedUser)}
-                    isLoading={actionLoadingId === `${selectedUser.id}:verification`}
-                  >
-                    <ShieldCheck size={15} />
-                    {selectedUser.verified ? 'Unverify' : 'Verify'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={selectedUser.status === 'Active' ? 'warning' : 'primary'}
-                    onClick={() => void handleToggleUserStatus(selectedUser)}
-                    isLoading={actionLoadingId === `${selectedUser.id}:status`}
-                  >
-                    <Ban size={15} />
-                    {selectedUser.status === 'Active' ? 'Suspend' : 'Reactivate'}
-                  </Button>
-                </>
-              )}
-            </div>
-
             <div className="border-t border-border pt-6">
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
                 Contact Information
               </h4>
-              {isEditingUser ? (
-                <form onSubmit={handleSaveUser} className="space-y-4">
-                  <Input
-                    label="Name"
-                    required
-                    minLength={2}
-                    maxLength={120}
-                    value={editDraft.name}
-                    onChange={(event) => setEditDraft({ ...editDraft, name: event.target.value })}
-                  />
-                  <Input
-                    label="Email"
-                    type="email"
-                    required
-                    value={editDraft.email}
-                    onChange={(event) => setEditDraft({ ...editDraft, email: event.target.value })}
-                  />
-                  <Input
-                    label="Phone"
-                    value={editDraft.phone}
-                    onChange={(event) => setEditDraft({ ...editDraft, phone: event.target.value })}
-                    placeholder="+639XXXXXXXXX"
-                  />
-                  <div className="flex justify-end gap-3 pt-2">
-                    <Button type="button" variant="secondary" onClick={cancelEditUser}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" isLoading={isSavingUser}>
-                      Save Changes
-                    </Button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center text-sm text-foreground-light">
-                    <Mail size={16} className="mr-3 text-foreground-muted" /> {selectedUser.email}
-                  </div>
-                  <div className="flex items-center text-sm text-foreground-light">
-                    <Phone size={16} className="mr-3 text-foreground-muted" />{' '}
-                    {selectedUser.phone || 'Not provided'}
-                  </div>
-                  <div className="flex items-center text-sm text-foreground-light">
-                    <MapPin size={16} className="mr-3 text-foreground-muted" />{' '}
-                    {selectedUser.address || 'Not provided'}
-                  </div>
-                  <div className="flex items-center text-sm text-foreground-light">
-                    <Calendar size={16} className="mr-3 text-foreground-muted" /> Registered{' '}
-                    {selectedUser.registeredAt}
-                  </div>
+              <div className="space-y-3">
+                <div className="flex items-center text-sm text-foreground-light">
+                  <Mail size={16} className="mr-3 text-foreground-muted" /> {selectedUser.email}
                 </div>
-              )}
+                <div className="flex items-center text-sm text-foreground-light">
+                  <Phone size={16} className="mr-3 text-foreground-muted" />{' '}
+                  {selectedUser.phone || 'Not provided'}
+                </div>
+                <div className="flex items-center text-sm text-foreground-light">
+                  <MapPin size={16} className="mr-3 text-foreground-muted" />{' '}
+                  {selectedUser.address || 'Not provided'}
+                </div>
+                <div className="flex items-center text-sm text-foreground-light">
+                  <Calendar size={16} className="mr-3 text-foreground-muted" /> Registered{' '}
+                  {selectedUser.registeredAt}
+                </div>
+              </div>
             </div>
 
             <div className="border-t border-border pt-6">
@@ -1616,175 +1116,9 @@ export function LocationsView({ model }) {
                 </div>
               )}
             </div>
-
-            {!selectedUser.isTrashed && (
-              <div className="border-t border-border pt-6">
-                <h4 className="text-sm font-semibold text-destructive uppercase tracking-wider mb-3">
-                  Danger Zone
-                </h4>
-                <Button
-                  variant="outline-danger"
-                  onClick={() => handleMoveUserToTrash(selectedUser)}
-                >
-                  <Trash2 size={15} /> Move to trash
-                </Button>
-              </div>
-            )}
           </div>
         ) : null}
       </Drawer>
-
-      {/* Edit Worker Drawer */}
-      <Drawer
-        isOpen={isEditWorkerOpen}
-        onClose={() => setIsEditWorkerOpen(false)}
-        title="Edit Worker"
-        footer={
-          <>
-            <Button type="button" variant="secondary" onClick={() => setIsEditWorkerOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" form="edit-worker-form" isLoading={isSavingWorker}>
-              Save Changes
-            </Button>
-          </>
-        }
-      >
-        {editWorker && (
-          <form id="edit-worker-form" onSubmit={handleSaveWorker} className="space-y-4">
-            <Input
-              label="Name"
-              required
-              minLength={2}
-              maxLength={120}
-              value={editWorker.name}
-              onChange={(e) => setEditWorker({ ...editWorker, name: e.target.value })}
-            />
-            <Input
-              label="Email"
-              type="email"
-              value={editWorker.email}
-              onChange={(e) => setEditWorker({ ...editWorker, email: e.target.value })}
-              placeholder="worker@example.com"
-            />
-            <Input
-              label="Phone"
-              value={editWorker.phone}
-              onChange={(e) => setEditWorker({ ...editWorker, phone: e.target.value })}
-              placeholder="+639XXXXXXXXX"
-            />
-            <div>
-              <p className="mb-1 text-sm font-medium text-foreground">Skills</p>
-              {industryGroups.length === 0 ? (
-                <p className="text-sm text-foreground-lighter">
-                  No skills available. Add skills in the Services page first.
-                </p>
-              ) : (
-                <div className="max-h-64 overflow-y-auto space-y-3 rounded-lg border border-border bg-surface-100 p-3">
-                  {industryGroups.map((group) => {
-                    const selectedCount = group.skills.filter((skill) =>
-                      editWorker.skillIds.includes(skill.id),
-                    ).length;
-                    const allSelected = selectedCount === group.skills.length;
-                    return (
-                      <div key={group.name}>
-                        <div className="flex items-center justify-between gap-2 border-b border-border pb-1.5">
-                          <Checkbox
-                            label={group.name}
-                            checked={allSelected}
-                            onCheckedChange={() => toggleIndustry(group.name)}
-                          />
-                          <span className="text-xs text-foreground-lighter">
-                            {selectedCount}/{group.skills.length}
-                          </span>
-                        </div>
-                        <div className="space-y-1.5 pt-1.5">
-                          {group.skills.map((skill) => {
-                            const isSelected = editWorker.skillIds.includes(skill.id);
-                            const rateMinor = editWorker.rates?.[skill.id] ?? null;
-                            return (
-                              <div
-                                key={skill.id}
-                                className="flex items-center justify-between gap-3"
-                              >
-                                <Checkbox
-                                  label={skill.name}
-                                  className="pl-5"
-                                  checked={isSelected}
-                                  onCheckedChange={() => toggleSkill(skill.id)}
-                                />
-                                {isSelected && (
-                                  <div className="flex shrink-0 items-center gap-1.5">
-                                    <span className="text-xs text-foreground-lighter">₱</span>
-                                    <input
-                                      type="number"
-                                      min={0}
-                                      step={0.01}
-                                      aria-label={`Rate for ${skill.name}`}
-                                      value={
-                                        rateMinor != null ? (rateMinor / 100).toFixed(2) : ''
-                                      }
-                                      placeholder="Rate"
-                                      onChange={(e) => {
-                                        const pesos = parseFloat(e.target.value);
-                                        setWorkerRate(
-                                          skill.id,
-                                          Number.isFinite(pesos) ? Math.round(pesos * 100) : null,
-                                        );
-                                      }}
-                                      className="w-24 rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground focus-ring"
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              <p className="mt-1 text-xs text-foreground-lighter">
-                {editWorker.skillIds.length} selected
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                label="Experience (years)"
-                type="number"
-                min={0}
-                max={100}
-                value={editWorker.experience}
-                onChange={(e) => setEditWorker({ ...editWorker, experience: e.target.value })}
-              />
-              <Input
-                label="Service Area"
-                value={editWorker.serviceArea}
-                onChange={(e) => setEditWorker({ ...editWorker, serviceArea: e.target.value })}
-                placeholder="e.g. Makati, Metro Manila"
-              />
-            </div>
-            <Textarea
-              label="Bio"
-              rows={4}
-              value={editWorker.bio}
-              onChange={(e) => setEditWorker({ ...editWorker, bio: e.target.value })}
-              placeholder="Short professional summary"
-            />
-          </form>
-        )}
-      </Drawer>
-
-      <ConfirmModal
-        isOpen={confirm.isOpen}
-        onClose={closeConfirm}
-        title={confirm.title}
-        message={confirm.message}
-        onConfirm={confirm.onConfirm}
-        confirmLabel={confirm.confirmLabel || 'Yes'}
-        variant="danger"
-      />
     </div>
   );
 }

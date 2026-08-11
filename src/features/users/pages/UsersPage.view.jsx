@@ -109,6 +109,7 @@ export function UsersView({ model }) {
     handleBulkVerification,
     itemsPerPage,
     decide,
+    reviewUserDocs,
     handleViewProfile,
     enterEditMode,
     cancelEdit,
@@ -187,6 +188,7 @@ export function UsersView({ model }) {
                 >
                   <option value="All">All Verifications</option>
                   <option value="verified">Verified</option>
+                  <option value="pending">Pending</option>
                   <option value="unverified">Unverified</option>
                 </Select>
               </div>
@@ -406,14 +408,12 @@ export function UsersView({ model }) {
                         </span>
                       </TableCell>
                       <TableCell className="hidden xl:table-cell">
-                        {user.verified ? (
-                          <span className="inline-flex items-center text-xs font-medium text-success">
-                            <ShieldCheck size={14} className="mr-1" /> Verified
-                          </span>
+                        {user.verificationStatus === 'verified' ? (
+                          <Badge variant="success">Verified</Badge>
+                        ) : user.verificationStatus === 'pending' ? (
+                          <Badge variant="warning">Pending</Badge>
                         ) : (
-                          <span className="inline-flex items-center text-xs font-medium text-foreground-lighter">
-                            Unverified
-                          </span>
+                          <Badge variant="outline">Unverified</Badge>
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(user.status)}</TableCell>
@@ -956,6 +956,34 @@ export function UsersView({ model }) {
                       )}
                     </div>
                   </div>
+                  {verificationDocs.status !== 'approved' && (
+                    <div className="rounded-lg border border-border bg-surface-100 p-3">
+                      <Textarea
+                        label="Review notes"
+                        value={reviewNotes}
+                        onChange={(event) => setReviewNotes(event.target.value)}
+                        maxLength={2000}
+                        className="min-h-20"
+                      />
+                      <div className="flex justify-end gap-2 mt-2">
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          disabled={reviewing}
+                          onClick={() => void reviewUserDocs('rejected')}
+                        >
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={reviewing}
+                          onClick={() => void reviewUserDocs('approved')}
+                        >
+                          Approve
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

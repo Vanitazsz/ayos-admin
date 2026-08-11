@@ -545,6 +545,19 @@ export function useWorkersPageController() {
     }
   }, [workerToReview, remarks, refresh, toast]);
 
+  const handleApproveDocs = useCallback(async () => {
+    if (!selectedWorker) return;
+    await approveWorker(selectedWorker);
+    try {
+      const docs = await loadWorkerVerificationDocs(selectedWorker.id);
+      setVerificationDocs(
+        docs ?? { status: 'NOT_SUBMITTED', idType: '', documents: [] },
+      );
+    } catch {
+      setVerificationDocs(null);
+    }
+  }, [selectedWorker, approveWorker]);
+
   return useMemo(
     () => ({
       workers,
@@ -596,6 +609,7 @@ export function useWorkersPageController() {
       toggleStatus,
       toggleWorkerVerification,
       approveWorker,
+      handleApproveDocs,
       openRemarksModal,
       submitRemarks,
       selectedIds,
@@ -653,6 +667,7 @@ export function useWorkersPageController() {
       toggleStatus,
       toggleWorkerVerification,
       approveWorker,
+      handleApproveDocs,
       openRemarksModal,
       submitRemarks,
       toggleSelectWorker,

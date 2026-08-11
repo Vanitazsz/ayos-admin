@@ -1,6 +1,7 @@
 import { supabase, status, identity, accountName } from './adminShared';
+import { cacheable, invalidate } from '../lib/cacheable';
 
-export async function loadReports() {
+export const loadReports = cacheable('reports', { ttl: 30_000 }, async () => {
   const labels = {
     FINANCIAL: 'Financial Summary',
     WORKERS: 'Worker Performance',
@@ -26,7 +27,7 @@ export async function loadReports() {
     status: status(row.status),
     storagePath: row.storage_path,
   }));
-}
+});
 
 export async function generateReport(reportType = 'FINANCIAL', format = 'PDF') {
   const types = {
@@ -41,6 +42,7 @@ export async function generateReport(reportType = 'FINANCIAL', format = 'PDF') {
     body: { reportType: backendType, format, filters: {} },
   });
   if (error) throw error;
+  invalidate('reports');
   return data;
 }
 

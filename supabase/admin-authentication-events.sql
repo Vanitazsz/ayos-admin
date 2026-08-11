@@ -3,7 +3,8 @@
 -- (or after; this file is idempotent and re-runnable).
 --
 -- Writes: the `record-auth-session` edge function inserts rows using the service-role
--- key, which bypasses RLS, so no INSERT grant is needed for `authenticated`.
+-- key, which bypasses RLS but still needs an explicit table-level grant (service_role
+-- does NOT inherit table privileges in this project; see the grant below).
 -- Reads: the admin app reads this table as `authenticated` (SELECT grant from
 -- admin-rbac-permissions.sql) and is admitted by the admin_full_access policy below.
 
@@ -11,14 +12,14 @@
 create table if not exists public.authentication_events (
   id uuid primary key default gen_random_uuid(),
   account_id uuid not null,
-  ip_address text,
+  ip_address inet,
   user_agent text,
   event_type text not null default 'sign_in',
   created_at timestamptz not null default now()
 );
 
 -- 2) Columns the admin app expects (safe no-op if already present).
-alter table public.authentication_events add column if not exists ip_address text;
+alter table public.authentication_events add column if not exists ip_address inet;
 alter table public.authentication_events add column if not exists user_agent text;
 alter table public.authentication_events add column if not exists event_type text;
 
@@ -35,3 +36,7 @@ create policy "admin_full_access" on public.authentication_events
 --    where account_id = <admin> order by created_at desc limit 50.
 create index if not exists authentication_events_account_id_created_at_idx
   on public.authentication_events (account_id, created_at desc);
+
+-- 5) The record-auth-session edge function writes with the service-role key.
+--    It bypasses RLS but needs an explicit grant (project pattern, see admin-bootstrap.sql).
+grant select, insert, update, delete on public.authentication_events to service_role;

@@ -1,6 +1,7 @@
 import { supabase, status, identity, accountName } from './adminShared';
+import { cacheable, invalidate } from '../lib/cacheable';
 
-export async function loadSafetyCases() {
+export const loadSafetyCases = cacheable('support', { ttl: 60_000 }, async () => {
   const [reportsResult, disputesResult] = await Promise.all([
     supabase
       .from('account_reports')
@@ -35,9 +36,9 @@ export async function loadSafetyCases() {
       createdAt: row.created_at,
     })),
   ].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
-}
+});
 
-export async function loadSupport() {
+export const loadSupport = cacheable('support', { ttl: 60_000 }, async () => {
   const { data, error } = await supabase
     .from('support_tickets')
     .select(
@@ -66,7 +67,7 @@ export async function loadSupport() {
         sender: identity(accountName(message.sender), 'Support participant'),
       })),
   }));
-}
+});
 
 export async function sendSupportReply(ticketId, body) {
   const { error } = await supabase.rpc('send_support_message', {
@@ -75,6 +76,7 @@ export async function sendSupportReply(ticketId, body) {
     p_internal: false,
   });
   if (error) throw error;
+  invalidate('support');
 }
 
 export async function updateSupport(ticketId, nextStatus, resolution = null) {
@@ -84,5 +86,6 @@ export async function updateSupport(ticketId, nextStatus, resolution = null) {
     p_resolution: resolution,
   });
   if (error) throw error;
+  invalidate('support');
   return data;
 }

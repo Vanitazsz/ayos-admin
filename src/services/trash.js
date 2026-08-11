@@ -1,4 +1,5 @@
 import { supabase, status, accountName } from './adminShared';
+import { cacheable, invalidate } from '../lib/cacheable';
 
 const TYPE_TABS = {
   user: 'Users',
@@ -10,7 +11,7 @@ const TYPE_TABS = {
   skill: 'Skills',
 };
 
-export async function loadTrash() {
+export const loadTrash = cacheable('trash', { ttl: 60_000 }, async () => {
   const { data, error } = await supabase
     .from('trash_entries')
     .select('*')
@@ -88,11 +89,12 @@ export async function loadTrash() {
     });
   }
   return groups;
-}
+});
 
 export async function restoreTrash(id) {
   const { data, error } = await supabase.rpc('restore_from_trash', { trash_id: id });
   if (error) throw error;
+  invalidate('trash');
   return data;
 }
 
@@ -101,6 +103,8 @@ export async function restoreBookingFromTrash(id) {
     p_trash_id: id,
   });
   if (error) throw error;
+  invalidate('trash');
+  invalidate('bookings');
   return data;
 }
 
@@ -109,6 +113,8 @@ export async function restorePaymentFromTrash(id) {
     p_trash_id: id,
   });
   if (error) throw error;
+  invalidate('trash');
+  invalidate('payments');
   return data;
 }
 
@@ -117,6 +123,8 @@ export async function restoreIndustryFromTrash(id) {
     p_trash_id: id,
   });
   if (error) throw error;
+  invalidate('trash');
+  invalidate('catalog');
   return data;
 }
 
@@ -125,6 +133,8 @@ export async function restoreSkillFromTrash(id) {
     p_trash_id: id,
   });
   if (error) throw error;
+  invalidate('trash');
+  invalidate('catalog');
   return data;
 }
 
@@ -133,6 +143,9 @@ export async function restoreAccountFromTrash(id) {
     p_trash_id: id,
   });
   if (error) throw error;
+  invalidate('trash');
+  invalidate('users');
+  invalidate('workers');
   return data;
 }
 
@@ -142,6 +155,7 @@ export async function permanentlyDeleteTrash(id, entityId) {
     p_confirmation: `DELETE ${entityId}`,
   });
   if (error) throw error;
+  invalidate('trash');
 }
 
 export async function hardDeleteBookingFromTrash(id, entityId) {
@@ -150,6 +164,8 @@ export async function hardDeleteBookingFromTrash(id, entityId) {
     p_confirmation: `DELETE ${entityId}`,
   });
   if (error) throw error;
+  invalidate('trash');
+  invalidate('bookings');
   return data;
 }
 
@@ -159,6 +175,8 @@ export async function hardDeletePaymentFromTrash(id, entityId) {
     p_confirmation: `DELETE ${entityId}`,
   });
   if (error) throw error;
+  invalidate('trash');
+  invalidate('payments');
   return data;
 }
 
@@ -168,6 +186,9 @@ export async function hardDeleteAccountFromTrash(id, email) {
     p_confirmation_email: email,
   });
   if (error) throw error;
+  invalidate('trash');
+  invalidate('users');
+  invalidate('workers');
   return data;
 }
 
@@ -177,6 +198,8 @@ export async function hardDeleteIndustryFromTrash(id, deleteSkills = true) {
     p_delete_skills: deleteSkills,
   });
   if (error) throw error;
+  invalidate('trash');
+  invalidate('catalog');
   return data;
 }
 
@@ -185,5 +208,7 @@ export async function hardDeleteSkillFromTrash(id) {
     p_trash_id: id,
   });
   if (error) throw error;
+  invalidate('trash');
+  invalidate('catalog');
   return data;
 }

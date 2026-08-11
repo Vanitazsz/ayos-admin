@@ -1,4 +1,5 @@
 import { supabase, status, identity } from './adminShared';
+import { cacheable, invalidate } from '../lib/cacheable';
 
 const dedupeByPath = (items) => {
   const seen = new Set();
@@ -116,7 +117,7 @@ const bookingStats = (keys, todayStr) => ({
   ).length,
 });
 
-export async function loadBookingsPage({
+export async function loadBookingsPageRaw({
   search = '',
   status: filterStatus = 'All',
   page = 1,
@@ -128,6 +129,14 @@ export async function loadBookingsPage({
     .select(BOOKING_KEY_SELECT)
     .order('created_at', { ascending: false });
   if (keyError) throw keyError;
+
+  const { data: trashed, error: trashError } = await supabase
+    .from('trash_entries')
+    .select('id, entity_id')
+    .eq('entity_type', 'booking')
+    .is('restored_at', null);
+  if (trashError) throw trashError;
+  const trashById = new Map((trashed ?? []).map((row) => [row.entity_id, row.id]));
 
   const rows = keys ?? [];
   const stats = bookingStats(rows, todayStr);
@@ -149,7 +158,9 @@ export async function loadBookingsPage({
   const statusFiltered =
     filterStatus === 'All'
       ? matched
-      : matched.filter((row) => status(row.status) === filterStatus);
+      : filterStatus === 'Trashed'
+        ? matched.filter((row) => trashById.has(row.id))
+        : matched.filter((row) => status(row.status) === filterStatus);
   const count = statusFiltered.length;
   const pageIds = statusFiltered
     .slice((page - 1) * pageSize, page * pageSize)
@@ -165,22 +176,35 @@ export async function loadBookingsPage({
 
   const byId = new Map((data ?? []).map((row) => [row.id, row]));
   return {
-    rows: pageIds.map((id) => mapBooking(byId.get(id))).filter(Boolean),
+    rows: pageIds
+      .map((id) => {
+        const booking = mapBooking(byId.get(id));
+        if (!booking) return null;
+        const trashEntryId = trashById.get(booking.id) ?? null;
+        return { ...booking, isTrashed: Boolean(trashEntryId), trashEntryId };
+      })
+      .filter(Boolean),
     count,
     stats,
   };
 }
 
-export async function loadBookingsForUser(userId, { limit = 10 } = {}) {
-  const { data, error } = await supabase
-    .from('bookings')
-    .select(BOOKING_PAGE_SELECT)
-    .eq('user_account_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return (data ?? []).map(mapBooking);
-}
+export const loadBookingsPage = cacheable('bookings', { ttl: 60_000 }, loadBookingsPageRaw);
+
+export const loadBookingsForUser = cacheable(
+  'bookings',
+  { ttl: 30_000 },
+  async (userId, { limit = 10 } = {}) => {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(BOOKING_PAGE_SELECT)
+      .eq('user_account_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return (data ?? []).map(mapBooking);
+  },
+);
 
 export async function cancelBookingAsAdmin(id, reason) {
   const { data, error } = await supabase.rpc('admin_cancel_booking', {
@@ -188,6 +212,7 @@ export async function cancelBookingAsAdmin(id, reason) {
     p_reason: reason,
   });
   if (error) throw error;
+  invalidate('bookings');
   return data;
 }
 
@@ -198,5 +223,6 @@ export async function reassignBookingAsAdmin(id, workerId, reason) {
     p_reason: reason,
   });
   if (error) throw error;
+  invalidate('bookings');
   return data;
 }

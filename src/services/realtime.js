@@ -1,4 +1,5 @@
 import { supabase } from './adminShared';
+import { invalidateForTables } from '../lib/cacheable';
 
 export const withCooldown = (fn, ms = 1500) => {
   let lastRun = 0;
@@ -29,12 +30,16 @@ export const subscribe = (table, refresh, options = {}) => {
     debounceMs = 1500,
   } = options;
   const channelName = `admin:${table}:${crypto.randomUUID()}`;
-  const handler = debounce ? withCooldown(refresh, debounceMs) : refresh;
+  const handler = () => {
+    invalidateForTables([table]);
+    refresh();
+  };
+  const debounced = debounce ? withCooldown(handler, debounceMs) : handler;
 
   const channel = supabase.channel(channelName).on(
     'postgres_changes',
     { event, schema: 'public', table, ...(filter ? { filter } : {}) },
-    handler,
+    debounced,
   );
 
   if (typeof onSystem === 'function') {
