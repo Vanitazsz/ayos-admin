@@ -17,6 +17,7 @@ dist-ssr
 
 # Local scratch / debug artifacts
 shots/
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*
