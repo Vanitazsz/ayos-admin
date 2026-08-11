@@ -12,6 +12,7 @@ import Pagination from '../../../components/ui/Pagination';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import StatCard from '../../../components/ui/StatCard';
+import DateFilter from '../../../components/ui/DateFilter';
 import {
   Table,
   TableHeader,
@@ -38,6 +39,7 @@ export function ReviewsView({ model }) {
     setSearchTerm,
     filterRating,
     setFilterRating,
+    dateFilter,
     currentPage,
     setCurrentPage,
     isLoading,
@@ -83,6 +85,7 @@ export function ReviewsView({ model }) {
           />
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
+          <DateFilter model={dateFilter} />
           <Filter size={18} className="text-foreground-lighter" />
           <select
             className="w-full flex-1 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"

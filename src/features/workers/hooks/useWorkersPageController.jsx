@@ -9,17 +9,22 @@ import {
   restoreAccountFromTrash,
   updateWorker,
   updateWorkerEmail,
+  updateWorkerVerification,
   loadCatalog,
 } from '../logic/WorkersPageLogic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { UserCheck, UserX, AlertCircle, Briefcase } from 'lucide-react';
+import { uploadVerificationImage } from '../../../services/adminShared';
 import { useRealtime } from '../../../hooks/useRealtime';
 import { useToast } from '../../../context/ToastContext';
 import { usePagination } from '../../../hooks/usePagination';
 import { useDebouncedRefresh } from '../../../hooks/useDebouncedRefresh';
+import { useDateFilter } from '../../../hooks/useDateFilter';
+import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
 
 export function useWorkersPageController() {
   const toast = useToast();
+  const dateFilter = useDateFilter({ canModify: true });
   const [workers, setWorkers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
@@ -42,6 +47,9 @@ export function useWorkersPageController() {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkAction, setBulkAction] = useState(null);
   const [verificationDocs, setVerificationDocs] = useState(null);
+  const [isEditingVerification, setIsEditingVerification] = useState(false);
+  const [workerVerificationDraft, setWorkerVerificationDraft] = useState(null);
+  const [isSavingVerification, setIsSavingVerification] = useState(false);
   const [confirm, setConfirm] = useState({
     isOpen: false,
     title: '',
@@ -100,31 +108,43 @@ export function useWorkersPageController() {
     [],
   );
 
-  const filteredWorkers = useMemo(
-    () =>
-      workers.filter((w) => {
-    const matchesSearch =
-      w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      w.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      w.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (w.categories ?? []).join(' ').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      w.category.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus =
-          filterStatus === 'All' || filterStatus === 'Trashed'
-            ? filterStatus === 'Trashed'
-              ? w.isTrashed
-              : true
-            : w.status === filterStatus;
-        const matchesVerified =
-          filterVerified === 'All' ||
-          (filterVerified === 'verified' ? w.verified : !w.verified);
-        const matchesTab =
-          activeTab === 'all' ||
-          (activeTab === 'review' && needsReview(w));
-        return matchesSearch && matchesStatus && matchesVerified && matchesTab;
-      }),
-    [workers, searchTerm, filterStatus, filterVerified, activeTab, needsReview],
-  );
+  const filteredWorkers = useMemo(() => {
+    const matched = workers.filter((w) => {
+      const matchesSearch =
+        w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        w.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        w.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (w.categories ?? []).join(' ').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        w.category.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        filterStatus === 'All' || filterStatus === 'Trashed'
+          ? filterStatus === 'Trashed'
+            ? w.isTrashed
+            : true
+          : w.status === filterStatus;
+      const matchesVerified =
+        filterVerified === 'All' ||
+        (filterVerified === 'verified' ? w.verified : !w.verified);
+      const matchesTab =
+        activeTab === 'all' ||
+        (activeTab === 'review' && needsReview(w));
+      return matchesSearch && matchesStatus && matchesVerified && matchesTab;
+    });
+    return applyDateFilter(matched, {
+      field: dateFilter.field,
+      range: dateFilter.effectiveRange,
+      sort: dateFilter.sort,
+      getDate: (row) => getRowDate(row, dateFilter.field) ?? getRowDate(row, 'created'),
+    });
+  }, [
+    workers,
+    searchTerm,
+    filterStatus,
+    filterVerified,
+    activeTab,
+    needsReview,
+    dateFilter,
+  ]);
 
   const {
     currentPage,
@@ -205,7 +225,16 @@ export function useWorkersPageController() {
 
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [searchTerm, filterStatus, filterVerified, activeTab]);
+  }, [
+    searchTerm,
+    filterStatus,
+    filterVerified,
+    activeTab,
+    dateFilter.sort,
+    dateFilter.field,
+    dateFilter.preset,
+    dateFilter.customRange,
+  ]);
 
   const handleBulkStatus = useCallback(
     async (nextStatus) => {
@@ -558,6 +587,89 @@ export function useWorkersPageController() {
     }
   }, [selectedWorker, approveWorker]);
 
+  const enterVerificationEdit = useCallback(() => {
+    if (!verificationDocs?.id) return;
+    setWorkerVerificationDraft({
+      idType: verificationDocs.idType ?? '',
+      documents: (verificationDocs.documentPaths ?? []).map((path, index) => ({
+        path,
+        preview: verificationDocs.documents?.[index] ?? '',
+        file: null,
+      })),
+    });
+    setIsEditingVerification(true);
+  }, [verificationDocs]);
+
+  const cancelVerificationEdit = useCallback(() => {
+    setIsEditingVerification(false);
+    setWorkerVerificationDraft(null);
+  }, []);
+
+  const handleSaveVerificationEdit = useCallback(async () => {
+    if (!selectedWorker || !workerVerificationDraft) return;
+    if (!workerVerificationDraft.idType.trim()) {
+      toast.error('ID type required', 'Select the document type.');
+      return;
+    }
+    const updatedDocuments = workerVerificationDraft.documents.filter(
+      (doc) => doc.path || doc.file,
+    );
+    if (updatedDocuments.length === 0) {
+      toast.error('Document required', 'Keep or upload at least one document.');
+      return;
+    }
+    setIsSavingVerification(true);
+    try {
+      const documentPaths = [];
+      for (const doc of updatedDocuments) {
+        documentPaths.push(
+          doc.file
+            ? await uploadVerificationImage(
+                doc.file,
+                `worker-${selectedWorker.id}`,
+              )
+            : doc.path,
+        );
+      }
+      await updateWorkerVerification(verificationDocs.id, {
+        idType: workerVerificationDraft.idType.trim(),
+        documentPaths,
+      });
+      setIsEditingVerification(false);
+      setWorkerVerificationDraft(null);
+      await loadWorkerVerificationDocs(selectedWorker.id)
+        .then((docs) =>
+          setVerificationDocs(
+            docs ?? { status: 'NOT_SUBMITTED', idType: '', documents: [] },
+          ),
+        )
+        .catch(() => setVerificationDocs(null));
+      syncSelectedWorker({
+        verified: false,
+        verificationStatus: 'PENDING',
+      });
+      await refresh();
+      toast.success(
+        'Verification updated',
+        'Documents saved for review. Verification is now pending.',
+      );
+    } catch (error) {
+      toast.error(
+        'Update failed',
+        error instanceof Error ? error.message : 'Unable to update verification.',
+      );
+    } finally {
+      setIsSavingVerification(false);
+    }
+  }, [
+    selectedWorker,
+    workerVerificationDraft,
+    verificationDocs,
+    syncSelectedWorker,
+    refresh,
+    toast,
+  ]);
+
   return useMemo(
     () => ({
       workers,
@@ -567,6 +679,7 @@ export function useWorkersPageController() {
       setFilterStatus,
       filterVerified,
       setFilterVerified,
+      dateFilter,
       currentPage,
       setCurrentPage,
       selectedWorker,
@@ -624,6 +737,13 @@ export function useWorkersPageController() {
       handleBulkStatus,
       handleBulkVerification,
       verificationDocs,
+      isEditingVerification,
+      workerVerificationDraft,
+      setWorkerVerificationDraft,
+      isSavingVerification,
+      enterVerificationEdit,
+      cancelVerificationEdit,
+      handleSaveVerificationEdit,
       confirm,
       closeConfirm,
     }),
@@ -632,6 +752,7 @@ export function useWorkersPageController() {
       searchTerm,
       filterStatus,
       filterVerified,
+      dateFilter,
       currentPage,
       selectedWorker,
       isDrawerOpen,
@@ -682,6 +803,12 @@ export function useWorkersPageController() {
       bulkAction,
       isBulkLoading,
       verificationDocs,
+      isEditingVerification,
+      workerVerificationDraft,
+      isSavingVerification,
+      enterVerificationEdit,
+      cancelVerificationEdit,
+      handleSaveVerificationEdit,
       confirm,
       closeConfirm,
       setFilterStatus,

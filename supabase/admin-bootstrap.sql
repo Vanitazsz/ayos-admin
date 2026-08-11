@@ -79,11 +79,11 @@ begin
     raise exception using errcode = '23505', message = 'EMAIL_ALREADY_IN_USE';
   end if;
 
-  v_token := encode(gen_random_bytes(32), 'hex');
+  v_token := replace(gen_random_uuid()::text, '-', '');
 
   if exists (select 1 from private.admin_bootstrap_requests where email = v_email) then
     update private.admin_bootstrap_requests
-    set token_hash = encode(sha256(convert_to(v_token, 'UTF8')), 'hex'),
+    set token_hash = encode(extensions.digest(v_token, 'sha256'), 'hex'),
         display_name = v_display_name,
         admin_role = v_role,
         expires_at = now() + interval '10 minutes'
@@ -92,7 +92,7 @@ begin
     insert into private.admin_bootstrap_requests (email, token_hash, display_name, admin_role, expires_at)
     values (
       v_email,
-      encode(sha256(convert_to(v_token, 'UTF8')), 'hex'),
+      encode(extensions.digest(v_token, 'sha256'), 'hex'),
       v_display_name,
       v_role,
       now() + interval '10 minutes'

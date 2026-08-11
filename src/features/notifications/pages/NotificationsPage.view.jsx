@@ -3,6 +3,7 @@ import Modal from '../../../components/ui/Modal';
 import Pagination from '../../../components/ui/Pagination';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import StatCard from '../../../components/ui/StatCard';
+import DateFilter from '../../../components/ui/DateFilter';
 import {
   Table,
   TableHeader,
@@ -20,6 +21,7 @@ export function NotificationsView({ model }) {
     setSearchTerm,
     filterType,
     setFilterType,
+    dateFilter,
     currentPage,
     setCurrentPage,
     isModalOpen,
@@ -79,6 +81,7 @@ export function NotificationsView({ model }) {
           />
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
+          <DateFilter model={dateFilter} />
           <Filter size={18} className="text-foreground-lighter" />
           <select
             className="w-full flex-1 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"

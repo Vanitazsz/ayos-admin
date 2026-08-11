@@ -26,6 +26,7 @@ export const loadReports = cacheable('reports', { ttl: 30_000 }, async () => {
     size: row.storage_path ? String(row.parameters?.format ?? '') : '',
     status: status(row.status),
     storagePath: row.storage_path,
+    created_at: row.created_at,
   }));
 });
 

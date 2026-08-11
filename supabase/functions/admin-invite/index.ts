@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { Resend } from 'npm:resend@4';
+import nodemailer from 'npm:nodemailer@6';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -17,13 +17,13 @@ Deno.serve(async (req) => {
   const url = Deno.env.get('SUPABASE_URL');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const resendKey = Deno.env.get('RESEND_API_KEY');
-  const resendFrom = Deno.env.get('RESEND_FROM');
+  const gmailUser = Deno.env.get('GMAIL_USER');
+  const gmailAppPassword = Deno.env.get('GMAIL_APP_PASSWORD');
   if (!url || !anonKey || !serviceRoleKey) {
     return json({ error: 'Function not configured' }, { status: 500 });
   }
-  if (!resendKey) {
-    return json({ error: 'RESEND_API_KEY not configured' }, { status: 500 });
+  if (!gmailUser || !gmailAppPassword) {
+    return json({ error: 'Gmail SMTP not configured' }, { status: 500 });
   }
 
   const authHeader = req.headers.get('Authorization') ?? '';
@@ -104,9 +104,15 @@ Deno.serve(async (req) => {
   const origin = redirectTo.replace(/\/login\/?$/, '');
   const inviteUrl = `${origin}/create-account?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}&role=${encodeURIComponent(adminRole)}`;
 
-  const resend = new Resend(resendKey);
-  const { error: emailError } = await resend.emails.send({
-    from: resendFrom ?? 'A-yos Admin <no-reply@resend.dev>',
+  const transport = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: { user: gmailUser, pass: gmailAppPassword },
+  });
+
+  const mailBody = {
+    from: `A-yos Admin <${gmailUser}>`,
     to: [email],
     subject: `You're invited to join A-yos Admin`,
     html: [
@@ -139,13 +145,19 @@ Deno.serve(async (req) => {
       ``,
       `If you did not expect this email, you can safely ignore it.`,
     ].join('\n'),
-  });
-  if (emailError) {
+  };
+
+  try {
+    await transport.sendMail(mailBody);
+  } catch (emailError) {
     await adminClient.from('private.admin_bootstrap_requests').delete().eq('email', email).then(
       () => {},
       () => {},
     );
-    return json({ error: emailError.message }, { status: 500 });
+    return json(
+      { error: emailError instanceof Error ? emailError.message : String(emailError) },
+      { status: 500 },
+    );
   }
 
   await adminClient.from('audit_logs').insert({

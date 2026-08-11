@@ -20,9 +20,12 @@ import { useDataFetch } from '../../../hooks/useDataFetch';
 import { useRealtime } from '../../../hooks/useRealtime';
 import { useToast } from '../../../context/ToastContext';
 import { usePagination } from '../../../hooks/usePagination';
+import { useDateFilter } from '../../../hooks/useDateFilter';
+import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
 const tabs = TRASH_TABS;
 export function useTrashPageController() {
   const toast = useToast();
+  const dateFilter = useDateFilter({ canUseDeleted: true, defaultField: 'deleted' });
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const entryParam = searchParams.get('entry');
@@ -44,11 +47,17 @@ export function useTrashPageController() {
   });
 
   const currentItems = items[activeTab];
-  const filteredItems = currentItems.filter(
+  const matchedItems = currentItems.filter(
     (item) =>
       item.item.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.id.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+  const filteredItems = applyDateFilter(matchedItems, {
+    field: dateFilter.field,
+    range: dateFilter.effectiveRange,
+    sort: dateFilter.sort,
+    getDate: (row) => getRowDate(row, dateFilter.field),
+  });
   const {
     currentPage,
     setCurrentPage,
@@ -205,6 +214,7 @@ export function useTrashPageController() {
     items,
     searchTerm,
     setSearchTerm,
+    dateFilter,
     currentPage,
     setCurrentPage,
     confirm,

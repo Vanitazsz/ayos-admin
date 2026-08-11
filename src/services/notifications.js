@@ -4,7 +4,7 @@ import { cacheable, invalidate } from '../lib/cacheable';
 export const loadNotifications = cacheable('notifications', { ttl: 60_000 }, async () => {
   const { data, error } = await supabase
     .from('notifications')
-    .select('id,title,body,audience,status,created_at,notification_deliveries(status,read_at)')
+    .select('id,title,body,audience,status,created_at,updated_at,notification_deliveries(status,read_at)')
     .not('audience', 'is', null)
     .order('created_at', { ascending: false });
   if (error) throw error;
@@ -20,6 +20,8 @@ export const loadNotifications = cacheable('notifications', { ttl: 60_000 }, asy
       status: status(row.status),
       date: new Date(row.created_at).toLocaleDateString(),
       openRate: deliveries.length ? `${Math.round((read / deliveries.length) * 100)}%` : '0%',
+      created_at: row.created_at,
+      updated_at: row.updated_at ?? null,
     };
   });
 });

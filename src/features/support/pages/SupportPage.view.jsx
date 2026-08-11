@@ -5,6 +5,7 @@ import { formatDateTime } from '../../../services/adminShared';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import StatCard from '../../../components/ui/StatCard';
+import DateFilter from '../../../components/ui/DateFilter';
 
 export function SupportView({ model }) {
   const {
@@ -12,6 +13,8 @@ export function SupportView({ model }) {
     setSearchTerm,
     filterStatus,
     setFilterStatus,
+    ticketDateFilter,
+    safetyDateFilter,
     currentPage,
     setCurrentPage,
     selectedTicket,
@@ -20,7 +23,7 @@ export function SupportView({ model }) {
     setIsDrawerOpen,
     replyText,
     setReplyText,
-    safetyCases,
+    filteredSafetyCases,
     filteredTickets,
     totalPages,
     paginatedTickets,
@@ -49,9 +52,12 @@ export function SupportView({ model }) {
       </div>
 
       <div className="bg-card rounded-xl shadow-sm border border-border mb-8">
-        <div className="p-4 border-b border-border">
-          <h2 className="text-lg font-semibold text-foreground">Safety Reports & Disputes</h2>
-          <p className="text-sm text-foreground-lighter">Read-only visibility into booking safety cases.</p>
+        <div className="p-4 border-b border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Safety Reports & Disputes</h2>
+            <p className="text-sm text-foreground-lighter">Read-only visibility into booking safety cases.</p>
+          </div>
+          <DateFilter model={safetyDateFilter} />
         </div>
         <Table>
           <TableHeader>
@@ -76,8 +82,8 @@ export function SupportView({ model }) {
           <TableBody>
             {isLoading ? (
               <TableSkeleton rows={4} columns={[{}, {}, {}, {}, {}]} />
-            ) : safetyCases.length ? (
-              safetyCases.map((item) => (
+            ) : filteredSafetyCases.length ? (
+              filteredSafetyCases.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium text-foreground">{item.kind}</TableCell>
                   <TableCell className="text-xs text-foreground-light">{item.bookingId ?? '—'}</TableCell>
@@ -114,6 +120,7 @@ export function SupportView({ model }) {
           />
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
+          <DateFilter model={ticketDateFilter} />
           <Filter size={18} className="text-foreground-lighter" />
           <select
             className="w-full flex-1 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"

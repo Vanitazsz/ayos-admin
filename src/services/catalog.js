@@ -11,13 +11,13 @@ export const loadCatalog = cacheable(
   ] = await Promise.all([
     supabase
       .from('industries')
-      .select('id,name,description,is_active,sort_order,service_categories(count)')
+      .select('id,name,description,is_active,sort_order,created_at,updated_at,service_categories(count)')
       .order('sort_order')
       .order('name'),
     supabase
       .from('service_categories')
       .select(
-        'id,name,minimum_price_minor,maximum_price_minor,is_safety_critical,is_active,industries(name),worker_skills(count)',
+        'id,name,minimum_price_minor,maximum_price_minor,is_safety_critical,is_active,created_at,updated_at,industries(name),worker_skills(count)',
       )
       .order('name'),
   ]);
@@ -31,6 +31,8 @@ export const loadCatalog = cacheable(
       sortOrder: row.sort_order ?? 0,
       status: row.is_active ? 'Enabled' : 'Disabled',
       skillsCount: row.service_categories?.[0]?.count ?? 0,
+      created_at: row.created_at,
+      updated_at: row.updated_at ?? null,
     })),
     skills: (skills ?? []).map((row) => ({
       id: row.id,
@@ -43,6 +45,8 @@ export const loadCatalog = cacheable(
       isSafetyCritical: Boolean(row.is_safety_critical),
       status: row.is_active ? 'Active' : 'Inactive',
       workers: row.worker_skills?.[0]?.count ?? 0,
+      created_at: row.created_at,
+      updated_at: row.updated_at ?? null,
     })),
   };
 });

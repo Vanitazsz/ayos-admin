@@ -15,6 +15,7 @@ export {
   resolveUserAvatar,
   updateUser,
   updateUserEmail,
+  updateCustomerVerification,
 } from '../../../services/users';
 export { loadBookingsForUser, resolveBookingMedia } from '../../../services/bookings';
 export { loadLocations } from '../../../services/locations';

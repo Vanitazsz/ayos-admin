@@ -11,12 +11,15 @@ import { Calendar, Clock, CheckCircle, PlayCircle } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { BOOKING_STATUS_BADGE, badgeFor } from '../../../services/statusMeta';
 import { useServerPagination } from '../../../hooks/useServerPagination';
+import { useDateFilter } from '../../../hooks/useDateFilter';
 
 export function useBookingsPageController() {
   const toast = useToast();
   const navigate = useNavigate();
+  const dateFilter = useDateFilter({ canModify: true });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [mediaFilter, setMediaFilter] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
@@ -37,8 +40,17 @@ export function useBookingsPageController() {
 
   const fetchBookings = useCallback(
     ({ page, pageSize }) =>
-      loadBookingsPage({ search: searchTerm, status: filterStatus, page, pageSize }),
-    [searchTerm, filterStatus],
+      loadBookingsPage({
+        search: searchTerm,
+        status: filterStatus,
+        media: mediaFilter,
+        sort: dateFilter.sort,
+        field: dateFilter.field,
+        dateRange: dateFilter.effectiveRange,
+        page,
+        pageSize,
+      }),
+    [searchTerm, filterStatus, mediaFilter, dateFilter],
   );
 
   const {
@@ -171,6 +183,9 @@ export function useBookingsPageController() {
       setSearchTerm,
       filterStatus,
       setFilterStatus,
+      mediaFilter,
+      setMediaFilter,
+      dateFilter,
       currentPage,
       setCurrentPage,
       selectedBooking,
@@ -203,6 +218,8 @@ export function useBookingsPageController() {
     [
       searchTerm,
       filterStatus,
+      mediaFilter,
+      dateFilter,
       currentPage,
       selectedBooking,
       isDrawerOpen,
@@ -227,6 +244,7 @@ export function useBookingsPageController() {
       goToTrash,
       closeConfirm,
       setFilterStatus,
+      setMediaFilter,
       setCurrentPage,
       setIsDrawerOpen,
       setAction,

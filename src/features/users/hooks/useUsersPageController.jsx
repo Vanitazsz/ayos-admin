@@ -15,6 +15,7 @@ import {
   subscribe,
   updateUser,
   updateUserEmail,
+  updateCustomerVerification,
   loadLocations,
 } from '../logic/UsersPageLogic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -22,6 +23,9 @@ import Badge from '../../../components/ui/Badge';
 import { Users, UserCheck, UserX, AlertCircle } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { useServerPagination } from '../../../hooks/useServerPagination';
+import { useDateFilter } from '../../../hooks/useDateFilter';
+import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
+import { uploadVerificationImage } from '../../../services/adminShared';
 
 export function useUsersPageController() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,6 +33,8 @@ export function useUsersPageController() {
   const [filterVerified, setFilterVerified] = useState('All');
   const [filterLocation, setFilterLocation] = useState('All');
   const [locations, setLocations] = useState([]);
+  const dateFilter = useDateFilter({ canModify: true });
+  const verificationDateFilter = useDateFilter({ canModify: true });
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [activeTab, setActiveTab] = useState('customers');
   const [verifications, setVerifications] = useState([]);
@@ -56,6 +62,15 @@ export function useUsersPageController() {
   const [isEditing, setIsEditing] = useState(false);
   const [editDraft, setEditDraft] = useState({ name: '', email: '', phone: '' });
   const [isSavingUser, setIsSavingUser] = useState(false);
+  const [isEditingVerification, setIsEditingVerification] = useState(false);
+  const [verificationDraft, setVerificationDraft] = useState({
+    idType: '',
+    frontFile: null,
+    backFile: null,
+    frontPreview: '',
+    backPreview: '',
+  });
+  const [isSavingVerification, setIsSavingVerification] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkAction, setBulkAction] = useState(null);
@@ -69,10 +84,13 @@ export function useUsersPageController() {
         status: filterStatus,
         verified: filterVerified,
         location: filterLocation,
+        sort: dateFilter.sort,
+        field: dateFilter.field,
+        dateRange: dateFilter.effectiveRange,
         page,
         pageSize,
       }),
-    [searchQuery, filterStatus, filterVerified, filterLocation],
+    [searchQuery, filterStatus, filterVerified, filterLocation, dateFilter],
   );
 
   const {
@@ -87,8 +105,20 @@ export function useUsersPageController() {
     totalPages,
   } = useServerPagination({
     fetchPage: fetchUsers,
-    filterKey: `${filterStatus}|${filterVerified}|${filterLocation}`,
+    filterKey: `${filterStatus}|${filterVerified}|${filterLocation}|${dateFilter.sort}|${dateFilter.field}|${dateFilter.preset}|${dateFilter.customRange.from}|${dateFilter.customRange.to}`,
   });
+
+  const filteredVerifications = useMemo(
+    () =>
+      applyDateFilter(verifications, {
+        field: verificationDateFilter.field,
+        range: verificationDateFilter.effectiveRange,
+        sort: verificationDateFilter.sort,
+        getDate: (row) =>
+          getRowDate(row, verificationDateFilter.field) ?? getRowDate(row, 'created'),
+      }),
+    [verifications, verificationDateFilter],
+  );
 
   const loadVerifications = useCallback(async () => {
     setIsVerificationsLoading(true);
@@ -250,6 +280,72 @@ export function useUsersPageController() {
     [selectedUser, verificationDocs, reviewNotes, refresh, syncSelectedUser, toast],
   );
 
+  const enterVerificationEdit = useCallback(() => {
+    if (!verificationDocs?.id) return;
+    setVerificationDraft({
+      idType: verificationDocs.idType ?? '',
+      frontFile: null,
+      backFile: null,
+      frontPreview: verificationDocs.frontUrl ?? '',
+      backPreview: verificationDocs.backUrl ?? '',
+    });
+    setIsEditingVerification(true);
+  }, [verificationDocs]);
+
+  const cancelVerificationEdit = useCallback(() => {
+    setIsEditingVerification(false);
+    setVerificationDraft({
+      idType: '',
+      frontFile: null,
+      backFile: null,
+      frontPreview: '',
+      backPreview: '',
+    });
+  }, []);
+
+  const handleSaveVerificationEdit = useCallback(async () => {
+    if (!selectedUser || !verificationDocs?.id) return;
+    if (!verificationDraft.idType.trim()) {
+      toast.error('ID type is required', 'Choose the type of government ID.');
+      return;
+    }
+    if (!verificationDraft.frontFile && !verificationDraft.frontPreview) {
+      toast.error('Front image is required', 'Upload a replacement front image.');
+      return;
+    }
+    setIsSavingVerification(true);
+    try {
+      await updateCustomerVerification(verificationDocs.id, {
+        idType: verificationDraft.idType.trim(),
+        frontPath: verificationDraft.frontFile
+          ? await uploadVerificationImage(verificationDraft.frontFile, `customer-${selectedUser.id}`)
+          : verificationDocs.frontPath,
+        backPath: verificationDraft.backFile
+          ? await uploadVerificationImage(verificationDraft.backFile, `customer-${selectedUser.id}`)
+          : verificationDocs.backPath,
+      });
+      try {
+        const docs = await loadUserVerificationDocs(selectedUser.id);
+        setVerificationDocs(
+          docs ?? { status: 'NOT_SUBMITTED', idType: '', frontUrl: '', backUrl: '' },
+        );
+      } catch {
+        setVerificationDocs(null);
+      }
+      syncSelectedUser({ verified: false, verificationStatus: 'pending' });
+      setIsEditingVerification(false);
+      await refresh();
+      toast.success('Verification updated', `${selectedUser.name}'s verification was updated.`);
+    } catch (error) {
+      toast.error(
+        'Update failed',
+        error instanceof Error ? error.message : 'Unable to update verification.',
+      );
+    } finally {
+      setIsSavingVerification(false);
+    }
+  }, [selectedUser, verificationDocs, verificationDraft, refresh, syncSelectedUser, toast]);
+
   const toggleActionMenu = useCallback(
     (id) => {
       setActionMenuOpenId((current) => (current === id ? null : id));
@@ -294,7 +390,16 @@ export function useUsersPageController() {
 
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [searchQuery, filterStatus, filterVerified, filterLocation]);
+  }, [
+    searchQuery,
+    filterStatus,
+    filterVerified,
+    filterLocation,
+    dateFilter.sort,
+    dateFilter.field,
+    dateFilter.preset,
+    dateFilter.customRange,
+  ]);
 
   const handleBulkStatus = useCallback(
     async (nextStatus) => {
@@ -591,12 +696,15 @@ export function useUsersPageController() {
       filterLocation,
       setFilterLocation,
       locations,
+      dateFilter,
+      verificationDateFilter,
       currentPage,
       setCurrentPage,
       actionMenuOpenId,
       activeTab,
       setActiveTab,
-      verifications,
+      verifications: filteredVerifications,
+      verificationsCount: verifications.length,
       isVerificationsLoading,
       selectedVerification,
       setSelectedVerification,
@@ -619,6 +727,13 @@ export function useUsersPageController() {
       editDraft,
       setEditDraft,
       isSavingUser,
+      isEditingVerification,
+      verificationDraft,
+      setVerificationDraft,
+      isSavingVerification,
+      enterVerificationEdit,
+      cancelVerificationEdit,
+      handleSaveVerificationEdit,
       actionLoadingId,
       selectedIds,
       selectedCount: selectedIds.size,
@@ -659,6 +774,9 @@ export function useUsersPageController() {
       filterVerified,
       filterLocation,
       locations,
+      dateFilter,
+      verificationDateFilter,
+      filteredVerifications,
       currentPage,
       actionMenuOpenId,
       activeTab,
@@ -679,6 +797,12 @@ export function useUsersPageController() {
       isEditing,
       editDraft,
       isSavingUser,
+      isEditingVerification,
+      verificationDraft,
+      isSavingVerification,
+      enterVerificationEdit,
+      cancelVerificationEdit,
+      handleSaveVerificationEdit,
       actionLoadingId,
       refresh,
       decide,

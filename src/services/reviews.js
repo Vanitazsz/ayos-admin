@@ -5,7 +5,7 @@ export const loadReviews = cacheable('reviews', { ttl: 60_000 }, async () => {
   const { data, error } = await supabase
     .from('reviews')
     .select(
-      'id,stars,body,moderation_status,created_at,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),bookings(service_requests(service_categories(name)))',
+      'id,stars,body,moderation_status,created_at,updated_at,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),bookings(service_requests(service_categories(name)))',
     )
     .order('created_at', { ascending: false });
   if (error) throw error;
@@ -19,6 +19,8 @@ export const loadReviews = cacheable('reviews', { ttl: 60_000 }, async () => {
     date: new Date(row.created_at).toLocaleDateString(),
     status: status(row.moderation_status),
     reportCount: null,
+    created_at: row.created_at,
+    updated_at: row.updated_at ?? null,
   }));
 });
 

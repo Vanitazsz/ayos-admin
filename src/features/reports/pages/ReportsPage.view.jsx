@@ -18,6 +18,7 @@ import Select from '../../../components/ui/Select';
 import { Badge } from '../../../components/ui/Badge';
 import { Alert } from '../../../components/ui/Alert';
 import EmptyState from '../../../components/ui/EmptyState';
+import DateFilter from '../../../components/ui/DateFilter';
 import {
   Table,
   TableHeader,
@@ -33,10 +34,9 @@ export function ReportsView({ model }) {
     error,
     searchTerm,
     setSearchTerm,
+    dateFilter,
     currentPage,
     setCurrentPage,
-    dateRange,
-    setDateRange,
     reportType,
     setReportType,
     filteredReports,
@@ -177,19 +177,7 @@ export function ReportsView({ model }) {
               <option value="Review Sentiment">Review Sentiment</option>
             </Select>
           </div>
-          <div className="w-full flex-1 min-w-0 sm:w-48 sm:flex-none">
-            <Select
-              icon={Calendar}
-              aria-label="Filter reports by date range"
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-            >
-              <option value="Last 7 Days">Last 7 Days</option>
-              <option value="Last 30 Days">Last 30 Days</option>
-              <option value="This Year">This Year</option>
-              <option value="All Time">All Time</option>
-            </Select>
-          </div>
+          <DateFilter model={dateFilter} />
         </div>
       </div>
 

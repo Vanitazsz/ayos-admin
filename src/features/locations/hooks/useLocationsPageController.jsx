@@ -1,9 +1,9 @@
 import {
   loadBookingsForUser,
+  loadBookingsForWorker,
   loadLocations,
   loadUserVerificationDocs,
   loadUsersPage,
-  loadWorkerVerificationDocs,
   loadWorkers,
   resolveBookingMedia,
   resolveUserAvatar,
@@ -14,9 +14,13 @@ import { useServerPagination } from '../../../hooks/useServerPagination';
 import { usePagination } from '../../../hooks/usePagination';
 import { useDebouncedRefresh } from '../../../hooks/useDebouncedRefresh';
 import { useRealtime } from '../../../hooks/useRealtime';
+import { useDateFilter } from '../../../hooks/useDateFilter';
+import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
 
 export function useLocationsPageController() {
   const [activeTab, setActiveTab] = useState('users');
+  const userDateFilter = useDateFilter({ canModify: true });
+  const workerDateFilter = useDateFilter({ canModify: true });
 
   // Shared catalog: all locations (filter dropdowns + drawer map enrichment)
   const [locations, setLocations] = useState([]);
@@ -44,10 +48,13 @@ export function useLocationsPageController() {
         status: filterStatus,
         verified: filterVerified,
         location: filterLocation,
+        sort: userDateFilter.sort,
+        field: userDateFilter.field,
+        dateRange: userDateFilter.effectiveRange,
         page,
         pageSize,
       }),
-    [searchQuery, filterStatus, filterVerified, filterLocation],
+    [searchQuery, filterStatus, filterVerified, filterLocation, userDateFilter],
   );
 
   const {
@@ -61,7 +68,7 @@ export function useLocationsPageController() {
     totalPages: usersTotalPages,
   } = useServerPagination({
     fetchPage: fetchUsers,
-    filterKey: `${filterStatus}|${filterVerified}|${filterLocation}`,
+    filterKey: `${filterStatus}|${filterVerified}|${filterLocation}|${userDateFilter.sort}|${userDateFilter.field}|${userDateFilter.preset}|${userDateFilter.customRange.from}|${userDateFilter.customRange.to}`,
   });
 
   // ---- Workers tab ----
@@ -73,7 +80,8 @@ export function useLocationsPageController() {
   const [isWorkersLoading, setIsWorkersLoading] = useState(true);
   const [workersError, setWorkersError] = useState('');
   const [selectedWorker, setSelectedWorker] = useState(null);
-  const [workerVerificationDocs, setWorkerVerificationDocs] = useState(undefined);
+  const [workerBookings, setWorkerBookings] = useState([]);
+  const [isWorkerBookingsLoading, setIsWorkerBookingsLoading] = useState(false);
   const { schedule, mark } = useDebouncedRefresh();
 
   const loadWorkersData = useCallback(async () => {
@@ -166,36 +174,41 @@ export function useLocationsPageController() {
   }, []);
 
   // ---- Workers tab: filtering ----
-  const filteredWorkers = useMemo(
-    () =>
-      workers.filter((w) => {
-        const matchesSearch =
-          w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          w.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          w.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (w.categories ?? []).join(' ').toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (w.category ?? '').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus =
-          workerFilterStatus === 'All' || workerFilterStatus === 'Trashed'
-            ? workerFilterStatus === 'Trashed'
-              ? w.isTrashed
-              : true
-            : w.status === workerFilterStatus;
-        const matchesVerified =
-          workerFilterVerified === 'All' ||
-          (workerFilterVerified === 'verified' ? w.verified : !w.verified);
-        const matchesLocation =
-          workerFilterLocation === 'All' || (w.location ?? '') === workerFilterLocation;
-        return matchesSearch && matchesStatus && matchesVerified && matchesLocation;
-      }),
-    [
-      workers,
-      searchTerm,
-      workerFilterStatus,
-      workerFilterVerified,
-      workerFilterLocation,
-    ],
-  );
+  const filteredWorkers = useMemo(() => {
+    const matched = workers.filter((w) => {
+      const matchesSearch =
+        w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        w.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        w.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (w.categories ?? []).join(' ').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (w.category ?? '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        workerFilterStatus === 'All' || workerFilterStatus === 'Trashed'
+          ? workerFilterStatus === 'Trashed'
+            ? w.isTrashed
+            : true
+          : w.status === workerFilterStatus;
+      const matchesVerified =
+        workerFilterVerified === 'All' ||
+        (workerFilterVerified === 'verified' ? w.verified : !w.verified);
+      const matchesLocation =
+        workerFilterLocation === 'All' || (w.location ?? '') === workerFilterLocation;
+      return matchesSearch && matchesStatus && matchesVerified && matchesLocation;
+    });
+    return applyDateFilter(matched, {
+      field: workerDateFilter.field,
+      range: workerDateFilter.effectiveRange,
+      sort: workerDateFilter.sort,
+      getDate: (row) => getRowDate(row, workerDateFilter.field) ?? getRowDate(row, 'created'),
+    });
+  }, [
+    workers,
+    searchTerm,
+    workerFilterStatus,
+    workerFilterVerified,
+    workerFilterLocation,
+    workerDateFilter,
+  ]);
 
   const {
     currentPage: workersCurrentPage,
@@ -209,14 +222,15 @@ export function useLocationsPageController() {
     setSelectedWorker(worker);
     setActiveTab('workers');
     setIsDrawerOpen(true);
-    setWorkerVerificationDocs(undefined);
+    setActiveBooking(null);
+    setWorkerBookings([]);
+    setIsWorkerBookingsLoading(true);
     try {
-      const docs = await loadWorkerVerificationDocs(worker.id);
-      setWorkerVerificationDocs(
-        docs ?? { status: 'NOT_SUBMITTED', idType: '', documents: [] },
-      );
+      setWorkerBookings(await loadBookingsForWorker(worker.id));
     } catch {
-      setWorkerVerificationDocs(null);
+      setWorkerBookings([]);
+    } finally {
+      setIsWorkerBookingsLoading(false);
     }
   }, []);
 
@@ -247,6 +261,8 @@ export function useLocationsPageController() {
     () => ({
       activeTab,
       setActiveTab,
+      userDateFilter,
+      workerDateFilter,
       locations,
       locationsById,
       locationFor,
@@ -296,13 +312,16 @@ export function useLocationsPageController() {
       handleViewBooking,
       handleViewUserProfile,
       selectedWorker,
-      workerVerificationDocs,
+      workerBookings,
+      isWorkerBookingsLoading,
       handleViewWorkerDetails,
       getStatusBadge,
       refresh,
     }),
     [
       activeTab,
+      userDateFilter,
+      workerDateFilter,
       locations,
       locationsById,
       locationFor,
@@ -339,7 +358,8 @@ export function useLocationsPageController() {
       handleViewBooking,
       handleViewUserProfile,
       selectedWorker,
-      workerVerificationDocs,
+      workerBookings,
+      isWorkerBookingsLoading,
       handleViewWorkerDetails,
       getStatusBadge,
       refresh,

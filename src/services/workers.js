@@ -5,7 +5,7 @@ export async function loadWorkersRaw() {
   const { data, error } = await supabase
     .from('worker_profiles')
     .select(
-      'account_id,display_name,bio,experience,service_area,service_origin,service_radius_meters,approval_status,is_available,created_at,accounts!worker_profiles_account_id_fkey!inner(email,mobile,status,role,deleted_at),locations!worker_profiles_location_id_fkey(name),worker_skills!worker_skills_worker_id_fkey(years,rate_minor,category_id,service_categories!worker_skills_category_id_fkey(id,name)),worker_verifications!worker_verifications_worker_id_fkey(id,status),bookings!bookings_worker_account_id_fkey(count)',
+      'account_id,display_name,bio,experience,service_area,service_origin,service_radius_meters,approval_status,is_available,created_at,updated_at,accounts!worker_profiles_account_id_fkey!inner(email,mobile,status,role,deleted_at),locations!worker_profiles_location_id_fkey(name),worker_skills!worker_skills_worker_id_fkey(years,rate_minor,category_id,service_categories!worker_skills_category_id_fkey(id,name)),worker_verifications!worker_verifications_worker_id_fkey(id,status),bookings!bookings_worker_account_id_fkey(count)',
     )
     .eq('accounts.role', 'WORKER')
     .is('accounts.deleted_at', null)
@@ -88,6 +88,8 @@ export async function loadWorkersRaw() {
       location: row.locations?.name ?? row.service_area ?? '',
       locationId: row.locations?.id ?? null,
       registeredDate: row.created_at ? new Date(row.created_at).toLocaleDateString() : '',
+      created_at: row.created_at,
+      updated_at: row.updated_at ?? null,
       earnings: walletByWorker.get(row.account_id) ?? 0,
       verificationStatus: verification?.status ?? row.approval_status,
       verificationId: verification?.id ?? null,
@@ -143,6 +145,17 @@ export async function bulkSetWorkerVerification(ids, status) {
   return Number(data ?? 0);
 }
 
+export async function updateWorkerVerification(verificationId, { idType, documentPaths }) {
+  const { data, error } = await supabase.rpc('admin_update_worker_verification', {
+    p_verification_id: verificationId,
+    p_id_type: idType,
+    p_document_paths: documentPaths,
+  });
+  if (error) throw error;
+  invalidate('workers');
+  return data;
+}
+
 export async function updateWorkerEmail(id, email) {
   const { data, error } = await supabase.rpc('admin_update_worker_email', {
     p_worker_id: id,
@@ -167,15 +180,19 @@ export const loadWorkerVerificationDocs = cacheable(
     if (error) throw error;
     if (!data) return null;
     const paths = Array.isArray(data.document_paths) ? data.document_paths : [];
+    const isRemote = (path) => /^https?:\/\//i.test(path ?? '');
     const signed = await Promise.all(
       paths.map((path) =>
-        supabase.storage.from('verification-documents').createSignedUrl(path, 900),
+        isRemote(path)
+          ? Promise.resolve({ data: { signedUrl: path }, error: null })
+          : supabase.storage.from('verification-documents').createSignedUrl(path, 900),
       ),
     );
     return {
       id: data.id,
       status: data.status,
       idType: data.identity_data?.idType ?? '',
+      documentPaths: paths,
       documents: signed
         .map((result) => result.data?.signedUrl ?? '')
         .filter(Boolean),

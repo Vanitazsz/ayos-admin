@@ -10,6 +10,9 @@ import {
   Eye,
   User,
   ExternalLink,
+  Image as ImageIcon,
+  Mic,
+  ChevronDown,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
@@ -18,6 +21,7 @@ import ConfirmModal from '../../../components/ui/ConfirmModal';
 import StatCard from '../../../components/ui/StatCard';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
+import DateFilter from '../../../components/ui/DateFilter';
 import Skeleton from '../../../components/ui/Skeleton';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import {
@@ -35,6 +39,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
 } from '../../../components/ui/DropdownMenu';
 import {
   Tooltip,
@@ -49,6 +54,9 @@ export function BookingsView({ model }) {
     setSearchTerm,
     filterStatus,
     setFilterStatus,
+    mediaFilter,
+    setMediaFilter,
+    dateFilter,
     currentPage,
     setCurrentPage,
     selectedBooking,
@@ -114,7 +122,9 @@ export function BookingsView({ model }) {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="w-full sm:w-48">
+        <div className="flex w-full sm:w-auto items-center gap-2">
+          <DateFilter model={dateFilter} />
+          <div className="w-full sm:w-48">
           <Select
             icon={Filter}
             aria-label="Filter bookings by status"
@@ -128,6 +138,52 @@ export function BookingsView({ model }) {
             <option value="Cancelled">Cancelled</option>
             <option value="Trashed">Trashed</option>
           </Select>
+        </div>
+          <div className="w-full sm:w-48">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  aria-label="Filter bookings by attachments"
+                  className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground shadow-sm transition-colors hover:bg-surface-100 dark:hover:bg-surface-900"
+                >
+                  <span className="flex items-center gap-2">
+                    <ImageIcon className="size-4 text-foreground-lighter" />
+                    <span>Media</span>
+                    {mediaFilter.length > 0 && (
+                      <span className="rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                        {mediaFilter.length}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDown className="size-4 text-foreground-lighter" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuCheckboxItem
+                  checked={mediaFilter.includes('image')}
+                  onCheckedChange={(checked) =>
+                    setMediaFilter((current) =>
+                      checked ? [...current, 'image'] : current.filter((value) => value !== 'image'),
+                    )
+                  }
+                  className="cursor-pointer"
+                >
+                  <ImageIcon className="mr-2 size-4" /> Has image
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={mediaFilter.includes('voice')}
+                  onCheckedChange={(checked) =>
+                    setMediaFilter((current) =>
+                      checked ? [...current, 'voice'] : current.filter((value) => value !== 'voice'),
+                    )
+                  }
+                  className="cursor-pointer"
+                >
+                  <Mic className="mr-2 size-4" /> Has voice
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 

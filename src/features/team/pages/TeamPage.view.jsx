@@ -17,6 +17,7 @@ import {
 import { Card, CardHeader } from '../../../components/ui/Card';
 import StatCard from '../../../components/ui/StatCard';
 import Select from '../../../components/ui/Select';
+import DateFilter from '../../../components/ui/DateFilter';
 import {
   Table,
   TableHeader,
@@ -49,6 +50,7 @@ export function TeamView({ model }) {
     setSearchQuery,
     filterRole,
     setFilterRole,
+    dateFilter,
     roles,
     currentPage,
     setCurrentPage,
@@ -121,6 +123,7 @@ export function TeamView({ model }) {
             />
           </div>
           <div className="flex w-full sm:w-auto items-center gap-2">
+            <DateFilter model={dateFilter} />
             <div className="w-full sm:w-48">
               <Select
                 icon={Filter}

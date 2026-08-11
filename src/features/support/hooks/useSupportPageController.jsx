@@ -10,9 +10,13 @@ import { useRealtime } from '../../../hooks/useRealtime';
 import { useToast } from '../../../context/ToastContext';
 import { SUPPORT_STATUS_BADGE, badgeFor } from '../../../services/statusMeta';
 import { usePagination } from '../../../hooks/usePagination';
+import { useDateFilter } from '../../../hooks/useDateFilter';
+import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
 
 export function useSupportPageController() {
   const toast = useToast();
+  const ticketDateFilter = useDateFilter({ canModify: true });
+  const safetyDateFilter = useDateFilter({ canModify: false });
   const [tickets, setTickets] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
@@ -39,12 +43,23 @@ export function useSupportPageController() {
     void refresh();
   }, [refresh]);
   useRealtime(['support_tickets', 'account_reports', 'booking_disputes'], refresh);
-  const filteredTickets = tickets.filter((t) => {
+  const matchedTickets = tickets.filter((t) => {
     const matchesSearch =
       t.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'All' || t.status === filterStatus;
     return matchesSearch && matchesStatus;
+  });
+  const filteredTickets = applyDateFilter(matchedTickets, {
+    field: ticketDateFilter.field,
+    range: ticketDateFilter.effectiveRange,
+    sort: ticketDateFilter.sort,
+    getDate: (row) => getRowDate(row, ticketDateFilter.field) ?? getRowDate(row, 'created'),
+  });
+  const filteredSafetyCases = applyDateFilter(safetyCases, {
+    field: 'created',
+    range: safetyDateFilter.effectiveRange,
+    sort: safetyDateFilter.sort,
   });
   const {
     currentPage,
@@ -131,6 +146,8 @@ export function useSupportPageController() {
     setSearchTerm,
     filterStatus,
     setFilterStatus,
+    ticketDateFilter,
+    safetyDateFilter,
     currentPage,
     setCurrentPage,
     selectedTicket,
@@ -141,6 +158,7 @@ export function useSupportPageController() {
     setReplyText,
     safetyCases,
     filteredTickets,
+    filteredSafetyCases,
     totalPages,
     paginatedTickets,
     stats,

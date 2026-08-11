@@ -21,6 +21,7 @@ import Pagination from '../../../components/ui/Pagination';
 import StatCard from '../../../components/ui/StatCard';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
+import DateFilter from '../../../components/ui/DateFilter';
 import {
   Tooltip,
   TooltipTrigger,
@@ -51,6 +52,8 @@ export function ServicesView({ model }) {
     setSearchTerm,
     filterIndustry,
     setFilterIndustry,
+    skillDateFilter,
+    industryDateFilter,
     activeTab,
     setActiveTab,
     currentPage,
@@ -159,10 +162,12 @@ export function ServicesView({ model }) {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="w-full sm:w-56">
-              <Select
-                icon={Filter}
-                aria-label="Filter skills by industry"
+            <div className="flex w-full sm:w-auto items-center gap-2">
+              <DateFilter model={skillDateFilter} />
+              <div className="w-full sm:w-56">
+                <Select
+                  icon={Filter}
+                  aria-label="Filter skills by industry"
                 value={filterIndustry}
                 onChange={(e) => setFilterIndustry(e.target.value)}
               >
@@ -172,6 +177,7 @@ export function ServicesView({ model }) {
                   </option>
                 ))}
               </Select>
+            </div>
             </div>
           </div>
 
@@ -357,10 +363,12 @@ export function ServicesView({ model }) {
                 onChange={(e) => setIndustrySearch(e.target.value)}
               />
             </div>
-            <div className="w-full sm:w-48">
-              <Select
-                icon={Filter}
-                aria-label="Filter industries by status"
+            <div className="flex w-full sm:w-auto items-center gap-2">
+              <DateFilter model={industryDateFilter} />
+              <div className="w-full sm:w-48">
+                <Select
+                  icon={Filter}
+                  aria-label="Filter industries by status"
                 value={filterIndustryStatus}
                 onChange={(e) => setFilterIndustryStatus(e.target.value)}
               >
@@ -368,6 +376,7 @@ export function ServicesView({ model }) {
                 <option value="Enabled">Enabled</option>
                 <option value="Disabled">Disabled</option>
               </Select>
+            </div>
             </div>
           </div>
 

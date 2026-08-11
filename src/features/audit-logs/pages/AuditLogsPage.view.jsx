@@ -16,6 +16,7 @@ import Select from '../../../components/ui/Select';
 import { Badge } from '../../../components/ui/Badge';
 import { Alert } from '../../../components/ui/Alert';
 import EmptyState from '../../../components/ui/EmptyState';
+import DateFilter from '../../../components/ui/DateFilter';
 import {
   Table,
   TableHeader,
@@ -33,6 +34,7 @@ export function AuditLogsView({ model }) {
     setSearchTerm,
     filterModule,
     setFilterModule,
+    dateFilter,
     currentPage,
     setCurrentPage,
     filteredLogs,
@@ -70,6 +72,7 @@ export function AuditLogsView({ model }) {
           />
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
+          <DateFilter model={dateFilter} />
           <div className="w-full sm:w-48">
             <Select
               icon={Filter}
