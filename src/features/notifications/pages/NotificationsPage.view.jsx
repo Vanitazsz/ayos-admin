@@ -1,5 +1,6 @@
 import { Bell, Send, Filter, Search, Trash2 } from 'lucide-react';
 import Modal from '../../../components/ui/Modal';
+import Select, { SelectItem } from '../../../components/ui/Select';
 import Pagination from '../../../components/ui/Pagination';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import StatCard from '../../../components/ui/StatCard';
@@ -83,16 +84,18 @@ export function NotificationsView({ model }) {
         <div className="flex w-full sm:w-auto items-center gap-2">
           <DateFilter model={dateFilter} />
           <Filter size={18} className="text-foreground-lighter" />
-          <select
-            className="w-full flex-1 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"
+          <Select
+            icon={Filter}
+            aria-label="Filter by channel"
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
+            className="w-full flex-1 sm:w-auto sm:flex-none"
           >
-            <option value="All">All Channels</option>
-            <option value="Email">Email</option>
-            <option value="SMS">SMS</option>
-            <option value="Push">Push Notification</option>
-          </select>
+            <SelectItem value="All">All Channels</SelectItem>
+            <SelectItem value="Email">Email</SelectItem>
+            <SelectItem value="SMS">SMS</SelectItem>
+            <SelectItem value="Push">Push Notification</SelectItem>
+          </Select>
         </div>
       </div>
 
@@ -193,26 +196,22 @@ export function NotificationsView({ model }) {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-foreground-light mb-1">
-                Target Audience
-              </label>
-              <select
+              <Select
+                label="Target Audience"
                 value={campaign.audience}
                 onChange={(event) => setCampaign({ ...campaign, audience: event.target.value })}
-                className="w-full border border-border-strong rounded-lg px-3 py-2"
               >
-                <option value="EVERYONE">All Users</option>
-                <option value="WORKERS">Workers Only</option>
-                <option value="USERS">Customers Only</option>
-              </select>
+                <SelectItem value="EVERYONE">All Users</SelectItem>
+                <SelectItem value="WORKERS">Workers Only</SelectItem>
+                <SelectItem value="USERS">Customers Only</SelectItem>
+              </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground-light mb-1">Channel</label>
-              <select className="w-full border border-border-strong rounded-lg px-3 py-2">
-                <option>In-App</option>
-                <option disabled>Push (Unavailable)</option>
-                <option disabled>SMS (Unavailable)</option>
-              </select>
+              <Select label="Channel" value="In-App">
+                <SelectItem value="In-App">In-App</SelectItem>
+                <SelectItem value="Push" disabled>Push (Unavailable)</SelectItem>
+                <SelectItem value="SMS" disabled>SMS (Unavailable)</SelectItem>
+              </Select>
             </div>
           </div>
           <div>

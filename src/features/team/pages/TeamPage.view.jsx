@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Card, CardHeader } from '../../../components/ui/Card';
 import StatCard from '../../../components/ui/StatCard';
-import Select from '../../../components/ui/Select';
+import Select, { SelectItem } from '../../../components/ui/Select';
 import DateFilter from '../../../components/ui/DateFilter';
 import {
   Table,
@@ -131,11 +131,11 @@ export function TeamView({ model }) {
                 value={filterRole}
                 onChange={(e) => setFilterRole(e.target.value)}
               >
-                <option value="All">All Roles</option>
+                <SelectItem value="All">All Roles</SelectItem>
                 {roles.map((role) => (
-                  <option key={role.code} value={role.code}>
+                  <SelectItem key={role.code} value={role.code}>
                     {role.name}
-                  </option>
+                  </SelectItem>
                 ))}
               </Select>
             </div>
@@ -346,9 +346,9 @@ export function TeamView({ model }) {
               aria-label="Role"
             >
               {roles.map((role) => (
-                <option key={role.code} value={role.code}>
+                <SelectItem key={role.code} value={role.code}>
                   {role.name}
-                </option>
+                </SelectItem>
               ))}
             </Select>
             <p className="mt-1.5 text-xs text-foreground-muted">

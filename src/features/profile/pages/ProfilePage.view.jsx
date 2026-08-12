@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, Shield, Camera, CheckCircle, Clock, Monitor, ChevronDown, FileText, ShieldCheck } from 'lucide-react';
 import Modal from '../../../components/ui/Modal';
+import Select, { SelectItem } from '../../../components/ui/Select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import { formatDate, formatDateTime } from '../../../services/adminShared';
 import { cn } from '../../../lib/utils';
@@ -35,19 +36,19 @@ function PhoneField({ value, onChange }) {
         )}
       >
         <div className="relative shrink-0">
-          <select
+          <Select
             value={country.iso}
             onChange={handleDialChange}
             aria-label="Country dial code"
-            className="h-full appearance-none border-0 bg-card pl-3 pr-7 py-2 text-sm text-foreground focus:outline-none"
+            containerClassName="h-full shrink-0"
+            className="h-full border-0 bg-transparent px-3 shadow-none"
           >
             {COUNTRIES.map((c) => (
-              <option key={c.iso} value={c.iso}>
+              <SelectItem key={c.iso} value={c.iso}>
                 {flagEmoji(c.iso)} +{c.dial}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-4 -translate-y-1/2 text-foreground-lighter" />
+          </Select>
         </div>
         <span className="w-px self-stretch bg-border" aria-hidden="true" />
         <input

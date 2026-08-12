@@ -12,7 +12,7 @@ import Pagination from '../../../components/ui/Pagination';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import StatCard from '../../../components/ui/StatCard';
 import Input from '../../../components/ui/Input';
-import Select from '../../../components/ui/Select';
+import Select, { SelectItem } from '../../../components/ui/Select';
 import { Badge } from '../../../components/ui/Badge';
 import { Alert } from '../../../components/ui/Alert';
 import EmptyState from '../../../components/ui/EmptyState';
@@ -80,11 +80,11 @@ export function AuditLogsView({ model }) {
               value={filterModule}
               onChange={(e) => setFilterModule(e.target.value)}
             >
-              <option value="All">All Modules</option>
-              <option value="Auth">Authentication</option>
-              <option value="Workers">Workers</option>
-              <option value="Bookings">Bookings</option>
-              <option value="Payments">Payments</option>
+              <SelectItem value="All">All Modules</SelectItem>
+              <SelectItem value="Auth">Authentication</SelectItem>
+              <SelectItem value="Workers">Workers</SelectItem>
+              <SelectItem value="Bookings">Bookings</SelectItem>
+              <SelectItem value="Payments">Payments</SelectItem>
             </Select>
           </div>
         </div>

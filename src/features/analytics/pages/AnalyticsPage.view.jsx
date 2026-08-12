@@ -20,7 +20,7 @@ import {
   CardTitle,
   CardDescription,
 } from '../../../components/ui/Card';
-import Select from '../../../components/ui/Select';
+import Select, { SelectItem } from '../../../components/ui/Select';
 import {
   formatMoneyTick,
   chartTick,
@@ -118,10 +118,13 @@ const RevenueTooltip = ({ active, payload, granularity = 'month' }) => {
     month: { month: 'long', year: 'numeric' },
     year: { year: 'numeric' },
   };
+  const isLegacyDate = datum.month.getFullYear() === 2000;
   return (
     <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-md">
       <p className="mb-1 font-medium text-foreground">
-        {datum.month.toLocaleDateString('en-US', dateOptions[granularity])}
+        {isLegacyDate
+          ? datum.period
+          : datum.month.toLocaleDateString('en-US', dateOptions[granularity])}
       </p>
       <div className="space-y-0.5">
         <div className="flex items-center gap-2">
@@ -185,10 +188,10 @@ export function AnalyticsView({ model }) {
             onChange={(e) => setRangeKey(e.target.value)}
             aria-label="Analytics time range"
           >
-            <option value="last-12">Last 12 Months</option>
-            <option value="last-6">Last 6 Months</option>
-            <option value="this-year">This Year</option>
-            <option value="all-time">All Time</option>
+            <SelectItem value="last-12">Last 12 Months</SelectItem>
+            <SelectItem value="last-6">Last 6 Months</SelectItem>
+            <SelectItem value="this-year">This Year</SelectItem>
+            <SelectItem value="all-time">All Time</SelectItem>
           </Select>
         </div>
       </div>

@@ -20,7 +20,7 @@ import Pagination from '../../../components/ui/Pagination';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import StatCard from '../../../components/ui/StatCard';
 import Input from '../../../components/ui/Input';
-import Select from '../../../components/ui/Select';
+import Select, { SelectItem } from '../../../components/ui/Select';
 import DateFilter from '../../../components/ui/DateFilter';
 import Skeleton from '../../../components/ui/Skeleton';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
@@ -131,12 +131,12 @@ export function BookingsView({ model }) {
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
-            <option value="All">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Ongoing">Ongoing</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
-            <option value="Trashed">Trashed</option>
+            <SelectItem value="All">All Statuses</SelectItem>
+            <SelectItem value="Pending">Pending</SelectItem>
+            <SelectItem value="Ongoing">Ongoing</SelectItem>
+            <SelectItem value="Completed">Completed</SelectItem>
+            <SelectItem value="Cancelled">Cancelled</SelectItem>
+            <SelectItem value="Trashed">Trashed</SelectItem>
           </Select>
         </div>
           <div className="w-full sm:w-48">
@@ -564,18 +564,18 @@ export function BookingsView({ model }) {
             {action.type === 'reassign' && (
               <div>
                 <label className="mb-1 block text-sm font-medium">Matched worker</label>
-                <select
+                <Select
                   value={replacementWorker}
                   onChange={(event) => setReplacementWorker(event.target.value)}
-                  className="w-full rounded-lg border border-border-strong px-3 py-2"
+                  aria-label="Matched worker"
                 >
-                  <option value="">Select a worker</option>
+                  <SelectItem value="">Select a worker</SelectItem>
                   {action.booking.candidates?.map((candidate) => (
-                    <option key={candidate.id} value={candidate.id}>
+                    <SelectItem key={candidate.id} value={candidate.id}>
                       {candidate.name} · score {candidate.score.toFixed(1)}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
+                </Select>
                 {!action.booking.candidates?.length && (
                   <p className="mt-1 text-xs text-destructive">
                     No eligible match candidates are available.

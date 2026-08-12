@@ -23,6 +23,7 @@ import {
   PanelLeftDashed,
   PieChart,
   MessageSquare,
+  MessageCircle,
   Activity,
   Megaphone,
   MapPinned,
@@ -84,7 +85,10 @@ const navigationGroups = [
   {
     title: 'Communication',
     icon: Megaphone,
-    items: [{ name: 'Notifications', to: '/admin/notifications', icon: Bell }],
+    items: [
+      { name: 'Notifications', to: '/admin/notifications', icon: Bell },
+      { name: 'Messages', to: '/admin/messages', icon: MessageCircle, requiredPermission: 'messages.view' },
+    ],
   },
   {
     title: 'Administration',

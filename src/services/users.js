@@ -18,16 +18,32 @@ const normalizeVerificationStatus = (value) => {
 export const mapUser = (row) => {
   const profile = asProfile(row);
   const verificationStatus = normalizeVerificationStatus(profile?.verification_status);
+  const addresses = (row.addresses ?? []).map((address) => ({
+    id: address.id,
+    label: address.label ?? '',
+    line1: address.line1 ?? '',
+    line2: address.line2 ?? '',
+    barangay: address.barangay ?? '',
+    city: address.city ?? '',
+    province: address.province ?? '',
+    postalCode: address.postal_code ?? '',
+    latitude: address.latitude ?? null,
+    longitude: address.longitude ?? null,
+    isDefault: Boolean(address.is_default),
+    display: [address.line1, address.line2, address.barangay, address.city, address.province]
+      .filter(Boolean)
+      .join(', '),
+    short: [address.city, address.province].filter(Boolean).join(', '),
+  }));
   return {
     id: row.id,
     name: profile?.display_name?.trim() || row.email?.split('@')[0] || 'Customer',
     email: row.email,
     phone: row.mobile ?? '',
-    address: [row.addresses?.[0]?.line1, row.addresses?.[0]?.barangay, row.addresses?.[0]?.city]
-      .filter(Boolean)
-      .join(', '),
-    location: asLocation(profile)?.name ?? '',
-    locationId: asLocation(profile)?.id ?? null,
+    addresses,
+    location:
+      (addresses.find((address) => address.isDefault) ?? addresses[0])?.short ?? '',
+    locationCount: addresses.length,
     registeredAt: new Date(row.created_at).toLocaleDateString(),
     created_at: row.created_at,
     updated_at: row.updated_at ?? null,
@@ -40,7 +56,7 @@ export const mapUser = (row) => {
 };
 
 const USER_PAGE_SELECT =
-  'id,email,mobile,status,created_at,updated_at,user_profiles(display_name,verification_status,avatar_path,locations!user_profiles_location_id_fkey(id,name),bookings!bookings_user_account_id_fkey(count)),addresses(line1,barangay,city)';
+  'id,email,mobile,status,created_at,updated_at,user_profiles(display_name,verification_status,avatar_path,locations!user_profiles_location_id_fkey(id,name),bookings!bookings_user_account_id_fkey(count)),addresses(id,label,line1,line2,barangay,city,province,postal_code,latitude,longitude,is_default)';
 
 const USER_KEY_SELECT =
   'id,email,status,created_at,updated_at,user_profiles(display_name,verification_status,locations!user_profiles_location_id_fkey(id,name))';
@@ -95,9 +111,10 @@ export async function loadUsersPageRaw({
     status === 'All' ||
     (status === 'Trashed' ? isTrashed(row) : row.status === status);
   const matchesVerified = (row) => {
-    if (verified === 'All') return true;
     const profile = asProfile(row);
-    return normalizeVerificationStatus(profile?.verification_status) === verified;
+    const verificationStatus = normalizeVerificationStatus(profile?.verification_status);
+    if (verified === 'All') return verificationStatus !== 'pending';
+    return verificationStatus === verified;
   };
   const matchesLocation = (row) => {
     if (location === 'All') return true;

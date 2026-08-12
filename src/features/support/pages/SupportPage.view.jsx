@@ -6,6 +6,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import StatCard from '../../../components/ui/StatCard';
 import DateFilter from '../../../components/ui/DateFilter';
+import Select, { SelectItem } from '../../../components/ui/Select';
 
 export function SupportView({ model }) {
   const {
@@ -122,16 +123,18 @@ export function SupportView({ model }) {
         <div className="flex w-full sm:w-auto items-center gap-2">
           <DateFilter model={ticketDateFilter} />
           <Filter size={18} className="text-foreground-lighter" />
-          <select
-            className="w-full flex-1 border border-border-strong rounded-lg px-3 py-2 text-sm focus:ring-ring focus:border-brand-500 sm:w-auto sm:flex-none"
+          <Select
+            icon={Filter}
+            aria-label="Filter by status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
+            className="w-full flex-1 sm:w-auto sm:flex-none"
           >
-            <option value="All">All Statuses</option>
-            <option value="Open">Open</option>
-            <option value="Pending">Pending</option>
-            <option value="Resolved">Resolved</option>
-          </select>
+            <SelectItem value="All">All Statuses</SelectItem>
+            <SelectItem value="Open">Open</SelectItem>
+            <SelectItem value="Pending">Pending</SelectItem>
+            <SelectItem value="Resolved">Resolved</SelectItem>
+          </Select>
         </div>
       </div>
 

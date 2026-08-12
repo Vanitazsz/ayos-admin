@@ -20,7 +20,7 @@ import Button from '../../../components/ui/Button';
 import Pagination from '../../../components/ui/Pagination';
 import StatCard from '../../../components/ui/StatCard';
 import Input from '../../../components/ui/Input';
-import Select from '../../../components/ui/Select';
+import Select, { SelectItem } from '../../../components/ui/Select';
 import DateFilter from '../../../components/ui/DateFilter';
 import {
   Tooltip,
@@ -172,9 +172,9 @@ export function ServicesView({ model }) {
                 onChange={(e) => setFilterIndustry(e.target.value)}
               >
                 {industries.map((industry) => (
-                  <option key={industry} value={industry}>
+                  <SelectItem key={industry} value={industry}>
                     {industry}
-                  </option>
+                  </SelectItem>
                 ))}
               </Select>
             </div>
@@ -372,9 +372,9 @@ export function ServicesView({ model }) {
                 value={filterIndustryStatus}
                 onChange={(e) => setFilterIndustryStatus(e.target.value)}
               >
-                <option value="All">All Statuses</option>
-                <option value="Enabled">Enabled</option>
-                <option value="Disabled">Disabled</option>
+                <SelectItem value="All">All Statuses</SelectItem>
+                <SelectItem value="Enabled">Enabled</SelectItem>
+                <SelectItem value="Disabled">Disabled</SelectItem>
               </Select>
             </div>
             </div>
@@ -559,32 +559,31 @@ export function ServicesView({ model }) {
               <label className="block text-sm font-medium text-foreground-light mb-1">
                 Industry
               </label>
-              <select
+              <Select
                 required
+                label="Industry"
                 value={currentSkill?.industry || ''}
                 onChange={(e) => setCurrentSkill({ ...currentSkill, industry: e.target.value })}
-                className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
               >
-                <option value="">Select Industry</option>
+                <SelectItem value="">Select Industry</SelectItem>
                 {industries
                   .filter((industry) => industry !== 'All')
                   .map((industry) => (
-                    <option key={industry} value={industry}>
+                    <SelectItem key={industry} value={industry}>
                       {industry}
-                    </option>
+                    </SelectItem>
                   ))}
-              </select>
+              </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground-light mb-1">Status</label>
-              <select
+              <Select
+                label="Status"
                 value={currentSkill?.status || 'Active'}
                 onChange={(e) => setCurrentSkill({ ...currentSkill, status: e.target.value })}
-                className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
               >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </Select>
             </div>
           </div>
 
@@ -707,17 +706,16 @@ export function ServicesView({ model }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground-light mb-1">Status</label>
-            <select
+            <Select
+              label="Status"
               value={currentIndustry?.status || 'Enabled'}
               onChange={(e) =>
                 setCurrentIndustry({ ...currentIndustry, status: e.target.value })
               }
-              className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
             >
-              <option value="Enabled">Enabled</option>
-              <option value="Disabled">Disabled</option>
-            </select>
+              <SelectItem value="Enabled">Enabled</SelectItem>
+              <SelectItem value="Disabled">Disabled</SelectItem>
+            </Select>
           </div>
 
           <div className="pt-4 flex justify-end space-x-3 border-t border-border">

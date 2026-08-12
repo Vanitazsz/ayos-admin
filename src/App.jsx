@@ -22,6 +22,7 @@ const Support = React.lazy(() => import('./pages/admin/Support'));
 const Reports = React.lazy(() => import('./pages/admin/Reports'));
 const Analytics = React.lazy(() => import('./pages/admin/Analytics'));
 const Notifications = React.lazy(() => import('./pages/admin/Notifications'));
+const Messages = React.lazy(() => import('./pages/admin/Messages'));
 const AuditLogs = React.lazy(() => import('./pages/admin/AuditLogs'));
 const Trash = React.lazy(() => import('./pages/admin/Trash'));
 const Settings = React.lazy(() => import('./pages/admin/Settings'));
@@ -81,6 +82,14 @@ function App() {
             <Route path="reports" element={<Reports />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="notifications" element={<Notifications />} />
+            <Route
+              path="messages"
+              element={
+                <RequirePermission permission="messages.view">
+                  <Messages />
+                </RequirePermission>
+              }
+            />
             <Route
               path="team"
               element={

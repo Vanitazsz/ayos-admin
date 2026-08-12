@@ -22,6 +22,29 @@ const buildRevenueSeries = (rows) =>
     };
   });
 
+const legacyToMonthlySeries = (rows) => {
+  const months = new Map();
+  (rows ?? []).forEach((row) => {
+    const prev = months.get(row.period) ?? { revenue: 0, profit: 0 };
+    prev.revenue += Number(row.revenue ?? 0);
+    prev.profit += Number(row.profit ?? 0);
+    months.set(row.period, prev);
+  });
+  return [...months].map(([period, { revenue, profit }]) => {
+    const month = new Date(`${period} 1, 2000`);
+    return {
+      month,
+      period,
+      label: period,
+      yearLabel: `${period} '00`,
+      revenue,
+      profit,
+      commission: profit,
+      workerPayout: revenue - profit,
+    };
+  });
+};
+
 export const loadAnalytics = cacheable(
   'analytics',
   { ttl: 30_000, persist: false },
@@ -40,14 +63,17 @@ export const loadAnalytics = cacheable(
     if (topServicesError) throw topServicesError;
     if (revenueSeriesError) throw revenueSeriesError;
     const payload = revenuePayload ?? {};
+    const revenueData = Array.isArray(revenuePayload)
+      ? { day: [], month: legacyToMonthlySeries(revenuePayload), year: [] }
+      : {
+          day: buildRevenueSeries(payload.day),
+          month: buildRevenueSeries(payload.month),
+          year: buildRevenueSeries(payload.year),
+        };
     return {
       summary: summary?.[0] ?? null,
       topServices: topServices ?? [],
-      revenueData: {
-        day: buildRevenueSeries(payload.day),
-        month: buildRevenueSeries(payload.month),
-        year: buildRevenueSeries(payload.year),
-      },
+      revenueData,
     };
   },
 );

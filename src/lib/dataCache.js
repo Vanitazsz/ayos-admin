@@ -1,4 +1,4 @@
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 const STORAGE_PREFIX = `ayos:tablecache:v${CACHE_VERSION}`;
 const MAX_PERSISTED_BYTES = 256 * 1024;
 const MAX_ENTRIES_PER_SCOPE = 25;
@@ -19,6 +19,7 @@ const SCOPE_TO_TABLES = {
   locations: ['locations'],
   settings: ['system_settings'],
   team: ['accounts', 'admin_profiles', 'admin_roles'],
+  messages: ['conversations', 'conversation_participants', 'conversation_reads', 'messages', 'message_attachments'],
   dashboard: ['bookings', 'payments'],
   analytics: ['payments'],
 };

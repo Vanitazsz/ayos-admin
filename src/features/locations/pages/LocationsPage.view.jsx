@@ -18,7 +18,7 @@ import {
 import { Card, CardHeader } from '../../../components/ui/Card';
 import { formatDateTime, money } from '../../../services/adminShared';
 import { badgeFor, BOOKING_STATUS_BADGE } from '../../../services/statusMeta';
-import Select from '../../../components/ui/Select';
+import Select, { SelectItem } from '../../../components/ui/Select';
 import DateFilter from '../../../components/ui/DateFilter';
 import {
   Table,
@@ -103,7 +103,6 @@ export function LocationsView({ model }) {
     setActiveTab,
     userDateFilter,
     workerDateFilter,
-    locations,
     locationFor,
     // Users tab
     users,
@@ -119,8 +118,6 @@ export function LocationsView({ model }) {
     setFilterStatus,
     filterVerified,
     setFilterVerified,
-    filterLocation,
-    setFilterLocation,
     // Workers tab
     filteredWorkers,
     paginatedWorkers,
@@ -133,8 +130,6 @@ export function LocationsView({ model }) {
     setWorkerFilterStatus,
     workerFilterVerified,
     setWorkerFilterVerified,
-    workerFilterLocation,
-    setWorkerFilterLocation,
     isWorkersLoading,
     workersError,
     // Shared drawer + read-only details
@@ -208,29 +203,14 @@ export function LocationsView({ model }) {
                 <DateFilter model={userDateFilter} />
                 <div className="w-full sm:w-44">
                   <Select
-                    icon={MapPinned}
-                    aria-label="Filter by location"
-                    value={filterLocation}
-                    onChange={(e) => setFilterLocation(e.target.value)}
-                  >
-                    <option value="All">All Locations</option>
-                    {locations.map((location) => (
-                      <option key={location.id} value={location.name}>
-                        {location.name}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div className="w-full sm:w-44">
-                  <Select
                     icon={ShieldCheck}
                     aria-label="Filter by verification status"
                     value={filterVerified}
                     onChange={(e) => setFilterVerified(e.target.value)}
                   >
-                    <option value="All">All Verifications</option>
-                    <option value="verified">Verified</option>
-                    <option value="unverified">Unverified</option>
+                    <SelectItem value="All">All Verifications</SelectItem>
+                    <SelectItem value="verified">Verified</SelectItem>
+                    <SelectItem value="unverified">Unverified</SelectItem>
                   </Select>
                 </div>
                 <div className="w-full sm:w-40">
@@ -240,10 +220,10 @@ export function LocationsView({ model }) {
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
                   >
-                    <option value="All">All Statuses</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="SUSPENDED">Suspended</option>
-                    <option value="Trashed">Trashed</option>
+                    <SelectItem value="All">All Statuses</SelectItem>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                    <SelectItem value="Trashed">Trashed</SelectItem>
                   </Select>
                 </div>
               </div>
@@ -254,7 +234,7 @@ export function LocationsView({ model }) {
                 <TableHeader>
                   <TableRow>
                     <TableHead scope="col">User Details</TableHead>
-                    <TableHead scope="col" className="hidden xl:table-cell">Location</TableHead>
+                    <TableHead scope="col" className="hidden xl:table-cell">Saved Locations</TableHead>
                     <TableHead scope="col" className="hidden lg:table-cell">Contact</TableHead>
                     <TableHead scope="col" className="hidden lg:table-cell">Registration Date</TableHead>
                     <TableHead scope="col" className="text-right">
@@ -327,12 +307,25 @@ export function LocationsView({ model }) {
                           </div>
                         </TableCell>
                         <TableCell className="hidden xl:table-cell">
-                          <span className="flex items-center text-sm text-foreground-light">
-                            <MapPinned className="h-3.5 w-3.5 mr-1.5 shrink-0 text-foreground-muted" />
-                            <span className="truncate max-w-[12rem] min-w-0" title={user.location}>
-                              {user.location || '—'}
+                          <div className="flex items-center gap-2">
+                            <span className="flex items-center text-sm text-foreground-light min-w-0">
+                              <MapPinned className="h-3.5 w-3.5 mr-1.5 shrink-0 text-foreground-muted" />
+                              <span
+                                className="truncate max-w-[12rem] min-w-0"
+                                title={user.addresses?.[0]?.display ?? ''}
+                              >
+                                {user.addresses?.[0]?.display || '—'}
+                              </span>
                             </span>
-                          </span>
+                            {(user.addresses?.length ?? 0) > 1 && (
+                              <span
+                                className="shrink-0 rounded-full bg-brand-500/10 px-2 py-0.5 text-xs font-medium text-brand-700 dark:text-brand-300"
+                                title={user.addresses.slice(1).map((address) => address.display).join('\n')}
+                              >
+                                +{(user.addresses?.length ?? 0) - 1}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           <div className="flex flex-col space-y-1">
@@ -404,29 +397,14 @@ export function LocationsView({ model }) {
                 <DateFilter model={workerDateFilter} />
                 <div className="w-full sm:w-44">
                   <Select
-                    icon={MapPinned}
-                    aria-label="Filter workers by location"
-                    value={workerFilterLocation}
-                    onChange={(e) => setWorkerFilterLocation(e.target.value)}
-                  >
-                    <option value="All">All Locations</option>
-                    {locations.map((location) => (
-                      <option key={location.id} value={location.name}>
-                        {location.name}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div className="w-full sm:w-44">
-                  <Select
                     icon={ShieldCheck}
                     aria-label="Filter workers by verification status"
                     value={workerFilterVerified}
                     onChange={(e) => setWorkerFilterVerified(e.target.value)}
                   >
-                    <option value="All">All Verifications</option>
-                    <option value="verified">Verified</option>
-                    <option value="unverified">Unverified</option>
+                    <SelectItem value="All">All Verifications</SelectItem>
+                    <SelectItem value="verified">Verified</SelectItem>
+                    <SelectItem value="unverified">Unverified</SelectItem>
                   </Select>
                 </div>
                 <div className="w-full sm:w-40">
@@ -436,11 +414,11 @@ export function LocationsView({ model }) {
                     value={workerFilterStatus}
                     onChange={(e) => setWorkerFilterStatus(e.target.value)}
                   >
-                    <option value="All">All Statuses</option>
-                    <option value="Active">Active</option>
-                    <option value="Suspended">Suspended</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Trashed">Trashed</option>
+                    <SelectItem value="All">All Statuses</SelectItem>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Suspended">Suspended</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Trashed">Trashed</SelectItem>
                   </Select>
                 </div>
               </div>
@@ -627,6 +605,22 @@ export function LocationsView({ model }) {
 
             <div className="border-t border-border pt-6">
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                Contact Information
+              </h4>
+              <div className="space-y-3">
+                <div className="flex items-center text-sm text-foreground-light">
+                  <Mail size={16} className="mr-3 text-foreground-muted" />{' '}
+                  {selectedWorker.email}
+                </div>
+                <div className="flex items-center text-sm text-foreground-light">
+                  <Phone size={16} className="mr-3 text-foreground-muted" />{' '}
+                  {selectedWorker.phone || 'Not provided'}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
                 Location
               </h4>
               <LocationSection person={selectedWorker} locationFor={locationFor} />
@@ -772,7 +766,7 @@ export function LocationsView({ model }) {
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
                 Customer Attachments
               </h4>
-              {activeBooking.media === undefined ? (
+              {activeBooking.media === undefined || Array.isArray(activeBooking.media) ? (
                 <Skeleton className="h-24 w-full rounded-lg" />
               ) : activeBooking.media === null ? (
                 <p className="text-sm text-foreground-lighter">Couldn't load attachments.</p>
@@ -909,10 +903,6 @@ export function LocationsView({ model }) {
                   {selectedUser.phone || 'Not provided'}
                 </div>
                 <div className="flex items-center text-sm text-foreground-light">
-                  <MapPin size={16} className="mr-3 text-foreground-muted" />{' '}
-                  {selectedUser.address || 'Not provided'}
-                </div>
-                <div className="flex items-center text-sm text-foreground-light">
                   <Calendar size={16} className="mr-3 text-foreground-muted" /> Registered{' '}
                   {selectedUser.registeredAt}
                 </div>
@@ -921,9 +911,34 @@ export function LocationsView({ model }) {
 
             <div className="border-t border-border pt-6">
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
-                Location
+                Saved Locations
               </h4>
-              <LocationSection person={selectedUser} locationFor={locationFor} />
+              {selectedUser.addresses?.length ? (
+                <div className="space-y-3">
+                  {selectedUser.addresses.map((address) => (
+                    <div
+                      key={address.id}
+                      className="rounded-lg border border-border bg-card p-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <MapPin size={14} className="shrink-0 text-foreground-muted" />
+                        <span className="truncate text-sm font-medium text-foreground">
+                          {address.label || 'Address'}
+                        </span>
+                        {address.isDefault && <Badge variant="success">Default</Badge>}
+                      </div>
+                      <p className="mt-1.5 text-sm text-foreground-light">{address.display}</p>
+                      <p className="mt-1 text-xs text-foreground-lighter">
+                        {address.latitude != null && address.longitude != null
+                          ? `${Number(address.latitude).toFixed(6)}, ${Number(address.longitude).toFixed(6)}`
+                          : ''}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-foreground-lighter">No saved locations yet.</p>
+              )}
             </div>
 
             <div className="border-t border-border pt-6">

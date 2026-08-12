@@ -35,7 +35,6 @@ export function useLocationsPageController() {
   const debouncedSearch = useDebouncedValue(searchQuery);
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterVerified, setFilterVerified] = useState('All');
-  const [filterLocation, setFilterLocation] = useState('All');
   const [selectedUser, setSelectedUser] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [userVerificationDocs, setUserVerificationDocs] = useState(undefined);
@@ -49,14 +48,13 @@ export function useLocationsPageController() {
         search: debouncedSearch,
         status: filterStatus,
         verified: filterVerified,
-        location: filterLocation,
         sort: userDateFilter.sort,
         field: userDateFilter.field,
         dateRange: userDateFilter.effectiveRange,
         page,
         pageSize,
       }),
-    [debouncedSearch, filterStatus, filterVerified, filterLocation, userDateFilter],
+    [debouncedSearch, filterStatus, filterVerified, userDateFilter],
   );
 
   const {
@@ -70,7 +68,7 @@ export function useLocationsPageController() {
     totalPages: usersTotalPages,
   } = useServerPagination({
     fetchPage: fetchUsers,
-    filterKey: `${filterStatus}|${filterVerified}|${filterLocation}|${userDateFilter.sort}|${userDateFilter.field}|${userDateFilter.preset}|${userDateFilter.customRange.from}|${userDateFilter.customRange.to}`,
+    filterKey: `${filterStatus}|${filterVerified}|${userDateFilter.sort}|${userDateFilter.field}|${userDateFilter.preset}|${userDateFilter.customRange.from}|${userDateFilter.customRange.to}`,
   });
 
   // ---- Workers tab ----
@@ -78,7 +76,6 @@ export function useLocationsPageController() {
   const [searchTerm, setSearchTerm] = useState('');
   const [workerFilterStatus, setWorkerFilterStatus] = useState('All');
   const [workerFilterVerified, setWorkerFilterVerified] = useState('All');
-  const [workerFilterLocation, setWorkerFilterLocation] = useState('All');
   const [isWorkersLoading, setIsWorkersLoading] = useState(true);
   const [workersError, setWorkersError] = useState('');
   const [selectedWorker, setSelectedWorker] = useState(null);
@@ -203,9 +200,7 @@ export function useLocationsPageController() {
       const matchesVerified =
         workerFilterVerified === 'All' ||
         (workerFilterVerified === 'verified' ? w.verified : !w.verified);
-      const matchesLocation =
-        workerFilterLocation === 'All' || (w.location ?? '') === workerFilterLocation;
-      return matchesSearch && matchesStatus && matchesVerified && matchesLocation;
+      return matchesSearch && matchesStatus && matchesVerified;
     });
     return applyDateFilter(matched, {
       field: workerDateFilter.field,
@@ -218,7 +213,6 @@ export function useLocationsPageController() {
     searchTerm,
     workerFilterStatus,
     workerFilterVerified,
-    workerFilterLocation,
     workerDateFilter,
   ]);
 
@@ -292,8 +286,6 @@ export function useLocationsPageController() {
       setFilterStatus,
       filterVerified,
       setFilterVerified,
-      filterLocation,
-      setFilterLocation,
       // Workers tab
       workers,
       filteredWorkers,
@@ -307,8 +299,6 @@ export function useLocationsPageController() {
       setWorkerFilterStatus,
       workerFilterVerified,
       setWorkerFilterVerified,
-      workerFilterLocation,
-      setWorkerFilterLocation,
       isWorkersLoading,
       workersError,
       // Shared drawer + read-only details
@@ -347,7 +337,6 @@ export function useLocationsPageController() {
       searchQuery,
       filterStatus,
       filterVerified,
-      filterLocation,
       workers,
       filteredWorkers,
       paginatedWorkers,
@@ -357,7 +346,6 @@ export function useLocationsPageController() {
       searchTerm,
       workerFilterStatus,
       workerFilterVerified,
-      workerFilterLocation,
       isWorkersLoading,
       workersError,
       isDrawerOpen,

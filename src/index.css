@@ -404,18 +404,16 @@
 }
 
 /*
- * Canonical keyboard focus rings. Copied from Supabase
- * (packages/config/css/utilities.css). Ring only shows on `:focus-visible`
- * (keyboard Tab), never on hover/click.
- * - focus-ring: default offset ring (buttons, inputs, most controls).
- *   `outline-hidden` stays always-on so mouse click does not show the browser
- *   default; the ring is `:focus-visible` only.
+ * Canonical keyboard focus treatment. Thin blue border (1px solid brand),
+ * directly on the element edge — no offset ring, no white gap, no browser
+ * default outline. Applies on every focus (click + keyboard).
+ * - focus-ring: default treatment (buttons, inputs, most controls).
  * - focus-inset: dense/flush surfaces such as interactive <tr>s. Must use
  *   outline (not ring/box-shadow) — box-shadow on table-row is unreliable,
  *   especially in Safari. Do NOT pair with outline-hidden.
  */
 @utility focus-ring {
-  @apply outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  @apply outline-none focus:ring-1 focus:ring-brand-500;
 }
 
 @utility focus-inset {
