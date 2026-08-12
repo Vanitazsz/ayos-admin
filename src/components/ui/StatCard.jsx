@@ -60,7 +60,7 @@ const StatCard = ({ to, className, ...props }) => {
         to={to}
         className={cn(
           cardClass,
-          'block cursor-pointer transition-colors focus-ring',
+          'block cursor-pointer transition-colors focus-ring-btn',
           'hover:border-border-strong hover:bg-surface-200/50',
         )}
       >

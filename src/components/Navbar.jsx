@@ -46,7 +46,7 @@ const Navbar = ({ onOpenSidebar }) => {
           type="button"
           aria-label="Open navigation"
           onClick={onOpenSidebar}
-          className="rounded-md p-1.5 text-foreground-lighter transition-colors hover:bg-accent hover:text-foreground focus-ring md:hidden"
+          className="rounded-md p-1.5 text-foreground-lighter transition-colors hover:bg-accent hover:text-foreground focus-ring-btn md:hidden"
         >
           <Menu className="size-5" />
         </button>
@@ -54,7 +54,7 @@ const Navbar = ({ onOpenSidebar }) => {
           type="button"
           aria-label="Search"
           onClick={openCommandPalette}
-          className="rounded-md p-1.5 text-foreground-lighter transition-colors hover:bg-accent hover:text-foreground focus-ring md:hidden"
+          className="rounded-md p-1.5 text-foreground-lighter transition-colors hover:bg-accent hover:text-foreground focus-ring-btn md:hidden"
         >
           <Search className="size-5" />
         </button>
@@ -91,7 +91,7 @@ const Navbar = ({ onOpenSidebar }) => {
         <button
           type="button"
           onClick={openCommandPalette}
-          className="group hidden h-[30px] cursor-pointer grow items-center justify-between rounded-full border border-strong bg-transparent pl-1.5 pr-1 text-foreground-lighter transition-colors hover:border-stronger hover:bg-popover focus-ring md:flex md:min-w-32 xl:min-w-32"
+          className="group hidden h-[30px] cursor-pointer grow items-center justify-between rounded-full border border-strong bg-transparent pl-1.5 pr-1 text-foreground-lighter transition-colors hover:border-stronger hover:bg-popover focus-ring-btn md:flex md:min-w-32 xl:min-w-32"
         >
           <div className="flex items-center space-x-1.5 text-foreground-lighter">
             <Search
@@ -114,7 +114,7 @@ const Navbar = ({ onOpenSidebar }) => {
             <button
               type="button"
               aria-label="Account menu"
-              className="rounded-full transition-opacity hover:opacity-80 focus-ring"
+              className="rounded-full transition-opacity hover:opacity-80 focus-ring-btn"
             >
               <Avatar className="size-8 border border-border-strong bg-brand-500/10">
                 <AvatarFallback className="text-xs">

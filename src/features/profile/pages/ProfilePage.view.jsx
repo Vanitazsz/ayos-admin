@@ -32,7 +32,7 @@ function PhoneField({ value, onChange }) {
         className={cn(
           'flex items-stretch overflow-hidden rounded-lg border bg-card shadow-sm transition-colors',
           error ? 'border-destructive' : 'border-border',
-          'focus-within:ring-ring focus-within:ring-2',
+          'focus-within:ring-1 focus-within:ring-ring',
         )}
       >
         <div className="relative shrink-0">
@@ -41,7 +41,7 @@ function PhoneField({ value, onChange }) {
             onChange={handleDialChange}
             aria-label="Country dial code"
             containerClassName="h-full shrink-0"
-            className="h-full border-0 bg-transparent px-3 shadow-none"
+            className="h-full border-0 bg-transparent px-3 shadow-none focus:ring-0"
           >
             {COUNTRIES.map((c) => (
               <SelectItem key={c.iso} value={c.iso}>
@@ -259,7 +259,7 @@ export function ProfileView({ model }) {
                         type="text"
                         value={profile.firstName}
                         onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
-                        className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring"
+                        className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring"
                       />
                     </div>
                     <div>
@@ -270,7 +270,7 @@ export function ProfileView({ model }) {
                         type="text"
                         value={profile.lastName}
                         onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
-                        className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring"
+                        className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring"
                       />
                     </div>
                     <div>
@@ -281,7 +281,7 @@ export function ProfileView({ model }) {
                         type="email"
                         value={profile.email}
                         onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                        className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring"
+                        className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring"
                       />
                     </div>
                     <div>
@@ -298,7 +298,7 @@ export function ProfileView({ model }) {
                         type="text"
                         value={profile.location}
                         onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                        className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring"
+                        className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring"
                       />
                     </div>
                     <div className="md:col-span-2">
@@ -307,7 +307,7 @@ export function ProfileView({ model }) {
                         rows={4}
                         value={profile.bio}
                         onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                        className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring resize-none"
+                        className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring resize-none"
                       ></textarea>
                     </div>
                   </div>

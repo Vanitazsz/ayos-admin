@@ -549,7 +549,7 @@ export function ServicesView({ model }) {
               required
               value={currentSkill?.name || ''}
               onChange={(e) => setCurrentSkill({ ...currentSkill, name: e.target.value })}
-              className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
+              className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring"
               placeholder="e.g. Toilet Repair"
             />
           </div>
@@ -608,7 +608,7 @@ export function ServicesView({ model }) {
                       e.target.value === '' ? null : Math.round(Number(e.target.value) * 100),
                   })
                 }
-                className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
+                className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring"
                 placeholder="0.00"
               />
             </div>
@@ -632,7 +632,7 @@ export function ServicesView({ model }) {
                       e.target.value === '' ? null : Math.round(Number(e.target.value) * 100),
                   })
                 }
-                className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
+                className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring"
                 placeholder="0.00"
               />
             </div>
@@ -685,7 +685,7 @@ export function ServicesView({ model }) {
               required
               value={currentIndustry?.name || ''}
               onChange={(e) => setCurrentIndustry({ ...currentIndustry, name: e.target.value })}
-              className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
+              className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring"
               placeholder="e.g. Landscaping"
             />
           </div>
@@ -700,7 +700,7 @@ export function ServicesView({ model }) {
               onChange={(e) =>
                 setCurrentIndustry({ ...currentIndustry, description: e.target.value })
               }
-              className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring focus:border-brand-500"
+              className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring"
               placeholder="Brief description of this industry..."
             ></textarea>
           </div>

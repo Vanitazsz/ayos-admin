@@ -117,7 +117,7 @@ export function SupportView({ model }) {
             placeholder="Search tickets by ID or subject..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus:ring-ring focus:border-brand-500 text-sm"
+            className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus-ring text-sm"
           />
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
@@ -352,7 +352,7 @@ export function SupportView({ model }) {
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
                       placeholder="Type your reply to the customer..."
-                      className="w-full border border-border-strong rounded-lg pl-3 pr-10 py-2 text-sm focus:ring-ring focus:border-brand-500 resize-none"
+                      className="w-full border border-border-strong rounded-lg pl-3 pr-10 py-2 text-sm focus-ring resize-none"
                     ></textarea>
                   </div>
                   <div className="flex justify-end mt-2">

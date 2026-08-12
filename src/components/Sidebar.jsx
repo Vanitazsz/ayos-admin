@@ -104,7 +104,7 @@ const navigationGroups = [
 ];
 
 const itemBase = cn(
-  'flex h-8 w-full items-center gap-2 overflow-hidden rounded-md px-2.5 text-left text-sm transition-colors focus-ring',
+  'flex h-8 w-full items-center gap-2 overflow-hidden rounded-md px-2.5 text-left text-sm transition-colors focus-ring-btn',
   'text-foreground-lighter hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
   'data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground'
 );
@@ -165,7 +165,7 @@ const NavGroup = ({ group, effectiveCollapsed, setIsMobileOpen }) => {
       <button
         onClick={() => !effectiveCollapsed && setIsExpanded(!isExpanded)}
         className={cn(
-          'flex h-8 w-full items-center gap-2 rounded-md px-2.5 text-sm transition-colors focus-ring',
+          'flex h-8 w-full items-center gap-2 rounded-md px-2.5 text-sm transition-colors focus-ring-btn',
           'hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
           isActiveGroup ? 'font-medium text-foreground' : 'text-foreground-lighter',
           'justify-between'
@@ -272,7 +272,7 @@ const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
           aria-label="Open navigation"
           onClick={() => setIsMobileOpen(true)}
           className={cn(
-            'rounded-full bg-primary p-3.5 text-primary-foreground shadow-lg transition-transform focus-ring',
+            'rounded-full bg-primary p-3.5 text-primary-foreground shadow-lg transition-transform focus-ring-btn',
             isMobileOpen ? 'scale-0' : 'scale-100'
           )}
         >
@@ -310,7 +310,7 @@ const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
             <button
               aria-label="Close navigation"
               onClick={() => setIsMobileOpen(false)}
-              className="rounded-md p-2 text-foreground-lighter hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground focus-ring"
+              className="rounded-md p-2 text-foreground-lighter hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground focus-ring-btn"
             >
               <X className="size-5" />
             </button>

@@ -18,7 +18,7 @@ const Switch = forwardRef(
           'peer relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors',
           'border border-transparent bg-surface-300',
           'data-[state=checked]:bg-primary data-[state=unchecked]:bg-border-strong',
-          'focus-ring',
+          'focus-ring-btn',
           'disabled:cursor-not-allowed disabled:opacity-60',
           className,
         )}

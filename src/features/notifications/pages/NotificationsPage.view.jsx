@@ -78,7 +78,7 @@ export function NotificationsView({ model }) {
             placeholder="Search campaigns..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus:ring-ring focus:border-brand-500 text-sm"
+            className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus-ring text-sm"
           />
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
@@ -190,7 +190,7 @@ export function NotificationsView({ model }) {
               type="text"
               value={campaign.title}
               onChange={(event) => setCampaign({ ...campaign, title: event.target.value })}
-              className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring"
+              className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring"
               placeholder="e.g. Service update"
             />
           </div>
@@ -220,7 +220,7 @@ export function NotificationsView({ model }) {
               rows={4}
               value={campaign.message}
               onChange={(event) => setCampaign({ ...campaign, message: event.target.value })}
-              className="w-full border border-border-strong rounded-lg px-3 py-2 focus:ring-ring"
+              className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring"
               placeholder="Type your message here..."
             ></textarea>
           </div>

@@ -68,7 +68,7 @@ function TopServicesList({ services, isLoading }) {
               type="button"
               aria-expanded={active}
               onClick={() => setActiveIndex(active ? null : index)}
-              className={`w-full rounded-lg px-2.5 py-2 text-left transition-colors focus-ring ${active ? 'bg-surface-200' : 'hover:bg-surface-100'}`}
+              className={`w-full rounded-lg px-2.5 py-2 text-left transition-colors focus-ring-btn ${active ? 'bg-surface-200' : 'hover:bg-surface-100'}`}
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-2">
@@ -232,7 +232,7 @@ export function AnalyticsView({ model }) {
                     onClick={() => setGranularity(key)}
                     aria-pressed={granularity === key}
                     className={cn(
-                      'rounded-md px-2 py-1 text-xs font-medium transition-colors focus-ring',
+                      'rounded-md px-2 py-1 text-xs font-medium transition-colors focus-ring-btn',
                       granularity === key
                         ? 'bg-foreground text-foreground-contrast'
                         : 'text-foreground-lighter hover:text-foreground',

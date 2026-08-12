@@ -234,7 +234,7 @@ export function CreateAccountView({ model }) {
                       onChange={(event) => handleOtpChange(index, event.target.value)}
                       onKeyDown={(event) => handleOtpKeyDown(index, event)}
                       aria-label={`Digit ${index + 1}`}
-                      className="h-12 w-10 rounded-lg border border-border bg-card text-center text-lg font-semibold text-foreground shadow-sm transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 focus:outline-none"
+                      className="h-12 w-10 rounded-lg border border-border bg-card text-center text-lg font-semibold text-foreground shadow-sm transition-colors focus-ring"
                     />
                   ))}
                 </div>
