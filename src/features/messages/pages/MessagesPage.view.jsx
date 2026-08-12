@@ -108,6 +108,8 @@ export function MessagesView({ model }) {
     setSearchTerm,
     filterStatus,
     setFilterStatus,
+    messageFilter,
+    setMessageFilter,
     dateFilter,
     currentPage,
     setCurrentPage,
@@ -187,6 +189,18 @@ export function MessagesView({ model }) {
               <SelectItem value="Active">Active</SelectItem>
               <SelectItem value="Disabled">Disabled</SelectItem>
               <SelectItem value="Archived">Archived</SelectItem>
+            </Select>
+          </div>
+          <div className="w-full sm:w-44">
+            <Select
+              icon={MessageSquare}
+              aria-label="Filter conversations by messages"
+              value={messageFilter}
+              onChange={(e) => setMessageFilter(e.target.value)}
+            >
+              <SelectItem value="All">All</SelectItem>
+              <SelectItem value="Has messages">Has messages</SelectItem>
+              <SelectItem value="No messages">No messages</SelectItem>
             </Select>
           </div>
           <DateFilter model={dateFilter} />

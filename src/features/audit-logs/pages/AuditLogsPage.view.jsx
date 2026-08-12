@@ -98,8 +98,8 @@ export function AuditLogsView({ model }) {
               <TableHead scope="col">Admin</TableHead>
               <TableHead scope="col">Module</TableHead>
               <TableHead scope="col">Action & Target</TableHead>
-              <TableHead scope="col" className="hidden lg:table-cell">IP Address</TableHead>
-              <TableHead scope="col" className="hidden lg:table-cell">Device</TableHead>
+              <TableHead scope="col">IP Address</TableHead>
+              <TableHead scope="col">Device</TableHead>
               <TableHead scope="col" className="text-right">Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -107,7 +107,7 @@ export function AuditLogsView({ model }) {
             {isLoading ? (
               <TableSkeleton
                 rows={6}
-                columns={[{}, {}, {}, {}, { className: 'hidden lg:table-cell' }, { className: 'hidden lg:table-cell' }, { className: 'text-right' }]}
+                columns={[{}, {}, {}, {}, {}, {}, { className: 'text-right' }]}
               />
             ) : paginatedLogs.length > 0 ? (
               paginatedLogs.map((log) => (
@@ -129,12 +129,12 @@ export function AuditLogsView({ model }) {
                       Target: {log.target || '—'}
                     </div>
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell whitespace-nowrap">
+                  <TableCell className="whitespace-nowrap">
                     <div className="flex items-center text-xs text-foreground-lighter">
                       <Globe size={12} className="mr-1" /> {log.ip || '—'}
                     </div>
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell whitespace-nowrap">
+                  <TableCell className="whitespace-nowrap">
                     <div className="flex items-center text-foreground-light text-xs">
                       {log.isMobile ? (
                         <Smartphone size={14} className="mr-2 text-foreground-muted" />
@@ -153,6 +153,8 @@ export function AuditLogsView({ model }) {
                       <Badge variant="danger">
                         <XCircle size={12} /> Failed
                       </Badge>
+                    ) : log.status ? (
+                      <Badge variant="default">{log.status}</Badge>
                     ) : (
                       <span className="text-foreground-lighter">—</span>
                     )}

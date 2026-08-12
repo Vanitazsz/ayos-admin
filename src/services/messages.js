@@ -54,6 +54,7 @@ export async function loadConversationMessages(conversationId) {
 async function loadConversationsPageRaw({
   search = '',
   status = 'All',
+  messageFilter = 'All',
   sort = 'newest',
   field = 'created',
   dateRange = null,
@@ -68,6 +69,8 @@ async function loadConversationsPageRaw({
     if (status === 'Disabled' && !isDisabled) return false;
     if (status === 'Archived' && !row.archived_at) return false;
     if (status === 'Unarchived' && row.archived_at) return false;
+    if (messageFilter === 'Has messages' && row.messageCount === 0) return false;
+    if (messageFilter === 'No messages' && row.messageCount > 0) return false;
     return true;
   });
   const ordered = applyDateFilter(matched, {
