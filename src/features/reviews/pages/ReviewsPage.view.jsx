@@ -521,7 +521,7 @@ function ReviewDetailsDrawer({
 
           <div className="border-t border-border pt-6">
             <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
-              Review Photo
+              Photos & Proof of Work
             </h4>
             {isMediaLoading ? (
               <Skeleton className="h-24 w-full rounded-lg" />

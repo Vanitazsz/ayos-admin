@@ -21,6 +21,7 @@ export function useMessagesPageController() {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebouncedValue(searchTerm);
   const [filterStatus, setFilterStatus] = useState('All');
+  const [messageFilter, setMessageFilter] = useState('All');
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [isThreadOpen, setIsThreadOpen] = useState(false);
   const [threadMessages, setThreadMessages] = useState([]);
@@ -47,16 +48,17 @@ export function useMessagesPageController() {
       loadConversationsPage({
         search: debouncedSearch,
         status: filterStatus,
+        messageFilter,
         sort: dateFilter.sort,
         field: dateFilter.field,
         dateRange: dateFilter.effectiveRange,
         page,
         pageSize,
       }),
-    [debouncedSearch, filterStatus, dateFilter],
+    [debouncedSearch, filterStatus, messageFilter, dateFilter],
   );
 
-  const filterKey = `${filterStatus}|${dateFilter.sort}|${dateFilter.field}|${dateFilter.preset}|${dateFilter.customRange.from}|${dateFilter.customRange.to}`;
+  const filterKey = `${filterStatus}|${messageFilter}|${dateFilter.sort}|${dateFilter.field}|${dateFilter.preset}|${dateFilter.customRange.from}|${dateFilter.customRange.to}`;
 
   const {
     rows: conversations,
@@ -190,6 +192,8 @@ export function useMessagesPageController() {
     setSearchTerm,
     filterStatus,
     setFilterStatus,
+    messageFilter,
+    setMessageFilter,
     dateFilter,
     currentPage,
     setCurrentPage,

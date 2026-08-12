@@ -1,1 +1,7 @@
-export { downloadReport, generateReport, loadReports } from '../../../services/reports';
+export {
+  REPORT_TYPES,
+  loadReportPage,
+  loadReportStats,
+  generateReport,
+  downloadReport,
+} from '../../../services/reports';

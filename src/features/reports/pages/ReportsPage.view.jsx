@@ -1,7 +1,11 @@
 import {
   FileText,
   Download,
+  RefreshCw,
   Search,
+  Plus,
+  Loader2,
+  AlertCircle,
   Calendar,
 } from 'lucide-react';
 import Pagination from '../../../components/ui/Pagination';
@@ -13,6 +17,8 @@ import { Badge } from '../../../components/ui/Badge';
 import { Alert } from '../../../components/ui/Alert';
 import EmptyState from '../../../components/ui/EmptyState';
 import DateFilter from '../../../components/ui/DateFilter';
+import Modal from '../../../components/ui/Modal';
+import { Select, SelectItem } from '../../../components/ui/Select';
 import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/Tabs';
 import {
   Table,
@@ -22,180 +28,327 @@ import {
   TableHead,
   TableCell,
 } from '../../../components/ui/Table';
+import { cn } from '../../../lib/utils';
+
+const STATUS_VARIANT = {
+  completed: 'success',
+  processing: 'info',
+  pending: 'warning',
+  failed: 'danger',
+};
+
+const STATUS_LABEL = {
+  completed: 'Completed',
+  processing: 'Processing',
+  pending: 'Pending',
+  failed: 'Failed',
+};
+
+const TAB_LABELS = {
+  All: 'All',
+  FINANCIAL: 'Financial',
+  WORKERS: 'Workers',
+  CUSTOMERS: 'Customers',
+  SERVICES: 'Services',
+  REVIEWS: 'Reviews',
+};
 
 export function ReportsView({ model }) {
   const {
-    isLoading,
-    error,
     stats,
+    isStatsLoading,
     searchTerm,
     setSearchTerm,
     dateFilter,
-    currentPage,
-    setCurrentPage,
     reportType,
     setReportType,
-    filteredReports,
+    rows,
+    count,
+    isInitialLoading,
+    error,
+    empty,
+    currentPage,
+    setCurrentPage,
     totalPages,
-    paginatedReports,
     handleDownload,
-    handleDownloadExcel,
-    handleDownloadCSV,
+    handleRetry,
+    reportTypes,
+    isGeneratorOpen,
+    openGenerator,
+    closeGenerator,
+    generatorType,
+    setGeneratorType,
+    generatorFormat,
+    setGeneratorFormat,
+    generatorPreset,
+    setGeneratorPreset,
+    presets,
+    isGenerating,
     handleGenerate,
   } = model;
+
   return (
     <div className="p-4 sm:p-6">
-      <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+      <div className="mb-8 flex flex-col justify-between items-start gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Reports Center</h1>
-          <p className="text-foreground-lighter mt-1">Generate and download comprehensive system reports</p>
+          <p className="mt-1 text-foreground-lighter">
+            Generate and download comprehensive system reports
+          </p>
         </div>
-        <Button
-          onClick={() => void handleGenerate()}
-          className="mt-4 sm:mt-0"
-        >
-          <FileText size={18} /> Generate Custom Report
+        <Button onClick={() => openGenerator()}>
+          <Plus size={18} /> New Report
         </Button>
       </div>
+
       {error && (
         <Alert variant="danger" className="mb-4">
-          {error}
+          <AlertCircle className="size-4" /> {error}
         </Alert>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, index) => (
-          <StatCard key={index} title={stat.label} value={stat.value} icon={stat.icon} isLoading={isLoading} />
+          <StatCard
+            key={index}
+            title={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            isLoading={isStatsLoading}
+          />
         ))}
       </div>
 
-      {/* Report Types */}
+      <div className="mb-8">
+        <h2 className="mb-3 text-sm font-semibold text-foreground-lighter">
+          Available Reports
+        </h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {reportTypes.map((type) => (
+            <button
+              key={type.code}
+              type="button"
+              onClick={() => openGenerator(type.code)}
+              className="group flex flex-col rounded-xl border border-border bg-surface p-4 text-left transition-colors hover:border-brand-500/40 hover:bg-surface-100"
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <span className="flex size-8 items-center justify-center rounded-lg bg-brand-500/10 text-brand-700 dark:text-brand-300">
+                  <FileText className="size-4" />
+                </span>
+                <Plus className="size-4 text-foreground-muted opacity-0 transition-opacity group-hover:opacity-100" />
+              </div>
+              <span className="text-sm font-bold text-foreground">{type.label}</span>
+              <span className="mt-1 text-xs text-foreground-lighter">{type.description}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <Tabs
         value={reportType}
         onValueChange={(type) => {
           setReportType(type);
           setCurrentPage(1);
         }}
-        className="mb-8"
+        className="mb-6"
       >
-        <TabsList>
-          <TabsTrigger value="All">All Reports</TabsTrigger>
-          <TabsTrigger value="Financial Summary">Financial</TabsTrigger>
-          <TabsTrigger value="Worker Performance">Workers</TabsTrigger>
-          <TabsTrigger value="Customer Activity">Customers</TabsTrigger>
-          <TabsTrigger value="Service Popularity">Services</TabsTrigger>
-          <TabsTrigger value="Review Sentiment">Reviews</TabsTrigger>
+        <TabsList className="flex-wrap">
+          {Object.entries(TAB_LABELS).map(([value, label]) => (
+            <TabsTrigger key={value} value={value}>
+              {label}
+            </TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
 
-      {/* Filters and Search */}
-      <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div className="mb-4 flex flex-col justify-between items-center gap-4 rounded-t-xl border-x border-t border-border bg-surface p-4 sm:flex-row">
         <div className="relative w-full sm:w-96">
           <Input
             icon={Search}
-            aria-label="Search reports by name or ID..."
-            placeholder="Search reports by name or ID..."
+            aria-label="Search reports"
+            placeholder="Search by report or requester..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex w-full items-center gap-2 sm:w-auto">
-          <DateFilter model={dateFilter} />
-        </div>
+        <DateFilter model={dateFilter} />
       </div>
 
-      {/* Table */}
-      <div className="bg-card shadow-sm border border-border">
+      <div className="overflow-hidden rounded-b-xl border border-border bg-surface">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead scope="col">Report Name</TableHead>
-              <TableHead scope="col">Generated Date</TableHead>
-              <TableHead scope="col">Status / Size</TableHead>
-              <TableHead scope="col" className="text-right">
-                Actions
-              </TableHead>
+              <TableHead>Report</TableHead>
+              <TableHead>Format / Range</TableHead>
+              <TableHead>Requested By</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableSkeleton rows={6} columns={[{}, {}, {}, { className: 'text-right' }]} />
-            ) : paginatedReports.length > 0 ? (
-              paginatedReports.map((report) => (
-                <TableRow key={report.id}>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="p-2 rounded-lg bg-surface-200 mr-3">{report.icon}</div>
-                      <div>
-                        <div className="text-sm font-bold text-foreground">{report.name}</div>
-                        <div className="text-xs text-foreground-lighter">
-                          {report.id} • {report.type}
+            {isInitialLoading ? (
+              <TableSkeleton rows={6} columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]} />
+            ) : !empty ? (
+              rows.map((report) => {
+                const variant = STATUS_VARIANT[report.statusKey] ?? 'default';
+                return (
+                  <TableRow key={report.id}>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <div className="mr-3 flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-200 text-foreground-light">
+                          <FileText className="size-4" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-foreground">{report.name}</div>
+                          <div className="text-xs text-foreground-lighter">{report.typeLabel}</div>
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="text-sm text-foreground flex items-center">
-                      <Calendar size={14} className="mr-1 text-foreground-muted" /> {report.dateGenerated}
-                    </div>
-                    <div className="text-xs text-foreground-lighter mt-1">By {report.generatedBy}</div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <Badge variant="success" className="mb-1">
-                      {report.status}
-                    </Badge>
-                    <div className="text-xs text-foreground-lighter">{report.size}</div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-right font-medium">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDownloadCSV(report.id)}
-                      >
-                        CSV
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-success-600 dark:text-success-400 border-success/30 bg-success/10 hover:bg-success/10"
-                        onClick={() => handleDownloadExcel(report.id)}
-                      >
-                        Excel
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleDownload(report.id)}
-                      >
-                        <Download size={14} /> PDF
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="text-sm text-foreground">{report.format || 'PDF'}</div>
+                      <div className="mt-0.5 text-xs text-foreground-lighter">{report.range}</div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-sm text-foreground">
+                      {report.requestedBy}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="flex items-center text-sm text-foreground">
+                        <Calendar className="mr-1 size-3.5 text-foreground-muted" />
+                        {report.createdAt}
+                      </div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <Badge variant={variant}>{STATUS_LABEL[report.statusKey] ?? report.status}</Badge>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-right font-medium">
+                      {report.statusKey === 'completed' ? (
+                        <Button size="sm" onClick={() => void handleDownload(report.id)}>
+                          <Download size={14} /> Download
+                        </Button>
+                      ) : report.statusKey === 'failed' ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void handleRetry(report.id)}
+                          disabled={isGenerating}
+                        >
+                          <RefreshCw size={14} /> Retry
+                        </Button>
+                      ) : (
+                        <span className="inline-flex items-center text-sm text-foreground-lighter">
+                          <Loader2 className="mr-1 size-3.5 animate-spin" /> In progress
+                        </span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             ) : (
               <TableRow hover={false}>
-                <TableCell colSpan="4" className="p-0">
+                <TableCell colSpan="6" className="p-0">
                   <EmptyState
                     icon={FileText}
                     title="No reports found"
-                    description="No reports found matching your criteria."
+                    description="No reports match your current filters. Try generating a new report."
+                    action={
+                      <Button onClick={() => openGenerator()}>
+                        <Plus size={16} /> New Report
+                      </Button>
+                    }
                   />
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
+        {!isInitialLoading && totalPages > 1 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalCount={count}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
-      {filteredReports.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
-      )}
+      <Modal
+        isOpen={isGeneratorOpen}
+        onClose={closeGenerator}
+        title="Generate New Report"
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-5">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground-lighter">
+              Report type
+            </label>
+            <Select value={generatorType} onValueChange={setGeneratorType}>
+              {reportTypes.map((type) => (
+                <SelectItem key={type.code} value={type.code}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </Select>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground-lighter">
+              Format
+            </label>
+            <div className="flex items-center gap-1 rounded-lg bg-surface-200 p-1">
+              {['PDF', 'CSV', 'XLSX'].map((format) => (
+                <button
+                  key={format}
+                  type="button"
+                  onClick={() => setGeneratorFormat(format)}
+                  className={cn(
+                    'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                    generatorFormat === format
+                      ? 'bg-surface text-foreground shadow-sm'
+                      : 'text-foreground-lighter hover:text-foreground',
+                  )}
+                >
+                  {format}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-foreground-lighter">
+              Date range
+            </label>
+            <div className="flex flex-wrap items-center gap-1 rounded-lg bg-surface-200 p-1">
+              {presets.map((preset) => (
+                <button
+                  key={preset.key}
+                  type="button"
+                  onClick={() => setGeneratorPreset(preset.key)}
+                  className={cn(
+                    'flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+                    generatorPreset === preset.key
+                      ? 'bg-surface text-foreground shadow-sm'
+                      : 'text-foreground-lighter hover:text-foreground',
+                  )}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" onClick={closeGenerator} disabled={isGenerating}>
+              Cancel
+            </Button>
+            <Button onClick={() => void handleGenerate()} disabled={isGenerating}>
+              {isGenerating ? <Loader2 className="size-4 animate-spin" /> : <Plus size={16} />}
+              {isGenerating ? 'Generating...' : 'Generate Report'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
