@@ -23,6 +23,12 @@ alter table public.authentication_events add column if not exists ip_address ine
 alter table public.authentication_events add column if not exists user_agent text;
 alter table public.authentication_events add column if not exists event_type text;
 
+-- 2b) event_type vocabulary (must match the live table; the record-auth-session
+--     edge function writes 'SIGNED_IN').
+alter table public.authentication_events drop constraint if exists authentication_events_event_type_check;
+alter table public.authentication_events add constraint authentication_events_event_type_check
+  check (event_type in ('SIGNED_IN', 'SIGNED_OUT', 'PASSWORD_CHANGED', 'MFA_CHANGED'));
+
 -- 3) Read path: RLS + admin-only visibility (mirrors admin-rbac-permissions.sql).
 alter table public.authentication_events enable row level security;
 

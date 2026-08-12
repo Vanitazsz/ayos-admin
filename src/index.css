@@ -370,6 +370,21 @@
     border-color: var(--border);
   }
 
+  /* Raw <button>s (icon toggles, kebab triggers, navbar, pagination, …) get
+     the same keyboard-only neutral focus as the `focus-ring-btn` utility:
+     no blue ring, no browser default outline on mouse click, a subtle
+     foreground ring on keyboard Tab. The shared Button component carries
+     `.focus-ring-btn`, so it is excluded here. */
+  button:not(.focus-ring-btn) {
+    outline-style: none;
+  }
+  button:not(.focus-ring-btn):focus-visible {
+    box-shadow:
+      0 0 0 1px var(--foreground),
+      var(--tw-inset-shadow, 0 0 #0000),
+      var(--tw-shadow, 0 0 #0000);
+  }
+
   html {
     -webkit-text-size-adjust: 100%;
   }
@@ -404,18 +419,22 @@
 }
 
 /*
- * Canonical keyboard focus rings. Copied from Supabase
- * (packages/config/css/utilities.css). Ring only shows on `:focus-visible`
- * (keyboard Tab), never on hover/click.
- * - focus-ring: default offset ring (buttons, inputs, most controls).
- *   `outline-hidden` stays always-on so mouse click does not show the browser
- *   default; the ring is `:focus-visible` only.
+ * Canonical focus treatment.
+ * - focus-ring: thin blue ring (1px `--ring`, the Supabase brand token) on
+ *   text-entry controls (search boxes, inputs, textareas, selects). Applies on
+ *   every focus (click + keyboard). No offset ring, no white gap.
+ * - focus-ring-btn: keyboard-only NEUTRAL ring for buttons — no blue ring, no
+ *   browser default outline; a subtle foreground ring appears on Tab.
  * - focus-inset: dense/flush surfaces such as interactive <tr>s. Must use
  *   outline (not ring/box-shadow) — box-shadow on table-row is unreliable,
  *   especially in Safari. Do NOT pair with outline-hidden.
  */
 @utility focus-ring {
-  @apply outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  @apply outline-none focus:ring-1 focus:ring-ring;
+}
+
+@utility focus-ring-btn {
+  @apply outline-none focus-visible:ring-1 focus-visible:ring-foreground;
 }
 
 @utility focus-inset {

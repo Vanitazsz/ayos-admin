@@ -18,7 +18,7 @@ const RadioGroupItem = React.forwardRef(({ className, ...props }, ref) => (
     className={cn(
       'aspect-square size-4 shrink-0 rounded-full border border-border-strong bg-card text-primary transition-colors',
       'data-[state=checked]:border-primary data-[state=checked]:bg-primary',
-      'hover:border-foreground-lighter focus-ring',
+      'hover:border-foreground-lighter focus-ring-btn',
       'disabled:cursor-not-allowed disabled:opacity-50',
       className,
     )}

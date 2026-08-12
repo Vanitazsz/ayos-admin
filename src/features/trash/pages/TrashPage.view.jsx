@@ -120,7 +120,7 @@ export function TrashView({ model }) {
               placeholder={`Search deleted ${activeTab.toLowerCase()}...`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus:ring-ring focus:border-brand-500 text-sm"
+              className="block w-full pl-10 pr-3 py-2 border border-border-strong rounded-lg focus-ring text-sm"
             />
           </div>
           <DateFilter model={dateFilter} />

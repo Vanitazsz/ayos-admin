@@ -35,9 +35,9 @@ values
      'dashboard.view','users.view','users.manage','workers.view','workers.manage',
      'bookings.view','bookings.manage','services.view','services.manage',
      'payments.view','payments.manage','reviews.view','support.view','support.manage',
-     'reports.view','analytics.view','notifications.view','audit.view','trash.view',
-     'locations.view','locations.manage','settings.view','settings.manage',
-     'team.view','team.manage'
+      'reports.view','analytics.view','notifications.view','audit.view','trash.view',
+      'locations.view','locations.manage','settings.view','settings.manage',
+      'team.view','team.manage','messages.view','messages.manage'
    ], true),
   ('ADMIN', 'Administrator', 'Manage the platform day to day; cannot manage the team.',
    array[
@@ -45,23 +45,24 @@ values
      'bookings.view','bookings.manage','services.view','services.manage',
      'payments.view','payments.manage','reviews.view','support.view','support.manage',
      'reports.view','analytics.view','notifications.view','audit.view','trash.view',
-     'locations.view','locations.manage','settings.view','settings.manage','team.view'
+     'locations.view','locations.manage','settings.view','settings.manage','team.view',
+     'messages.view','messages.manage'
    ], true),
   ('MODERATOR', 'Moderator', 'Review content and handle community and support cases.',
    array[
      'dashboard.view','users.view','workers.view','bookings.view','services.view',
      'payments.view','reviews.view','support.view','support.manage','reports.view',
-     'notifications.view','locations.view','team.view'
+     'notifications.view','locations.view','team.view','messages.view','messages.manage'
    ], true),
   ('ANALYST', 'Analyst', 'View metrics, reports and analytics for business decisions.',
    array[
      'dashboard.view','users.view','workers.view','bookings.view','payments.view',
-     'reviews.view','reports.view','analytics.view','locations.view'
+     'reviews.view','reports.view','analytics.view','locations.view','messages.view'
    ], true),
   ('VIEWER', 'Viewer', 'Read-only access to core dashboards.',
    array[
      'dashboard.view','users.view','workers.view','bookings.view','services.view',
-     'payments.view','reviews.view','reports.view','analytics.view'
+     'payments.view','reviews.view','reports.view','analytics.view','messages.view'
    ], true)
 on conflict (code) do update
 set name = excluded.name,

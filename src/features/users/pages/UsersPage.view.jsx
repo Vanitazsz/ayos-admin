@@ -27,7 +27,7 @@ import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { formatDateTime, money } from '../../../services/adminShared';
 import { badgeFor, BOOKING_STATUS_BADGE } from '../../../services/statusMeta';
 import StatCard from '../../../components/ui/StatCard';
-import Select from '../../../components/ui/Select';
+import Select, { SelectItem } from '../../../components/ui/Select';
 import {
   Table,
   TableHeader,
@@ -211,9 +211,9 @@ export function UsersView({ model }) {
                   value={filterVerified}
                   onChange={(e) => setFilterVerified(e.target.value)}
                 >
-                  <option value="All">All Verifications</option>
-                  <option value="verified">Verified</option>
-                  <option value="unverified">Unverified</option>
+                  <SelectItem value="All">All Verifications</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
+                  <SelectItem value="unverified">Unverified</SelectItem>
                 </Select>
               </div>
               <div className="w-full sm:w-40">
@@ -223,11 +223,10 @@ export function UsersView({ model }) {
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                 >
-                  <option value="All">All Statuses</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="SUSPENDED">Suspended</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="Trashed">Trashed</option>
+                  <SelectItem value="All">All Statuses</SelectItem>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                  <SelectItem value="Trashed">Trashed</SelectItem>
                 </Select>
               </div>
             </div>
@@ -408,9 +407,25 @@ export function UsersView({ model }) {
                       <TableCell className="hidden xl:table-cell">
                         <span className="flex items-center text-sm text-foreground-light">
                           <MapPinned className="h-3.5 w-3.5 mr-1.5 shrink-0 text-foreground-muted" />
-                          <span className="truncate max-w-[8rem] min-w-0" title={user.location}>
+                          <span
+                            className="truncate max-w-[8rem] min-w-0"
+                            title={
+                              user.addresses?.map((address) => address.display).join('\n') ||
+                              user.location
+                            }
+                          >
                             {user.location || '—'}
                           </span>
+                          {user.locationCount > 1 && (
+                            <span
+                              className="ml-1 shrink-0 text-xs text-foreground-muted"
+                              title={user.addresses
+                                ?.map((address) => address.display)
+                                .join('\n')}
+                            >
+                              +{user.locationCount - 1}
+                            </span>
+                          )}
                         </span>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
@@ -692,7 +707,7 @@ export function UsersView({ model }) {
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
                 Customer Attachments
               </h4>
-              {activeBooking.media === undefined ? (
+              {activeBooking.media === undefined || Array.isArray(activeBooking.media) ? (
                 <Skeleton className="h-24 w-full rounded-lg" />
               ) : activeBooking.media === null ? (
                 <p className="text-sm text-foreground-lighter">Couldn't load attachments.</p>
@@ -900,10 +915,43 @@ export function UsersView({ model }) {
                     <Phone size={16} className="mr-3 text-foreground-muted" />{' '}
                     {selectedUser.phone || 'Not provided'}
                   </div>
-                  <div className="flex items-center text-sm text-foreground-light">
-                    <MapPin size={16} className="mr-3 text-foreground-muted" />{' '}
-                    {selectedUser.address || 'Not provided'}
-                  </div>
+                  {(selectedUser.addresses?.length ?? 0) > 0 ? (
+                    <div className="space-y-2">
+                      {selectedUser.addresses.map((address) => (
+                        <div
+                          key={address.id}
+                          className="flex items-start gap-3 rounded-lg bg-surface-200 p-3"
+                        >
+                          <MapPin
+                            size={16}
+                            className="mt-0.5 shrink-0 text-foreground-muted"
+                          />
+                          <div className="min-w-0">
+                            {(address.label || address.isDefault) && (
+                              <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                                {address.label && (
+                                  <span className="text-xs font-medium text-foreground-light">
+                                    {address.label}
+                                  </span>
+                                )}
+                                {address.isDefault && (
+                                  <Badge variant="primary">Default</Badge>
+                                )}
+                              </div>
+                            )}
+                            <p className="text-sm text-foreground">
+                              {address.display || 'Address not provided'}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center text-sm text-foreground-light">
+                      <MapPin size={16} className="mr-3 text-foreground-muted" />{' '}
+                      Not provided
+                    </div>
+                  )}
                   <div className="flex items-center text-sm text-foreground-light">
                     <Calendar size={16} className="mr-3 text-foreground-muted" /> Registered{' '}
                     {selectedUser.registeredAt}
@@ -947,11 +995,11 @@ export function UsersView({ model }) {
                       })
                     }
                   >
-                    <option value="">Select ID type…</option>
+                    <SelectItem value="">Select ID type…</SelectItem>
                     {ID_TYPE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
+                      <SelectItem key={option.value} value={option.value}>
                         {option.label}
-                      </option>
+                      </SelectItem>
                     ))}
                   </Select>
                   <div className="grid gap-4 sm:grid-cols-2">

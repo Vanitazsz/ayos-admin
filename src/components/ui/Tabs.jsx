@@ -17,7 +17,7 @@ const TabsTrigger = React.forwardRef(({ className, ...props }, ref) => (
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex cursor-pointer items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm transition-colors focus-ring',
+      'inline-flex cursor-pointer items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm transition-colors focus-ring-btn',
       'disabled:pointer-events-none disabled:opacity-50',
       'data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-foreground',
       'text-foreground-lighter hover:text-foreground border-b-2 border-transparent',
@@ -32,7 +32,7 @@ TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
 const TabsContent = React.forwardRef(({ className, ...props }, ref) => (
   <TabsPrimitive.Content
     ref={ref}
-    className={cn('mt-4 focus-ring', className)}
+    className={cn('mt-4 focus-ring-btn', className)}
     {...props}
   />
 ));

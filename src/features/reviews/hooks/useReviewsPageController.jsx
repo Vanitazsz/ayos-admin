@@ -1,5 +1,12 @@
-import { loadReviews, moderateReview, resolveReviewMedia, subscribe } from '../logic/ReviewsPageLogic';
+import {
+  loadReviews,
+  moderateReview,
+  resolveReviewMedia,
+  moveReviewToTrash,
+  subscribe,
+} from '../logic/ReviewsPageLogic';
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Star, ThumbsUp, ThumbsDown, Clock } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { usePagination } from '../../../hooks/usePagination';
@@ -8,6 +15,7 @@ import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
 
 export function useReviewsPageController() {
   const toast = useToast();
+  const navigate = useNavigate();
   const dateFilter = useDateFilter({ canModify: true });
   const [reviews, setReviews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -15,11 +23,13 @@ export function useReviewsPageController() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRating, setFilterRating] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [mediaFilter, setMediaFilter] = useState([]);
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [confirm, setConfirm] = useState({
     isOpen: false,
     title: '',
     message: '',
+    confirmLabel: 'Confirm',
     onConfirm: () => {},
   });
   const closeConfirm = () => setConfirm((s) => ({ ...s, isOpen: false }));
@@ -60,13 +70,23 @@ export function useReviewsPageController() {
   }, [reviews]);
 
   const matchedReviews = reviews.filter((r) => {
+    const term = searchTerm.trim().toLowerCase();
     const matchesSearch =
-      r.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.worker.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.comment.toLowerCase().includes(searchTerm.toLowerCase());
+      !term ||
+      r.id.toLowerCase().includes(term) ||
+      r.customer.toLowerCase().includes(term) ||
+      r.worker.toLowerCase().includes(term) ||
+      (r.customerEmail ?? '').toLowerCase().includes(term) ||
+      (r.workerEmail ?? '').toLowerCase().includes(term) ||
+      r.service.toLowerCase().includes(term) ||
+      r.comment.toLowerCase().includes(term);
     const matchesRating = filterRating === 'All' || r.rating.toString() === filterRating;
-    const matchesStatus = filterStatus === 'All' || r.status === filterStatus;
-    return matchesSearch && matchesRating && matchesStatus;
+    const matchesStatus =
+      filterStatus === 'All' ||
+      (filterStatus === 'Trashed' ? r.isTrashed : r.status === filterStatus);
+    const matchesMedia =
+      mediaFilter.length === 0 || (mediaFilter.includes('image') && r.media.length > 0);
+    return matchesSearch && matchesRating && matchesStatus && matchesMedia;
   });
   const filteredReviews = applyDateFilter(matchedReviews, {
     field: dateFilter.field,
@@ -83,28 +103,61 @@ export function useReviewsPageController() {
   const avgRating = reviews.length
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
     : '0.0';
-  const stats = [
-    {
-      label: 'Average Rating',
-      value: avgRating,
-      icon: Star,
-    },
-    {
-      label: 'Positive Reviews',
-      value: reviews.filter((r) => r.rating >= 4).length,
-      icon: ThumbsUp,
-    },
-    {
-      label: 'Negative Reviews',
-      value: reviews.filter((r) => r.rating <= 2).length,
-      icon: ThumbsDown,
-    },
-    {
-      label: 'Pending Moderation',
-      value: reviews.filter((r) => r.status === 'Pending').length,
-      icon: Clock,
-    },
-  ];
+  const stats = useMemo(() => {
+    if (activeTab === 'worker') {
+      const averages = [...workerStats.values()];
+      const avg = averages.length
+        ? (
+            averages.reduce((sum, entry) => sum + Number(entry.average), 0) /
+            averages.length
+          ).toFixed(1)
+        : '0.0';
+      return [
+        {
+          label: 'Average Rating',
+          value: avg,
+          icon: Star,
+        },
+        {
+          label: 'Positive Workers',
+          value: averages.filter((entry) => Number(entry.average) >= 4).length,
+          icon: ThumbsUp,
+        },
+        {
+          label: 'Negative Workers',
+          value: averages.filter((entry) => Number(entry.average) <= 2).length,
+          icon: ThumbsDown,
+        },
+        {
+          label: 'Pending Moderation',
+          value: reviews.filter((r) => r.status === 'Pending').length,
+          icon: Clock,
+        },
+      ];
+    }
+    return [
+      {
+        label: 'Average Rating',
+        value: avgRating,
+        icon: Star,
+      },
+      {
+        label: 'Positive Reviews',
+        value: reviews.filter((r) => r.rating >= 4).length,
+        icon: ThumbsUp,
+      },
+      {
+        label: 'Negative Reviews',
+        value: reviews.filter((r) => r.rating <= 2).length,
+        icon: ThumbsDown,
+      },
+      {
+        label: 'Pending Moderation',
+        value: reviews.filter((r) => r.status === 'Pending').length,
+        icon: Clock,
+      },
+    ];
+  }, [activeTab, reviews, workerStats, avgRating]);
   const toggleStatus = async (id, newStatus) => {
     try {
       await moderateReview(id, newStatus === 'Rejected' ? 'REJECTED' : 'PUBLISHED');
@@ -120,10 +173,32 @@ export function useReviewsPageController() {
       isOpen: true,
       title: 'Reject Review',
       message: 'Reject and hide this review? You can publish it again later.',
+      confirmLabel: 'Reject',
       onConfirm: async () => {
         await toggleStatus(id, 'Rejected');
       },
     });
+  };
+  const confirmMoveToTrash = (id) => {
+    setConfirm({
+      isOpen: true,
+      title: 'Move Review to Trash',
+      message:
+        'Move this review to trash? It will be rejected and hidden immediately. You can restore it later from the Trash page.',
+      confirmLabel: 'Move to Trash',
+      onConfirm: async () => {
+        try {
+          await moveReviewToTrash(id);
+          await refresh();
+          toast.success('Review moved to trash');
+        } catch (error) {
+          toast.error('Failed to move review to trash', error.message);
+        }
+      },
+    });
+  };
+  const goToTrash = (trashEntryId) => {
+    navigate(`/admin/trash?tab=Reviews&entry=${trashEntryId}`);
   };
   const handleViewDetails = async (review) => {
     setSelectedReview(review);
@@ -165,6 +240,8 @@ export function useReviewsPageController() {
     setFilterRating,
     filterStatus,
     setFilterStatus,
+    mediaFilter,
+    setMediaFilter,
     dateFilter,
     currentPage,
     setCurrentPage,
@@ -180,6 +257,8 @@ export function useReviewsPageController() {
     workerStats,
     toggleStatus,
     confirmReject,
+    confirmMoveToTrash,
+    goToTrash,
     handleViewDetails,
     selectedReview,
     isReviewDetailsOpen,

@@ -247,7 +247,7 @@ export function DashboardView({ model }) {
                   onClick={() => setRevenueGranularity(key)}
                   aria-pressed={revenueGranularity === key}
                   className={cn(
-                    'rounded-md px-2 py-1 text-xs font-medium transition-colors focus-ring',
+                    'rounded-md px-2 py-1 text-xs font-medium transition-colors focus-ring-btn',
                     revenueGranularity === key
                       ? 'bg-foreground text-foreground-contrast'
                       : 'text-foreground-lighter hover:text-foreground',
@@ -372,7 +372,7 @@ export function DashboardView({ model }) {
         <Link
           to="/admin/bookings"
           data-testid="bookings-chart"
-          className="flex flex-col cursor-pointer overflow-hidden rounded-lg border border-border bg-surface-100 shadow-sm transition-colors focus-ring hover:border-border-strong hover:bg-surface-200/50 lg:col-span-3"
+          className="flex flex-col cursor-pointer overflow-hidden rounded-lg border border-border bg-surface-100 shadow-sm transition-colors focus-ring-btn hover:border-border-strong hover:bg-surface-200/50 lg:col-span-3"
         >
           <div className="flex h-8 shrink-0 items-center justify-between gap-2 px-3">
             <div className="flex min-w-0 items-center gap-2">

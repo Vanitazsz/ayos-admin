@@ -8,7 +8,7 @@ import {
 import { FormItemLayout } from '../../../components/ui/form/FormItemLayout';
 import { FormActions } from '../../../components/ui/form/FormActions';
 import Input from '../../../components/ui/Input';
-import Select from '../../../components/ui/Select';
+import Select, { SelectItem } from '../../../components/ui/Select';
 import Switch from '../../../components/ui/Switch';
 import {
   Card,
@@ -166,9 +166,9 @@ export function SettingsView({ model }) {
                               <FormControl>
                                 <Select {...field}>
                                   {CURRENCY_OPTIONS.map((option) => (
-                                    <option key={option.value} value={option.value}>
+                                    <SelectItem key={option.value} value={option.value}>
                                       {option.label}
-                                    </option>
+                                    </SelectItem>
                                   ))}
                                 </Select>
                               </FormControl>
@@ -187,9 +187,9 @@ export function SettingsView({ model }) {
                               <FormControl>
                                 <Select {...field}>
                                   {TIMEZONE_OPTIONS.map((option) => (
-                                    <option key={option.value} value={option.value}>
+                                    <SelectItem key={option.value} value={option.value}>
                                       {option.label}
-                                    </option>
+                                    </SelectItem>
                                   ))}
                                 </Select>
                               </FormControl>
@@ -235,7 +235,9 @@ export function SettingsView({ model }) {
                             <FormControl>
                               <Select {...field}>
                                 {AUTO_CANCEL_OPTIONS.map((option) => (
-                                  <option key={option}>{option}</option>
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
                                 ))}
                               </Select>
                             </FormControl>
@@ -254,7 +256,9 @@ export function SettingsView({ model }) {
                             <FormControl>
                               <Select {...field}>
                                 {ADVANCE_BOOKING_OPTIONS.map((option) => (
-                                  <option key={option}>{option}</option>
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
                                 ))}
                               </Select>
                             </FormControl>
@@ -328,7 +332,9 @@ export function SettingsView({ model }) {
                             <FormControl>
                               <Select {...field}>
                                 {SESSION_TIMEOUT_OPTIONS.map((option) => (
-                                  <option key={option}>{option}</option>
+                                  <SelectItem key={option} value={option}>
+                                    {option}
+                                  </SelectItem>
                                 ))}
                               </Select>
                             </FormControl>
@@ -421,7 +427,9 @@ export function SettingsView({ model }) {
                               <FormControl>
                                 <Select {...field}>
                                   {PAYOUT_SCHEDULE_OPTIONS.map((option) => (
-                                    <option key={option}>{option}</option>
+                                    <SelectItem key={option} value={option}>
+                                      {option}
+                                    </SelectItem>
                                   ))}
                                 </Select>
                               </FormControl>

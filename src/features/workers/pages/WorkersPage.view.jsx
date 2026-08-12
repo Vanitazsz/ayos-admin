@@ -30,7 +30,7 @@ import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
 import Pagination from '../../../components/ui/Pagination';
 import Input from '../../../components/ui/Input';
-import Select from '../../../components/ui/Select';
+import Select, { SelectItem } from '../../../components/ui/Select';
 import Textarea from '../../../components/ui/Textarea';
 import Button from '../../../components/ui/Button';
 import Checkbox from '../../../components/ui/Checkbox';
@@ -212,9 +212,9 @@ export function WorkersView({ model }) {
               value={filterVerified}
               onChange={(e) => setFilterVerified(e.target.value)}
             >
-              <option value="All">All Verifications</option>
-              <option value="verified">Verified</option>
-              <option value="unverified">Unverified</option>
+              <SelectItem value="All">All Verifications</SelectItem>
+              <SelectItem value="verified">Verified</SelectItem>
+              <SelectItem value="unverified">Unverified</SelectItem>
             </Select>
           </div>
           <div className="w-full sm:w-40">
@@ -224,11 +224,11 @@ export function WorkersView({ model }) {
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
-              <option value="All">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Suspended">Suspended</option>
-              <option value="Pending">Pending</option>
-              <option value="Trashed">Trashed</option>
+              <SelectItem value="All">All Statuses</SelectItem>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Suspended">Suspended</SelectItem>
+              <SelectItem value="Pending">Pending</SelectItem>
+              <SelectItem value="Trashed">Trashed</SelectItem>
             </Select>
           </div>
         </div>
@@ -838,11 +838,11 @@ export function WorkersView({ model }) {
                       })
                     }
                   >
-                    <option value="">Select document type…</option>
+                    <SelectItem value="">Select document type…</SelectItem>
                     {ID_TYPE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
+                      <SelectItem key={option.value} value={option.value}>
                         {option.label}
-                      </option>
+                      </SelectItem>
                     ))}
                   </Select>
                   <div className="grid gap-4 sm:grid-cols-2">

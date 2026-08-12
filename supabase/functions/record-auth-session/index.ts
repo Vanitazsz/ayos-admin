@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     account_id: data.user.id,
     ip_address: looksLikeIp(ipAddress) ? ipAddress : null,
     user_agent: userAgent || null,
-    event_type: 'sign_in',
+    event_type: 'SIGNED_IN',
   });
   if (insertError) {
     return json({ error: insertError.message }, { status: 500 });

@@ -5,6 +5,9 @@ import { setCacheUser, clearCache } from '../lib/dataCache';
 const AuthContext = createContext();
 const RECOVERY_FLAG_KEY = 'ayos-recovery-pending';
 
+const isAuthRejected = (e) =>
+  e?.status === 401 || ['PGRST300', 'PGRST301', 'PGRST302'].includes(e?.code);
+
 async function resolveAdmin(session) {
   if (!session) return null;
   const [
@@ -18,6 +21,10 @@ async function resolveAdmin(session) {
     supabase.rpc('admin_get_my_permissions'),
     supabase.rpc('admin_get_my_role'),
   ]);
+  if (isAuthRejected(roleError) || isAuthRejected(profileError)) {
+    await supabase.auth.signOut({ scope: 'local' });
+    return null;
+  }
   if (
     roleError ||
     profileError ||
@@ -110,6 +117,10 @@ export const AuthProvider = ({ children }) => {
       /* non-fatal: login history is best-effort */
     }
     const admin = await resolveAdmin(data.session);
+    if (!admin) {
+      await supabase.auth.signOut();
+      throw new Error('Could not verify your administrator profile. Please try again.');
+    }
     setCacheUser(admin.id);
     setUser(admin);
     setAuthenticated(true);

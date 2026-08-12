@@ -18,7 +18,7 @@ const Checkbox = forwardRef(
           className={cn(
             'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-border-strong bg-card transition-colors',
             'data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground',
-            'hover:border-foreground-lighter focus-ring',
+            'hover:border-foreground-lighter focus-ring-btn',
             'disabled:cursor-not-allowed disabled:opacity-50',
           )}
           {...props}

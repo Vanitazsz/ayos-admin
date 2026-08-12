@@ -213,7 +213,7 @@ export function CommissionFeeSettings({
             <button
               type="button"
               onClick={() => handleApplyPreset('standard')}
-              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring"
+              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring-btn"
             >
               <div className="font-semibold text-foreground group-hover:text-brand-600 flex items-center justify-between">
                 Standard Model
@@ -227,7 +227,7 @@ export function CommissionFeeSettings({
             <button
               type="button"
               onClick={() => handleApplyPreset('shared')}
-              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring"
+              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring-btn"
             >
               <div className="font-semibold text-foreground group-hover:text-brand-600 flex items-center justify-between">
                 Shared Fee Model
@@ -241,7 +241,7 @@ export function CommissionFeeSettings({
             <button
               type="button"
               onClick={() => handleApplyPreset('flat_user')}
-              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring"
+              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring-btn"
             >
               <div className="font-semibold text-foreground group-hover:text-brand-600 flex items-center justify-between">
                 Flat Customer Fee
@@ -255,7 +255,7 @@ export function CommissionFeeSettings({
             <button
               type="button"
               onClick={() => handleApplyPreset('promo_zero')}
-              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring"
+              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring-btn"
             >
               <div className="font-semibold text-foreground group-hover:text-brand-600 flex items-center justify-between">
                 Zero Fee Promo
@@ -307,7 +307,7 @@ export function CommissionFeeSettings({
                       type="button"
                       aria-pressed={feeSettings.workerFeeType === 'percentage'}
                       onClick={() => updateSetting('workerFeeType', 'percentage')}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring ${
+                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring-btn ${
                         feeSettings.workerFeeType === 'percentage'
                           ? 'border-brand-500 bg-brand-500/10 text-brand-700 font-semibold'
                           : 'border-border-strong text-foreground-lighter hover:bg-surface-200'
@@ -320,7 +320,7 @@ export function CommissionFeeSettings({
                       type="button"
                       aria-pressed={feeSettings.workerFeeType === 'fixed'}
                       onClick={() => updateSetting('workerFeeType', 'fixed')}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring ${
+                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring-btn ${
                         feeSettings.workerFeeType === 'fixed'
                           ? 'border-brand-500 bg-brand-500/10 text-brand-700 font-semibold'
                           : 'border-border-strong text-foreground-lighter hover:bg-surface-200'
@@ -475,7 +475,7 @@ export function CommissionFeeSettings({
                       type="button"
                       aria-pressed={feeSettings.userFeeType === 'percentage'}
                       onClick={() => updateSetting('userFeeType', 'percentage')}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring ${
+                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring-btn ${
                         feeSettings.userFeeType === 'percentage'
                           ? 'border-info bg-info/10 text-info font-semibold'
                           : 'border-border-strong text-foreground-lighter hover:bg-surface-200'
@@ -488,7 +488,7 @@ export function CommissionFeeSettings({
                       type="button"
                       aria-pressed={feeSettings.userFeeType === 'fixed'}
                       onClick={() => updateSetting('userFeeType', 'fixed')}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring ${
+                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring-btn ${
                         feeSettings.userFeeType === 'fixed'
                           ? 'border-info bg-info/10 text-info font-semibold'
                           : 'border-border-strong text-foreground-lighter hover:bg-surface-200'

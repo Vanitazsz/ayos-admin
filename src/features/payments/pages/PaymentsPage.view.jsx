@@ -17,7 +17,7 @@ import Drawer from '../../../components/ui/Drawer';
 import Pagination from '../../../components/ui/Pagination';
 import StatCard from '../../../components/ui/StatCard';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
-import Select from '../../../components/ui/Select';
+import Select, { SelectItem } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
 import Modal from '../../../components/ui/Modal';
 import Input from '../../../components/ui/Input';
@@ -87,8 +87,8 @@ const TransactionsTab = ({ model, onOpenAction, onViewDetails }) => (
             value={model.filterType}
             onChange={(e) => model.setFilterType(e.target.value)}
           >
-            <option value="All">All Types</option>
-            <option value="Payment">Payments</option>
+            <SelectItem value="All">All Types</SelectItem>
+            <SelectItem value="Payment">Payments</SelectItem>
           </Select>
         </div>
         <DateFilter model={model} />
