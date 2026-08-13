@@ -25,12 +25,7 @@ import {
   TableHead,
   TableCell,
 } from '../../../components/ui/Table';
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from '../../../components/ui/Tabs';
+import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/Tabs';
 import { formatDateTime } from '../../../services/adminShared';
 import Skeleton from '../../../components/ui/Skeleton';
 import Drawer from '../../../components/ui/Drawer';
@@ -72,7 +67,7 @@ export function ReviewsView({ model }) {
     <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Proof of Work</h1>
+          <h1 className="text-2xl font-bold text-foreground">Reviews & Proof of Work</h1>
           <p className="text-foreground-lighter mt-1">
             Proof photos and worker feedback attached to completed bookings
           </p>
@@ -86,98 +81,94 @@ export function ReviewsView({ model }) {
         ))}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
         <TabsList>
           <TabsTrigger value="customer">Customer Proof of Work</TabsTrigger>
           <TabsTrigger value="worker">Worker Proof of Work</TabsTrigger>
         </TabsList>
+      </Tabs>
 
-        {/* Filters and Search */}
-        <div className="mt-4 bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="w-full sm:w-96">
-            <Input
-              icon={Search}
-              aria-label="Search by customer, worker, service, or comment..."
-              placeholder="Search by customer, worker, service, or comment..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      {/* Filters and Search */}
+      <div className="bg-card rounded-t-xl shadow-sm border-x border-t border-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="w-full sm:w-96">
+          <Input
+            icon={Search}
+            aria-label="Search by customer, worker, service, or comment..."
+            placeholder="Search by customer, worker, service, or comment..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="flex w-full sm:w-auto items-center gap-2">
+          <DateFilter model={dateFilter} />
+          <div className="w-full sm:w-40">
+            <Select
+              icon={Filter}
+              aria-label="Filter by worker rating"
+              value={filterRating}
+              onChange={(e) => setFilterRating(e.target.value)}
+            >
+              <SelectItem value="All">All Ratings</SelectItem>
+              <SelectItem value="5">5 Stars</SelectItem>
+              <SelectItem value="4">4 Stars</SelectItem>
+              <SelectItem value="3">3 Stars</SelectItem>
+              <SelectItem value="2">2 Stars</SelectItem>
+              <SelectItem value="1">1 Star</SelectItem>
+            </Select>
           </div>
-          <div className="flex w-full sm:w-auto items-center gap-2">
-            <DateFilter model={dateFilter} />
-            <div className="w-full sm:w-40">
-              <Select
-                icon={Filter}
-                aria-label="Filter by worker rating"
-                value={filterRating}
-                onChange={(e) => setFilterRating(e.target.value)}
-              >
-                <SelectItem value="All">All Ratings</SelectItem>
-                <SelectItem value="5">5 Stars</SelectItem>
-                <SelectItem value="4">4 Stars</SelectItem>
-                <SelectItem value="3">3 Stars</SelectItem>
-                <SelectItem value="2">2 Stars</SelectItem>
-                <SelectItem value="1">1 Star</SelectItem>
-              </Select>
-            </div>
-            <div className="w-full sm:w-40">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    aria-label="Filter proofs by photos"
-                    className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground shadow-sm transition-colors hover:bg-surface-100 dark:hover:bg-surface-900"
-                  >
-                    <span className="flex items-center gap-2">
-                      <ImageIcon className="size-4 text-foreground-lighter" />
-                      <span>Media</span>
-                      {mediaFilter.length > 0 && (
-                        <span className="rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                          {mediaFilter.length}
-                        </span>
-                      )}
-                    </span>
-                    <ChevronDown className="size-4 text-foreground-lighter" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuCheckboxItem
-                    checked={mediaFilter.includes('image')}
-                    onCheckedChange={(checked) =>
-                      setMediaFilter((current) =>
-                        checked
-                          ? [...current, 'image']
-                          : current.filter((value) => value !== 'image'),
-                      )
-                    }
-                    className="cursor-pointer"
-                  >
-                    <ImageIcon className="mr-2 size-4" /> Has photos
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+          <div className="w-full sm:w-40">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  aria-label="Filter proofs by photos"
+                  className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground shadow-sm transition-colors hover:bg-surface-100 dark:hover:bg-surface-900"
+                >
+                  <span className="flex items-center gap-2">
+                    <ImageIcon className="size-4 text-foreground-lighter" />
+                    <span>Media</span>
+                    {mediaFilter.length > 0 && (
+                      <span className="rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                        {mediaFilter.length}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDown className="size-4 text-foreground-lighter" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuCheckboxItem
+                  checked={mediaFilter.includes('image')}
+                  onCheckedChange={(checked) =>
+                    setMediaFilter((current) =>
+                      checked
+                        ? [...current, 'image']
+                        : current.filter((value) => value !== 'image'),
+                    )
+                  }
+                  className="cursor-pointer"
+                >
+                  <ImageIcon className="mr-2 size-4" /> Has photos
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
+      </div>
 
-        {activeTab === 'customer' ? (
-          <TabsContent value="customer">
-            <CustomerProofsTable
-              isLoading={isLoading}
-              proofs={paginatedProofs}
-              onViewDetails={handleViewDetails}
-            />
-          </TabsContent>
-        ) : (
-          <TabsContent value="worker">
-            <WorkerProofsTable
-              isLoading={isLoading}
-              proofs={paginatedProofs}
-              renderStars={renderStars}
-              onViewDetails={handleViewDetails}
-            />
-          </TabsContent>
-        )}
-      </Tabs>
+      {activeTab === 'customer' ? (
+        <CustomerProofsTable
+          isLoading={isLoading}
+          proofs={paginatedProofs}
+          onViewDetails={handleViewDetails}
+        />
+      ) : (
+        <WorkerProofsTable
+          isLoading={isLoading}
+          proofs={paginatedProofs}
+          renderStars={renderStars}
+          onViewDetails={handleViewDetails}
+        />
+      )}
 
       {filteredProofs.length > 0 && (
         <Pagination
@@ -222,10 +213,10 @@ function ActionsMenu({ proof, onViewDetails }) {
   );
 }
 
-function EmptyState({ message }) {
+function EmptyState({ message, colSpan = 6 }) {
   return (
     <TableRow hover={false}>
-      <TableCell colSpan="6" className="text-center">
+      <TableCell colSpan={colSpan} className="text-center">
         <div className="flex flex-col items-center justify-center">
           <MessageSquare size={48} className="text-foreground-muted mb-4" />
           <h3 className="text-lg font-medium text-foreground">{message}</h3>
@@ -263,18 +254,18 @@ function CustomerProofsTable({ isLoading, proofs, onViewDetails }) {
               >
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold text-foreground">{proof.customer}</span>
+                    <span className="text-sm font-medium text-foreground">{proof.customer}</span>
                     <span className="text-xs text-foreground-lighter mt-1">{proof.date}</span>
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-nowrap">
                   <span className="text-sm text-foreground">{proof.worker}</span>
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-foreground">{proof.service}</span>
                 </TableCell>
                 <TableCell>
-                  <span className="inline-flex items-center gap-1.5 text-sm text-foreground">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
                     <ImageIcon size={16} className="text-foreground-muted" />
                     {proof.customerPhotos.length}
                   </span>
@@ -292,8 +283,7 @@ function CustomerProofsTable({ isLoading, proofs, onViewDetails }) {
             ))
           ) : (
             <EmptyState message="No customer proof of work found" />
-          )}
-        </TableBody>
+          )}        </TableBody>
       </Table>
     </div>
   );
@@ -332,11 +322,11 @@ function WorkerProofsTable({ isLoading, proofs, renderStars, onViewDetails }) {
               >
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold text-foreground">{proof.worker}</span>
+                    <span className="text-sm font-medium text-foreground">{proof.worker}</span>
                     <span className="text-xs text-foreground-lighter mt-1">{proof.date}</span>
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-nowrap">
                   <span className="text-sm text-foreground">{proof.customer}</span>
                 </TableCell>
                 <TableCell>
@@ -344,12 +334,12 @@ function WorkerProofsTable({ isLoading, proofs, renderStars, onViewDetails }) {
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{renderStars(proof.rating)}</TableCell>
                 <TableCell>
-                  <p className="text-sm text-foreground-light italic max-w-xs truncate">
+                  <p className="text-sm text-foreground-light italic max-w-[240px] truncate">
                     "{proof.comment}"
                   </p>
                 </TableCell>
                 <TableCell>
-                  <span className="inline-flex items-center gap-1.5 text-sm text-foreground">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
                     <ImageIcon size={16} className="text-foreground-muted" />
                     {proof.workerPhotos.length}
                   </span>
@@ -366,7 +356,7 @@ function WorkerProofsTable({ isLoading, proofs, renderStars, onViewDetails }) {
               </TableRow>
             ))
           ) : (
-            <EmptyState message="No worker proof of work found" />
+            <EmptyState message="No worker proof of work found" colSpan={8} />
           )}
         </TableBody>
       </Table>
