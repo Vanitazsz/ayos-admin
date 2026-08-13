@@ -8,6 +8,7 @@ import Skeleton from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import DateFilter from '../../../components/ui/DateFilter';
 import Select, { SelectItem } from '../../../components/ui/Select';
+import { Alert } from '../../../components/ui/Alert';
 
 export function SupportView({ model }) {
   const {
@@ -46,6 +47,11 @@ export function SupportView({ model }) {
           <p className="text-foreground-lighter mt-1">Manage customer and worker support tickets</p>
         </div>
       </div>
+
+      <Alert variant="info" className="mb-6">
+        This Support Center page is currently under development as of{' '}
+        <strong>August 13, 2026</strong>.
+      </Alert>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat, index) => (
