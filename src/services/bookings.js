@@ -122,6 +122,33 @@ const bookingStats = (keys, todayStr) => ({
   ).length,
 });
 
+export const loadBookingKeys = cacheable('bookings', { ttl: 60_000 }, async () => {
+  const [{ data: keys, error: keyError }, { data: trashed, error: trashError }] =
+    await Promise.all([
+      supabase.from('bookings').select(BOOKING_KEY_SELECT).order('created_at', { ascending: false }),
+      supabase
+        .from('trash_entries')
+        .select('id, entity_id')
+        .eq('entity_type', 'booking')
+        .is('restored_at', null),
+    ]);
+  if (keyError) throw keyError;
+  if (trashError) throw trashError;
+  return {
+    keys: keys ?? [],
+    trashById: new Map((trashed ?? []).map((row) => [row.entity_id, row.id])),
+  };
+});
+
+export const loadBookingPageRows = cacheable('bookings', { ttl: 60_000 }, async (ids) => {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(BOOKING_PAGE_SELECT)
+    .in('id', ids);
+  if (error) throw error;
+  return data ?? [];
+});
+
 export async function loadBookingsPageRaw({
   search = '',
   status: filterStatus = 'All',
@@ -133,19 +160,7 @@ export async function loadBookingsPageRaw({
   pageSize = 10,
 } = {}) {
   const todayStr = new Date().toLocaleDateString();
-  const { data: keys, error: keyError } = await supabase
-    .from('bookings')
-    .select(BOOKING_KEY_SELECT)
-    .order('created_at', { ascending: false });
-  if (keyError) throw keyError;
-
-  const { data: trashed, error: trashError } = await supabase
-    .from('trash_entries')
-    .select('id, entity_id')
-    .eq('entity_type', 'booking')
-    .is('restored_at', null);
-  if (trashError) throw trashError;
-  const trashById = new Map((trashed ?? []).map((row) => [row.entity_id, row.id]));
+  const { keys, trashById } = await loadBookingKeys();
 
   const rows = keys ?? [];
   const stats = bookingStats(rows, todayStr);
@@ -196,13 +211,9 @@ export async function loadBookingsPageRaw({
 
   if (!pageIds.length) return { rows: [], count, stats };
 
-  const { data, error } = await supabase
-    .from('bookings')
-    .select(BOOKING_PAGE_SELECT)
-    .in('id', pageIds);
-  if (error) throw error;
+  const data = await loadBookingPageRows(pageIds);
 
-  const byId = new Map((data ?? []).map((row) => [row.id, row]));
+  const byId = new Map(data.map((row) => [row.id, row]));
   return {
     rows: pageIds
       .map((id) => {

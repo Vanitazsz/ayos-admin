@@ -62,6 +62,40 @@ const USER_PAGE_SELECT =
 const USER_KEY_SELECT =
   'id,email,status,created_at,updated_at,user_profiles(display_name,verification_status,locations!user_profiles_location_id_fkey(id,name))';
 
+export const loadUserKeys = cacheable('users', { ttl: 60_000 }, async () => {
+  const [{ data: keys, error: keyError }, { data: trashed, error: trashError }] =
+    await Promise.all([
+      supabase
+        .from('accounts')
+        .select(USER_KEY_SELECT)
+        .eq('role', 'USER')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('trash_entries')
+        .select('id, entity_type, entity_id')
+        .eq('entity_type', 'user')
+        .is('restored_at', null),
+    ]);
+  if (keyError) throw keyError;
+  if (trashError) throw trashError;
+  return {
+    keys: keys ?? [],
+    trashById: new Map((trashed ?? []).map((row) => [row.entity_id, row.id])),
+  };
+});
+
+export const loadUserPageRows = cacheable('users', { ttl: 60_000 }, async (ids) => {
+  const { data, error } = await supabase
+    .from('accounts')
+    .select(USER_PAGE_SELECT)
+    .eq('role', 'USER')
+    .is('deleted_at', null)
+    .in('id', ids);
+  if (error) throw error;
+  return data ?? [];
+});
+
 export async function loadUsersPageRaw({
   search = '',
   status = 'All',
@@ -73,25 +107,8 @@ export async function loadUsersPageRaw({
   page = 1,
   pageSize = 10,
 } = {}) {
-  const { data: keys, error: keyError } = await supabase
-    .from('accounts')
-    .select(USER_KEY_SELECT)
-    .eq('role', 'USER')
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false });
-  if (keyError) throw keyError;
+  const { keys: allKeys, trashById } = await loadUserKeys();
 
-  const { data: trashed, error: trashError } = await supabase
-    .from('trash_entries')
-    .select('id, entity_type, entity_id')
-    .eq('entity_type', 'user')
-    .is('restored_at', null);
-  if (trashError) throw trashError;
-  const trashById = new Map(
-    (trashed ?? []).map((row) => [row.entity_id, row.id]),
-  );
-
-  const allKeys = keys ?? [];
   const stats = {
     total: allKeys.length,
     active: allKeys.filter((row) => row.status === 'ACTIVE').length,
@@ -140,17 +157,11 @@ export async function loadUsersPageRaw({
     .slice((page - 1) * pageSize, page * pageSize)
     .map((row) => row.id);
 
-  if (!pageIds.length) return { rows: [], count };
+  if (!pageIds.length) return { rows: [], count, stats };
 
-  const { data, error } = await supabase
-    .from('accounts')
-    .select(USER_PAGE_SELECT)
-    .eq('role', 'USER')
-    .is('deleted_at', null)
-    .in('id', pageIds);
-  if (error) throw error;
+  const data = await loadUserPageRows(pageIds);
 
-  const byId = new Map((data ?? []).map((row) => [row.id, row]));
+  const byId = new Map(data.map((row) => [row.id, row]));
   return {
     rows: pageIds
       .map((id) => {
@@ -172,7 +183,7 @@ export const loadCustomerVerifications = cacheable(
   async () => {
     const { data: rows, error } = await supabase
       .from('customer_verifications')
-      .select('*')
+      .select('id,customer_id,id_type,status,id_front_url,id_back_url,created_at')
       .eq('status', 'pending')
       .order('created_at');
     if (error) {

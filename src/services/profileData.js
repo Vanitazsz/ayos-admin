@@ -11,7 +11,7 @@ async function loadAdminProfileRaw() {
   if (error) throw error;
   if (factorError) throw factorError;
   if (!data?.account || !data.profile?.display_name) throw new Error('Administrator profile is missing');
-  const { data: events, error: eventError } = await supabase.from('authentication_events').select('*').eq('account_id', data.account.id).order('created_at', { ascending: false }).limit(50);
+  const { data: events, error: eventError } = await supabase.from('authentication_events').select('id,event_type,ip_address,user_agent,created_at').eq('account_id', data.account.id).order('created_at', { ascending: false }).limit(50);
   if (eventError) throw eventError;
   return {
     id: data.account.id,

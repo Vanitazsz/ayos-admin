@@ -70,6 +70,8 @@ const hashKey = (text) => {
 const fullKey = (scope, args, subkey = '') =>
   `${STORAGE_PREFIX}:${currentUserId}:${scope}:${subkey}:${hashKey(stableKey(args))}`;
 
+export const cacheKey = fullKey;
+
 const isFresh = (entry, now) =>
   entry && entry.at > 0 && now - entry.at < entry.ttl;
 
