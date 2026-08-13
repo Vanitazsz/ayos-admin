@@ -24,6 +24,7 @@ import {
   MessageSquare,
   MessageCircle,
   Activity,
+  Star,
   Megaphone,
   MapPinned,
   Users2,
@@ -69,6 +70,7 @@ const navigationGroups = [
     title: 'Community',
     icon: MessageSquare,
     items: [
+      { name: 'Reviews', to: '/admin/reviews', icon: Star },
       { name: 'Support', to: '/admin/support', icon: Headset },
     ],
   },

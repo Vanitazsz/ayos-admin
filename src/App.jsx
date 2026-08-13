@@ -17,6 +17,7 @@ const Workers = React.lazy(() => import('./pages/admin/Workers'));
 const Bookings = React.lazy(() => import('./pages/admin/Bookings'));
 const Services = React.lazy(() => import('./pages/admin/Services'));
 const Payments = React.lazy(() => import('./pages/admin/Payments'));
+const Reviews = React.lazy(() => import('./pages/admin/Reviews'));
 const Support = React.lazy(() => import('./pages/admin/Support'));
 const Reports = React.lazy(() => import('./pages/admin/Reports'));
 const Analytics = React.lazy(() => import('./pages/admin/Analytics'));
@@ -76,6 +77,7 @@ function App() {
             <Route path="bookings" element={<Bookings />} />
             <Route path="services" element={<Services />} />
             <Route path="payments" element={<Payments />} />
+            <Route path="reviews" element={<Reviews />} />
             <Route path="support" element={<Support />} />
             <Route path="reports" element={<Reports />} />
             <Route path="analytics" element={<Analytics />} />

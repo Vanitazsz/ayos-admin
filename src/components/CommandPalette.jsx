@@ -23,6 +23,7 @@ import {
   ClipboardList,
   Trash2,
   Settings,
+  Star,
   MapPinned,
   Users2,
   Search,
@@ -49,6 +50,7 @@ const navigation = [
   {
     group: 'Community',
     items: [
+      { title: 'Customer Reviews', to: '/admin/reviews', icon: Star },
       { title: 'Support Tickets', to: '/admin/support', icon: Headset },
     ],
   },
