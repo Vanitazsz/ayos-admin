@@ -1,6 +1,5 @@
 import { supabase, status } from './adminShared';
 import { cacheable, invalidate } from '../lib/cacheable';
-import { applyDateFilter, getRowDate } from '../lib/dateFilter';
 import { getSignedUrl } from '../lib/signedUrlCache';
 
 export const PAYMENT_STATUS_LABELS = {
@@ -37,24 +36,13 @@ export const mapPayment = (row) => ({
 const PAYMENT_PAGE_SELECT =
   'id,booking_id,service_amount,commission_amount,worker_net_amount,method,status,created_at,updated_at,proof_path,bookings(user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name))';
 
-const PAYMENT_KEY_SELECT =
-  'id,status,method,created_at,updated_at,service_amount,commission_amount,proof_path,bookings(user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name))';
+const PAYMENT_CASH_METHODS = ['CASH', 'cash', 'Cash', 'BANK_TRANSFER', 'bank_transfer', 'Bank Transfer'];
 
-export const loadPaymentKeys = cacheable('payments', { ttl: 60_000 }, async () => {
-  const [{ data: keys, error: keyError }, { data: trashedData }] = await Promise.all([
-    supabase.from('payments').select(PAYMENT_KEY_SELECT).order('created_at', { ascending: false }),
-    supabase
-      .from('trash_entries')
-      .select('entity_id')
-      .eq('entity_type', 'payment')
-      .is('restored_at', null),
-  ]);
-  if (keyError) throw keyError;
-  return {
-    keys: keys ?? [],
-    trashedIds: new Set((trashedData ?? []).map((t) => t.entity_id)),
-  };
-});
+const chunk = (items, size) => {
+  const out = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+};
 
 export const loadPaymentPageRows = cacheable('payments', { ttl: 60_000 }, async (ids) => {
   const { data, error } = await supabase
@@ -65,9 +53,85 @@ export const loadPaymentPageRows = cacheable('payments', { ttl: 60_000 }, async 
   return data ?? [];
 });
 
-export async function loadPaymentsPageRaw({
+export const loadPaymentStats = cacheable(
+  'payments',
+  { ttl: 60_000, key: 'stats' },
+  async () => {
+    const { data, error } = await supabase.rpc('get_payment_stats');
+    if (error) throw error;
+    return data ?? { revenue: 0, commission: 0, pending: 0, failed: 0 };
+  },
+);
+
+const loadTrashedPaymentIds = cacheable(
+  'payments',
+  { ttl: 60_000, key: 'trashed' },
+  async () => {
+    const { data, error } = await supabase
+      .from('trash_entries')
+      .select('entity_id')
+      .eq('entity_type', 'payment')
+      .is('restored_at', null);
+    if (error) throw error;
+    return new Set((data ?? []).map((row) => row.entity_id));
+  },
+);
+
+const loadPaymentIdsByName = cacheable('payments', { ttl: 60_000 }, async (term) => {
+  const [userData, workerData] = await Promise.all([
+    supabase.from('user_profiles').select('id').ilike('display_name', `%${term}%`),
+    supabase.from('worker_profiles').select('id').ilike('display_name', `%${term}%`),
+  ]);
+  if (userData.error) throw userData.error;
+  if (workerData.error) throw workerData.error;
+  const profileIds = [
+    ...(userData.data ?? []).map((row) => row.id),
+    ...(workerData.data ?? []).map((row) => row.id),
+  ];
+  if (!profileIds.length) return [];
+
+  const bookingIds = [];
+  for (const batch of chunk(profileIds, 200)) {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('id')
+      .or(`user_account_id.in.(${batch.join(',')}),worker_account_id.in.(${batch.join(',')})`);
+    if (error) throw error;
+    bookingIds.push(...(data ?? []).map((row) => row.id));
+  }
+  if (!bookingIds.length) return [];
+
+  const paymentIds = [];
+  for (const batch of chunk(bookingIds, 200)) {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('id')
+      .in('booking_id', batch);
+    if (error) throw error;
+    paymentIds.push(...(data ?? []).map((row) => row.id));
+  }
+  return paymentIds;
+});
+
+function buildPaymentIdQuery({ trashedIds, tab, dateRange, field, sort, page, pageSize }) {
+  let query = supabase.from('payments').select('id', { count: 'exact' });
+  if (trashedIds.size > 0) {
+    query = query.not('id', 'in', `(${[...trashedIds].join(',')})`);
+  }
+  if (tab === 'cash') {
+    query = query.in('method', PAYMENT_CASH_METHODS);
+  }
+  const column = field === 'modified' ? 'updated_at' : 'created_at';
+  if (dateRange && (dateRange.from || dateRange.to)) {
+    if (dateRange.from) query = query.gte(column, dateRange.from.toISOString());
+    if (dateRange.to) query = query.lte(column, dateRange.to.toISOString());
+  }
+  const from = (page - 1) * pageSize;
+  return query.order(column, { ascending: sort === 'oldest' }).range(from, from + pageSize - 1);
+}
+
+async function loadPaymentPageIds({
   search = '',
-  type = 'All',
   tab = 'transactions',
   sort = 'newest',
   field = 'created',
@@ -75,63 +139,82 @@ export async function loadPaymentsPageRaw({
   page = 1,
   pageSize = 10,
 } = {}) {
-  const { keys, trashedIds } = await loadPaymentKeys();
+  if (tab === 'refunds') return { ids: [], count: 0 };
 
-  const rows = (keys ?? []).filter((row) => !trashedIds.has(row.id));
-
-  const stats = {
-    revenue: rows
-      .filter((row) => paymentStatus(row.status) === 'Completed')
-      .reduce((sum, row) => sum + Number(row.service_amount), 0),
-    commission: rows
-      .filter((row) => paymentStatus(row.status) === 'Completed')
-      .reduce((sum, row) => sum + Number(row.commission_amount), 0),
-    pending: rows
-      .filter((row) => paymentStatus(row.status) === 'Pending')
-      .reduce((sum, row) => sum + Number(row.service_amount), 0),
-    failed: rows.filter((row) => paymentStatus(row.status) === 'Failed').length,
-  };
-
+  const trashedIds = await loadTrashedPaymentIds();
   const term = search.trim().toLowerCase();
-  const matched = rows.filter((row) => {
-    if (term) {
-      const customer = row.bookings?.user_profiles?.display_name ?? '';
-      const worker = row.bookings?.worker_profiles?.display_name ?? '';
-      if (
-        !row.id.toLowerCase().includes(term) &&
-        !customer.toLowerCase().includes(term) &&
-        !worker.toLowerCase().includes(term)
-      ) {
-        return false;
-      }
+
+  if (!term) {
+    const { data, count, error } = await buildPaymentIdQuery({
+      trashedIds,
+      tab,
+      dateRange,
+      field,
+      sort,
+      page,
+      pageSize,
+    });
+    if (error) throw error;
+    return { ids: (data ?? []).map((row) => row.id), count: count ?? 0 };
+  }
+
+  const cleanTerm = term.replace(/[(),.*%_]/g, '');
+  const nameMatches = await loadPaymentIdsByName(term);
+  const batches = nameMatches.length ? chunk(nameMatches, 200) : [null];
+  const ids = new Set();
+  let count = 0;
+
+  for (const batch of batches) {
+    let query = supabase.from('payments').select('id', { count: 'exact' });
+    if (trashedIds.size > 0) {
+      query = query.not('id', 'in', `(${[...trashedIds].join(',')})`);
     }
-    if (type !== 'All' && 'Payment' !== type) return false;
-    if (tab === 'refunds' && 'Payment' !== 'Refund') return false;
     if (tab === 'cash') {
-      const method = status(row.method);
-      if (method !== 'Cash' && method !== 'Bank Transfer') return false;
+      query = query.in('method', PAYMENT_CASH_METHODS);
     }
-    return true;
-  });
-  const ordered = applyDateFilter(matched, {
-    field,
-    range: dateRange,
-    sort,
-    getDate: (row) => getRowDate(row, field) ?? getRowDate(row, 'created'),
-  });
-  const count = ordered.length;
-  const pageIds = ordered
-    .slice((page - 1) * pageSize, page * pageSize)
-    .map((row) => row.id);
+    query = batch
+      ? query.or(`id.ilike.*${cleanTerm}*,booking_id.in.(${batch.join(',')})`)
+      : query.ilike('id', `%${cleanTerm}%`);
+    const column = field === 'modified' ? 'updated_at' : 'created_at';
+    if (dateRange && (dateRange.from || dateRange.to)) {
+      if (dateRange.from) query = query.gte(column, dateRange.from.toISOString());
+      if (dateRange.to) query = query.lte(column, dateRange.to.toISOString());
+    }
+    const from = (page - 1) * pageSize;
+    query = query.order(column, { ascending: sort === 'oldest' }).range(from, from + pageSize - 1);
 
-  if (!pageIds.length) return { rows: [], count, stats };
+    const { data, count: batchCount, error } = await query;
+    if (error) throw error;
+    for (const row of data ?? []) ids.add(row.id);
+    count += batchCount ?? 0;
+  }
 
-  const data = await loadPaymentPageRows(pageIds);
+  return { ids: [...ids], count };
+}
 
+export async function loadPaymentsPageRaw({
+  search = '',
+  tab = 'transactions',
+  sort = 'newest',
+  field = 'created',
+  dateRange = null,
+  page = 1,
+  pageSize = 10,
+} = {}) {
+  const [{ revenue = 0, commission = 0, pending = 0, failed = 0 } = {}, pageResult] =
+    await Promise.all([
+      loadPaymentStats(),
+      loadPaymentPageIds({ search, tab, sort, field, dateRange, page, pageSize }),
+    ]);
+
+  const stats = { revenue, commission, pending, failed };
+  if (!pageResult.ids.length) return { rows: [], count: pageResult.count, stats };
+
+  const data = await loadPaymentPageRows(pageResult.ids);
   const byId = new Map(data.map((row) => [row.id, row]));
   return {
-    rows: pageIds.map((id) => mapPayment(byId.get(id))).filter(Boolean),
-    count,
+    rows: pageResult.ids.map((id) => mapPayment(byId.get(id))).filter(Boolean),
+    count: pageResult.count,
     stats,
   };
 }
