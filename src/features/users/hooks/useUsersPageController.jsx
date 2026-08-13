@@ -1,5 +1,4 @@
 import {
-  bulkSetAccountStatus,
   loadBookingsForUser,
   loadCustomerVerifications,
   loadUsersPage,
@@ -7,7 +6,6 @@ import {
   resolveBookingMedia,
   resolveUserAvatar,
   reviewCustomerVerification,
-  bulkSetCustomerVerification,
   setAccountStatus,
   setCustomerVerification,
   softDeleteAccount,
@@ -74,9 +72,6 @@ export function useUsersPageController() {
   });
   const [isSavingVerification, setIsSavingVerification] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
-  const [selectedIds, setSelectedIds] = useState(() => new Set());
-  const [bulkAction, setBulkAction] = useState(null);
-  const isBulkLoading = bulkAction !== null;
   const toast = useToast();
 
   const fetchUsers = useCallback(
@@ -187,10 +182,10 @@ export function useUsersPageController() {
     const stops = [
       subscribe('accounts', () => {
         void refreshUsersRef.current();
-      }),
+      }, { debounceMs: 5000 }),
       subscribe('customer_verifications', () => {
         void loadVerificationsRef.current();
-      }),
+      }, { filter: 'status=eq.pending' }),
     ];
     return () => {
       stops.forEach((stop) => stop());
@@ -355,108 +350,6 @@ export function useUsersPageController() {
       setActionMenuOpenId((current) => (current === id ? null : id));
     },
     [],
-  );
-
-  const toggleSelectUser = useCallback((id) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const selectUser = useCallback((id) => {
-    setActionMenuOpenId(null);
-    setSelectedIds((current) => {
-      if (current.has(id)) return current;
-      const next = new Set(current);
-      next.add(id);
-      return next;
-    });
-  }, []);
-
-  const toggleSelectAll = useCallback((users) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      const allSelected = users.length > 0 && users.every((user) => next.has(user.id));
-      users.forEach((user) => {
-        if (allSelected) next.delete(user.id);
-        else next.add(user.id);
-      });
-      return next;
-    });
-  }, []);
-
-  const clearSelection = useCallback(() => {
-    setSelectedIds(new Set());
-  }, []);
-
-  useEffect(() => {
-    setSelectedIds(new Set());
-  }, [
-    searchQuery,
-    filterStatus,
-    filterVerified,
-    filterLocation,
-    dateFilter.sort,
-    dateFilter.field,
-    dateFilter.preset,
-    dateFilter.customRange,
-  ]);
-
-  const handleBulkStatus = useCallback(
-    async (nextStatus) => {
-      if (!selectedIds.size) return;
-      const ids = [...selectedIds];
-      setBulkAction(nextStatus);
-      try {
-        await bulkSetAccountStatus(ids, nextStatus);
-        clearSelection();
-        await refresh();
-        toast.success(
-          nextStatus === 'SUSPENDED' ? 'Users suspended' : 'Users reactivated',
-          `${ids.length} user${ids.length === 1 ? '' : 's'} ${
-            nextStatus === 'SUSPENDED' ? 'suspended' : 'reactivated'
-          }.`,
-        );
-      } catch (error) {
-        toast.error(
-          'Bulk status update failed',
-          error instanceof Error ? error.message : 'Unable to update statuses.',
-        );
-      } finally {
-        setBulkAction(null);
-      }
-    },
-    [selectedIds, refresh, clearSelection, toast],
-  );
-
-  const handleBulkVerification = useCallback(
-    async (nextStatus) => {
-      if (!selectedIds.size) return;
-      const ids = [...selectedIds];
-      setBulkAction(nextStatus);
-      try {
-        await bulkSetCustomerVerification(ids, nextStatus);
-        clearSelection();
-        await refresh();
-        toast.success(
-          nextStatus === 'verified' ? 'Users verified' : 'Verification removed',
-          `${ids.length} user${ids.length === 1 ? '' : 's'} now ${
-            nextStatus === 'verified' ? 'verified' : 'unverified'
-          }.`,
-        );
-      } catch (error) {
-        toast.error(
-          'Bulk verification update failed',
-          error instanceof Error ? error.message : 'Unable to update verification.',
-        );
-      } finally {
-        setBulkAction(null);
-      }
-    },
-    [selectedIds, refresh, clearSelection, toast],
   );
 
   const handleViewProfile = useCallback(async (user) => {
@@ -747,11 +640,6 @@ export function useUsersPageController() {
       cancelVerificationEdit,
       handleSaveVerificationEdit,
       actionLoadingId,
-      selectedIds,
-      selectedCount: selectedIds.size,
-      isSelectionActive: selectedIds.size > 0,
-      bulkAction,
-      isBulkLoading,
       toast,
       itemsPerPage: 10,
       refresh,
@@ -767,12 +655,6 @@ export function useUsersPageController() {
       handleViewBooking,
       handleMoveToTrash,
       handleRestore,
-      toggleSelectUser,
-      selectUser,
-      toggleSelectAll,
-      clearSelection,
-      handleBulkStatus,
-      handleBulkVerification,
       count,
       totalPages,
       currentUsers: users,
@@ -829,15 +711,6 @@ export function useUsersPageController() {
       handleViewBooking,
       handleMoveToTrash,
       handleRestore,
-      toggleSelectUser,
-      selectUser,
-      toggleSelectAll,
-      clearSelection,
-      handleBulkStatus,
-      handleBulkVerification,
-      selectedIds,
-      bulkAction,
-      isBulkLoading,
       count,
       totalPages,
       users,

@@ -7,6 +7,7 @@ import PermanentDeleteModal from '../components/PermanentDeleteModal';
 import { TRASH_TABS } from '../logic/TrashPageLogic';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import Skeleton from '../../../components/ui/Skeleton';
 import DateFilter from '../../../components/ui/DateFilter';
 const tabs = TRASH_TABS;
 export function TrashView({ model }) {
@@ -150,7 +151,30 @@ export function TrashView({ model }) {
             {isLoading ? (
               <TableSkeleton
                 rows={6}
-                columns={[{}, {}, {}, {}, { className: 'text-right' }]}
+                columns={[
+                  {
+                    children: (
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-36" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    ),
+                  },
+                  {},
+                  {},
+                  {
+                    children: <Skeleton className="h-6 w-24 rounded-full" />,
+                  },
+                  {
+                    className: 'text-right',
+                    children: (
+                      <div className="flex justify-end space-x-2">
+                        <Skeleton className="h-8 w-8 rounded-lg" />
+                        <Skeleton className="h-8 w-8 rounded-lg" />
+                      </div>
+                    ),
+                  },
+                ]}
               />
             ) : paginatedItems.length > 0 ? (
               paginatedItems.map((item) => (

@@ -1,13 +1,14 @@
 import {
-  loadReviews,
-  moderateReview,
-  resolveReviewMedia,
-  moveReviewToTrash,
+  loadProofOfWork,
+  resolveProofMedia,
+  hasWorkerProof,
+  hasCustomerProof,
+  moveBookingProofToTrash,
   subscribe,
 } from '../logic/ReviewsPageLogic';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, ThumbsUp, ThumbsDown, Clock } from 'lucide-react';
+import { Star, Image as ImageIcon, MessageSquare } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { usePagination } from '../../../hooks/usePagination';
 import { useDateFilter } from '../../../hooks/useDateFilter';
@@ -17,206 +18,128 @@ export function useReviewsPageController() {
   const toast = useToast();
   const navigate = useNavigate();
   const dateFilter = useDateFilter({ canModify: true });
-  const [reviews, setReviews] = useState([]);
+  const [proofs, setProofs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('customer');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRating, setFilterRating] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
   const [mediaFilter, setMediaFilter] = useState([]);
-  const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
-  const [confirm, setConfirm] = useState({
-    isOpen: false,
-    title: '',
-    message: '',
-    confirmLabel: 'Confirm',
-    onConfirm: () => {},
-  });
-  const closeConfirm = () => setConfirm((s) => ({ ...s, isOpen: false }));
-  const [selectedReview, setSelectedReview] = useState(null);
-  const [isReviewDetailsOpen, setIsReviewDetailsOpen] = useState(false);
-  const [reviewMedia, setReviewMedia] = useState(null);
-  const [isReviewMediaLoading, setIsReviewMediaLoading] = useState(false);
+  const [selectedProof, setSelectedProof] = useState(null);
+  const [isProofDetailsOpen, setIsProofDetailsOpen] = useState(false);
+  const [proofMedia, setProofMedia] = useState(null);
+  const [isProofMediaLoading, setIsProofMediaLoading] = useState(false);
+  const [trashTarget, setTrashTarget] = useState(null);
+  const [trashReason, setTrashReason] = useState('');
+  const [isTrashing, setIsTrashing] = useState(false);
 
   const refresh = async () => {
     setIsLoading(true);
     try {
-      setReviews(await loadReviews());
+      setProofs(await loadProofOfWork());
+    } catch (error) {
+      toast.error('Failed to load proof of work', error.message);
     } finally {
       setIsLoading(false);
     }
   };
   useEffect(() => {
     void refresh();
-    return subscribe('reviews', refresh);
+    return subscribe('booking_proof_media', refresh);
   }, []);
 
-  const workerStats = useMemo(() => {
-    const byWorker = new Map();
-    reviews.forEach((review) => {
-      const entry = byWorker.get(review.worker) ?? { total: 0, count: 0 };
-      entry.total += review.rating;
-      entry.count += 1;
-      byWorker.set(review.worker, entry);
-    });
-    const stats = new Map();
-    byWorker.forEach((entry, worker) => {
-      stats.set(worker, {
-        average: (entry.total / entry.count).toFixed(1),
-        count: entry.count,
-      });
-    });
-    return stats;
-  }, [reviews]);
+  const workerProofs = useMemo(() => proofs.filter(hasWorkerProof), [proofs]);
+  const customerProofs = useMemo(() => proofs.filter(hasCustomerProof), [proofs]);
+  const tabProofs = activeTab === 'customer' ? customerProofs : workerProofs;
 
-  const matchedReviews = reviews.filter((r) => {
+  const matchedProofs = tabProofs.filter((proof) => {
     const term = searchTerm.trim().toLowerCase();
     const matchesSearch =
       !term ||
-      r.id.toLowerCase().includes(term) ||
-      r.customer.toLowerCase().includes(term) ||
-      r.worker.toLowerCase().includes(term) ||
-      (r.customerEmail ?? '').toLowerCase().includes(term) ||
-      (r.workerEmail ?? '').toLowerCase().includes(term) ||
-      r.service.toLowerCase().includes(term) ||
-      r.comment.toLowerCase().includes(term);
-    const matchesRating = filterRating === 'All' || r.rating.toString() === filterRating;
+      proof.worker.toLowerCase().includes(term) ||
+      proof.customer.toLowerCase().includes(term) ||
+      proof.service.toLowerCase().includes(term) ||
+      proof.comment.toLowerCase().includes(term);
+    const matchesRating =
+      filterRating === 'All' || proof.rating?.toString() === filterRating;
     const matchesStatus =
       filterStatus === 'All' ||
-      (filterStatus === 'Trashed' ? r.isTrashed : r.status === filterStatus);
+      (filterStatus === 'In Trash' ? proof.isTrashed : !proof.isTrashed);
+    const hasPhotos =
+      activeTab === 'customer'
+        ? proof.customerPhotos.length > 0
+        : proof.workerPhotos.length > 0;
     const matchesMedia =
-      mediaFilter.length === 0 || (mediaFilter.includes('image') && r.media.length > 0);
+      mediaFilter.length === 0 || (mediaFilter.includes('image') && hasPhotos);
     return matchesSearch && matchesRating && matchesStatus && matchesMedia;
   });
-  const filteredReviews = applyDateFilter(matchedReviews, {
+  const filteredProofs = applyDateFilter(matchedProofs, {
     field: dateFilter.field,
     range: dateFilter.effectiveRange,
     sort: dateFilter.sort,
-    getDate: (r) => getRowDate(r, dateFilter.field) ?? getRowDate(r, 'created'),
+    getDate: (proof) => getRowDate(proof, dateFilter.field) ?? getRowDate(proof, 'created'),
   });
   const {
     currentPage,
     setCurrentPage,
     totalPages,
-    pageData: paginatedReviews,
-  } = usePagination(filteredReviews, 10);
-  const avgRating = reviews.length
-    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-    : '0.0';
+    pageData: paginatedProofs,
+  } = usePagination(filteredProofs, 10);
+
+  const avgOf = (rows) => {
+    const rated = rows.filter((proof) => proof.rating);
+    return rated.length
+      ? (rated.reduce((sum, proof) => sum + proof.rating, 0) / rated.length).toFixed(1)
+      : '0.0';
+  };
   const stats = useMemo(() => {
     if (activeTab === 'worker') {
-      const averages = [...workerStats.values()];
-      const avg = averages.length
-        ? (
-            averages.reduce((sum, entry) => sum + Number(entry.average), 0) /
-            averages.length
-          ).toFixed(1)
-        : '0.0';
       return [
+        { label: 'Total Proofs', value: workerProofs.length, icon: MessageSquare },
+        { label: 'Average Rating', value: avgOf(workerProofs), icon: Star },
         {
-          label: 'Average Rating',
-          value: avg,
-          icon: Star,
+          label: 'With Photos',
+          value: workerProofs.filter((proof) => proof.workerPhotos.length > 0).length,
+          icon: ImageIcon,
         },
         {
-          label: 'Positive Workers',
-          value: averages.filter((entry) => Number(entry.average) >= 4).length,
-          icon: ThumbsUp,
-        },
-        {
-          label: 'Negative Workers',
-          value: averages.filter((entry) => Number(entry.average) <= 2).length,
-          icon: ThumbsDown,
-        },
-        {
-          label: 'Pending Moderation',
-          value: reviews.filter((r) => r.status === 'Pending').length,
-          icon: Clock,
+          label: 'With Comments',
+          value: workerProofs.filter((proof) => (proof.comment ?? '').trim() !== '').length,
+          icon: MessageSquare,
         },
       ];
     }
     return [
+      { label: 'Total Proofs', value: customerProofs.length, icon: MessageSquare },
+      { label: 'With Photos', value: customerProofs.length, icon: ImageIcon },
+      { label: 'Avg Worker Rating', value: avgOf(customerProofs), icon: Star },
       {
-        label: 'Average Rating',
-        value: avgRating,
-        icon: Star,
-      },
-      {
-        label: 'Positive Reviews',
-        value: reviews.filter((r) => r.rating >= 4).length,
-        icon: ThumbsUp,
-      },
-      {
-        label: 'Negative Reviews',
-        value: reviews.filter((r) => r.rating <= 2).length,
-        icon: ThumbsDown,
-      },
-      {
-        label: 'Pending Moderation',
-        value: reviews.filter((r) => r.status === 'Pending').length,
-        icon: Clock,
+        label: 'With Worker Feedback',
+        value: customerProofs.filter(
+          (proof) => proof.rating || (proof.comment ?? '').trim() !== '',
+        ).length,
+        icon: MessageSquare,
       },
     ];
-  }, [activeTab, reviews, workerStats, avgRating]);
-  const toggleStatus = async (id, newStatus) => {
+  }, [activeTab, workerProofs, customerProofs]);
+
+  const handleViewDetails = async (proof) => {
+    setSelectedProof(proof);
+    setProofMedia(null);
+    setIsProofMediaLoading(true);
+    setIsProofDetailsOpen(true);
     try {
-      await moderateReview(id, newStatus === 'Rejected' ? 'REJECTED' : 'PUBLISHED');
-      await refresh();
-    } catch (error) {
-      toast.error('Moderation failed', error.message);
-    } finally {
-      setActionMenuOpenId(null);
-    }
-  };
-  const confirmReject = (id) => {
-    setConfirm({
-      isOpen: true,
-      title: 'Reject Review',
-      message: 'Reject and hide this review? You can publish it again later.',
-      confirmLabel: 'Reject',
-      onConfirm: async () => {
-        await toggleStatus(id, 'Rejected');
-      },
-    });
-  };
-  const confirmMoveToTrash = (id) => {
-    setConfirm({
-      isOpen: true,
-      title: 'Move Review to Trash',
-      message:
-        'Move this review to trash? It will be rejected and hidden immediately. You can restore it later from the Trash page.',
-      confirmLabel: 'Move to Trash',
-      onConfirm: async () => {
-        try {
-          await moveReviewToTrash(id);
-          await refresh();
-          toast.success('Review moved to trash');
-        } catch (error) {
-          toast.error('Failed to move review to trash', error.message);
-        }
-      },
-    });
-  };
-  const goToTrash = (trashEntryId) => {
-    navigate(`/admin/trash?tab=Reviews&entry=${trashEntryId}`);
-  };
-  const handleViewDetails = async (review) => {
-    setSelectedReview(review);
-    setReviewMedia(null);
-    setIsReviewMediaLoading(true);
-    setIsReviewDetailsOpen(true);
-    try {
-      setReviewMedia(await resolveReviewMedia(review));
+      setProofMedia(await resolveProofMedia(proof));
     } catch {
-      setReviewMedia({ images: [] });
+      setProofMedia({ workerImages: [], customerImages: [] });
     } finally {
-      setIsReviewMediaLoading(false);
+      setIsProofMediaLoading(false);
     }
   };
-  const closeReviewDetails = () => {
-    setIsReviewDetailsOpen(false);
-    setSelectedReview(null);
-    setReviewMedia(null);
+  const closeProofDetails = () => {
+    setIsProofDetailsOpen(false);
+    setSelectedProof(null);
+    setProofMedia(null);
   };
   const renderStars = (rating) => {
     return (
@@ -231,6 +154,38 @@ export function useReviewsPageController() {
       </div>
     );
   };
+
+  const openTrash = (proof) => {
+    setTrashTarget(proof);
+    setTrashReason('');
+  };
+  const closeTrash = () => {
+    if (isTrashing) return;
+    setTrashTarget(null);
+    setTrashReason('');
+  };
+  const confirmTrash = async () => {
+    if (!trashTarget || trashReason.trim().length < 3 || isTrashing) return;
+    setIsTrashing(true);
+    try {
+      await moveBookingProofToTrash(trashTarget.bookingId, trashReason.trim());
+      toast.success(
+        'Moved to trash',
+        `${trashTarget.worker}'s proof of work was moved to trash.`,
+      );
+      setTrashTarget(null);
+      setTrashReason('');
+      await refresh();
+    } catch (error) {
+      toast.error('Failed to move to trash', error.message);
+    } finally {
+      setIsTrashing(false);
+    }
+  };
+  const goToTrash = (trashEntryId) => {
+    navigate(`/admin/trash?tab=Reviews&entry=${trashEntryId}`);
+  };
+
   return {
     activeTab,
     setActiveTab,
@@ -246,25 +201,24 @@ export function useReviewsPageController() {
     currentPage,
     setCurrentPage,
     isLoading,
-    actionMenuOpenId,
-    setActionMenuOpenId,
-    confirm,
-    closeConfirm,
-    filteredReviews,
+    filteredProofs,
     totalPages,
-    paginatedReviews,
+    paginatedProofs,
     stats,
-    workerStats,
-    toggleStatus,
-    confirmReject,
-    confirmMoveToTrash,
-    goToTrash,
     handleViewDetails,
-    selectedReview,
-    isReviewDetailsOpen,
-    reviewMedia,
-    isReviewMediaLoading,
-    closeReviewDetails,
+    selectedProof,
+    isProofDetailsOpen,
+    proofMedia,
+    isProofMediaLoading,
+    closeProofDetails,
     renderStars,
+    trashTarget,
+    trashReason,
+    setTrashReason,
+    isTrashing,
+    openTrash,
+    closeTrash,
+    confirmTrash,
+    goToTrash,
   };
 }

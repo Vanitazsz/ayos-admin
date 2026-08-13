@@ -7,9 +7,11 @@ import {
   Loader2,
   AlertCircle,
   Calendar,
+  Trash2,
 } from 'lucide-react';
 import Pagination from '../../../components/ui/Pagination';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import Skeleton from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import { Button } from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
@@ -18,6 +20,7 @@ import { Alert } from '../../../components/ui/Alert';
 import EmptyState from '../../../components/ui/EmptyState';
 import DateFilter from '../../../components/ui/DateFilter';
 import Modal from '../../../components/ui/Modal';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
 import { Select, SelectItem } from '../../../components/ui/Select';
 import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/Tabs';
 import {
@@ -72,6 +75,10 @@ export function ReportsView({ model }) {
     totalPages,
     handleDownload,
     handleRetry,
+    trashTarget,
+    handleMoveToTrash,
+    closeTrashConfirm,
+    confirmTrashMove,
     reportTypes,
     isGeneratorOpen,
     openGenerator,
@@ -161,7 +168,7 @@ export function ReportsView({ model }) {
         </TabsList>
       </Tabs>
 
-      <div className="mb-4 flex flex-col justify-between items-center gap-4 rounded-t-xl border-x border-t border-border bg-surface p-4 sm:flex-row">
+      <div className="flex flex-col justify-between items-center gap-4 rounded-t-xl border-x border-t border-border bg-surface p-4 sm:flex-row">
         <div className="relative w-full sm:w-96">
           <Input
             icon={Search}
@@ -188,7 +195,29 @@ export function ReportsView({ model }) {
           </TableHeader>
           <TableBody>
             {isInitialLoading ? (
-              <TableSkeleton rows={6} columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]} />
+              <TableSkeleton
+                rows={6}
+                columns={[
+                  {
+                    children: (
+                      <div className="flex items-center">
+                        <Skeleton className="size-9 rounded-lg mr-3 shrink-0" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {},
+                  {},
+                  {},
+                  {
+                    children: <Skeleton className="h-6 w-16 rounded-full" />,
+                  },
+                  { className: 'text-right' },
+                ]}
+              />
             ) : !empty ? (
               rows.map((report) => {
                 const variant = STATUS_VARIANT[report.statusKey] ?? 'default';
@@ -223,18 +252,40 @@ export function ReportsView({ model }) {
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-right font-medium">
                       {report.statusKey === 'completed' ? (
-                        <Button size="sm" onClick={() => void handleDownload(report.id)}>
-                          <Download size={14} /> Download
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button size="sm" onClick={() => void handleDownload(report.id)}>
+                            <Download size={14} /> Download
+                          </Button>
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            aria-label="Move to trash"
+                            title="Move to trash"
+                            onClick={() => handleMoveToTrash(report.id)}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
                       ) : report.statusKey === 'failed' ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => void handleRetry(report.id)}
-                          disabled={isGenerating}
-                        >
-                          <RefreshCw size={14} /> Retry
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void handleRetry(report.id)}
+                            disabled={isGenerating}
+                          >
+                            <RefreshCw size={14} /> Retry
+                          </Button>
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            aria-label="Move to trash"
+                            title="Move to trash"
+                            onClick={() => handleMoveToTrash(report.id)}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
                       ) : (
                         <span className="inline-flex items-center text-sm text-foreground-lighter">
                           <Loader2 className="mr-1 size-3.5 animate-spin" /> In progress
@@ -251,7 +302,7 @@ export function ReportsView({ model }) {
                     icon={FileText}
                     title="No reports found"
                     description="No reports match your current filters. Try generating a new report."
-                    action={
+                    actions={
                       <Button onClick={() => openGenerator()}>
                         <Plus size={16} /> New Report
                       </Button>
@@ -349,6 +400,14 @@ export function ReportsView({ model }) {
           </div>
         </div>
       </Modal>
+
+      <ConfirmModal
+        isOpen={Boolean(trashTarget)}
+        onClose={closeTrashConfirm}
+        title="Move report to trash?"
+        message={`Move "${trashTarget?.name ?? 'this report'}" to the Trash page? You can restore it or permanently delete it from the Trash page.`}
+        onConfirm={() => void confirmTrashMove()}
+      />
     </div>
   );
 }

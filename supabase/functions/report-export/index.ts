@@ -48,7 +48,8 @@ Deno.serve(async (req) => {
     global: { headers: { Authorization: authHeader } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: userData, error: userError } = await userClient.auth.getUser();
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const { data: userData, error: userError } = await userClient.auth.getUser(token);
   if (userError || !userData.user) {
     return json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -100,6 +101,7 @@ Deno.serve(async (req) => {
     .select('id')
     .eq('report_type', reportType)
     .eq('requested_by', userData.user.id)
+    .is('deleted_at', null)
     .in('status', ['pending', 'processing'])
     .limit(1)
     .maybeSingle();
@@ -183,8 +185,18 @@ function rangeText(args: Record<string, unknown>): string {
   return `Range: ${from ? fmt(from) : 'start'} → ${to ? fmt(to) : 'now'}`;
 }
 
+async function runRpc(
+  client: any,
+  fn: string,
+  args: Record<string, unknown> | undefined,
+): Promise<any> {
+  const { data, error } = await client.rpc(fn, args as any);
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 async function buildDataset(
-  userClient: ReturnType<typeof createClient>,
+  userClient: any,
   reportType: ReportType,
   args: Record<string, unknown>,
 ): Promise<Dataset> {
@@ -192,11 +204,7 @@ async function buildDataset(
   const subtitle = `${rangeText(args)} · Generated ${new Date().toLocaleString('en-US')}`;
 
   if (reportType === 'FINANCIAL') {
-    const { data: seriesData, error: seriesError } = await userClient.rpc(
-      'admin_revenue_series',
-      args,
-    );
-    if (seriesError) throw new Error(seriesError.message);
+    const seriesData = await runRpc(userClient, 'admin_revenue_series', args);
     const months = (seriesData?.month ?? []) as Array<{
       period: string;
       revenue: number;
@@ -226,9 +234,8 @@ async function buildDataset(
   }
 
   if (reportType === 'WORKERS') {
-    const { data, error } = await userClient.rpc('admin_report_workers', args);
-    if (error) throw new Error(error.message);
-    const rows = (data ?? []).map((r) => [
+    const data = await runRpc(userClient, 'admin_report_workers', args);
+    const rows = (data ?? []).map((r: any) => [
       r.worker_name,
       r.worker_email,
       Number(r.completed_bookings ?? 0),
@@ -245,9 +252,8 @@ async function buildDataset(
   }
 
   if (reportType === 'CUSTOMERS') {
-    const { data, error } = await userClient.rpc('admin_report_customers', args);
-    if (error) throw new Error(error.message);
-    const rows = (data ?? []).map((r) => [
+    const data = await runRpc(userClient, 'admin_report_customers', args);
+    const rows = (data ?? []).map((r: any) => [
       r.customer_name,
       r.customer_email,
       Number(r.total_bookings ?? 0),
@@ -265,9 +271,8 @@ async function buildDataset(
   }
 
   if (reportType === 'SERVICES') {
-    const { data, error } = await userClient.rpc('admin_report_services', args);
-    if (error) throw new Error(error.message);
-    const rows = (data ?? []).map((r) => [
+    const data = await runRpc(userClient, 'admin_report_services', args);
+    const rows = (data ?? []).map((r: any) => [
       r.category_name,
       Number(r.request_count ?? 0),
       Number(r.completed_bookings ?? 0),
@@ -282,21 +287,25 @@ async function buildDataset(
     };
   }
 
-  const { data, error } = await userClient.rpc('admin_report_reviews', args);
-  if (error) throw new Error(error.message);
-  const reviewData = (data ?? [])[0] ?? {};
-  const distribution = Array.from({ length: 5 }, (_, i) => i + 1).map((stars) => [
-    stars,
-    Number(reviewData[`star_${stars}`] ?? 0),
-  ]);
-  distribution.push(['Total Reviews', Number(reviewData.total_reviews ?? 0)]);
-  distribution.push(['Average Rating', round2(reviewData.avg_rating)]);
-  return {
-    title: label,
-    subtitle,
-    columns: ['Stars', 'Reviews'],
-    rows: distribution,
-  };
+  if (reportType === 'REVIEWS') {
+    const data = await runRpc(userClient, 'admin_report_reviews', args);
+    const rows = (data ?? []).map((r: any) => [
+      r.reviewer,
+      r.worker,
+      r.service,
+      Number(r.rating ?? 0),
+      r.comment ?? '',
+      r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString('en-US') : '',
+    ]);
+    return {
+      title: label,
+      subtitle,
+      columns: ['Reviewer', 'Worker', 'Service', 'Rating', 'Comment', 'Date'],
+      rows,
+    };
+  }
+
+  throw new Error(`UNSUPPORTED_REPORT_TYPE: ${reportType}`);
 }
 
 async function buildFile(
@@ -345,7 +354,7 @@ function pdf(dataset: Dataset): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 48 });
     const chunks: Uint8Array[] = [];
-    doc.on('data', (chunk) => chunks.push(chunk as Uint8Array));
+    doc.on('data', (chunk: Uint8Array) => chunks.push(chunk));
     doc.on('end', () => {
       const total = chunks.reduce((n, c) => n + c.length, 0);
       const out = new Uint8Array(total);

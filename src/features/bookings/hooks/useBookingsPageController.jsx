@@ -3,8 +3,10 @@ import {
   loadBookingsPage,
   reassignBookingAsAdmin,
   resolveBookingMedia,
+  resolveBookingProofs,
   subscribe,
 } from '../logic/BookingsPageLogic';
+import { loadReassignWorkers } from '../../../services/workers';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, CheckCircle, PlayCircle } from 'lucide-react';
@@ -28,6 +30,8 @@ export function useBookingsPageController() {
   const [action, setAction] = useState(null);
   const [actionReason, setActionReason] = useState('');
   const [replacementWorker, setReplacementWorker] = useState('');
+  const [reassignWorkers, setReassignWorkers] = useState([]);
+  const [loadingReassignWorkers, setLoadingReassignWorkers] = useState(false);
   const [savingAction, setSavingAction] = useState(false);
   const [confirm, setConfirm] = useState({
     isOpen: false,
@@ -134,6 +138,18 @@ export function useBookingsPageController() {
         current && current.id === booking.id ? { ...current, media: null } : current,
       );
     }
+    try {
+      const proof = await resolveBookingProofs(booking.id);
+      setSelectedBooking((current) =>
+        current && current.id === booking.id ? { ...current, proof } : current,
+      );
+    } catch {
+      setSelectedBooking((current) =>
+        current && current.id === booking.id
+          ? { ...current, proof: { workerProof: null, userProof: null } }
+          : current,
+      );
+    }
   }, []);
 
   const openAction = useCallback((type, booking) => {
@@ -141,6 +157,13 @@ export function useBookingsPageController() {
     setActionReason('');
     setReplacementWorker(booking.candidates?.[0]?.id ?? '');
     setActionMenuOpenId(null);
+    if (type === 'reassign') {
+      setLoadingReassignWorkers(true);
+      loadReassignWorkers()
+        .then((workers) => setReassignWorkers(workers ?? []))
+        .catch(() => setReassignWorkers([]))
+        .finally(() => setLoadingReassignWorkers(false));
+    }
   }, []);
 
   const executeAction = useCallback(async () => {
@@ -200,6 +223,8 @@ export function useBookingsPageController() {
       setActionReason,
       replacementWorker,
       setReplacementWorker,
+      reassignWorkers,
+      loadingReassignWorkers,
       savingAction,
       confirm,
       closeConfirm,
@@ -229,6 +254,8 @@ export function useBookingsPageController() {
       action,
       actionReason,
       replacementWorker,
+      reassignWorkers,
+      loadingReassignWorkers,
       savingAction,
       confirm,
       isLoading,

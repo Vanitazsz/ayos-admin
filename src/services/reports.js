@@ -1,5 +1,5 @@
 import { supabase, status } from './adminShared';
-import { cacheable } from '../lib/cacheable';
+import { cacheable, invalidate } from '../lib/cacheable';
 
 export const REPORT_TYPES = [
   {
@@ -25,7 +25,7 @@ export const REPORT_TYPES = [
   {
     code: 'REVIEWS',
     label: 'Review Sentiment',
-    description: 'Rating distribution and average rating from reviews.',
+    description: 'Ratings and comments per review.',
   },
 ];
 
@@ -53,7 +53,12 @@ const mapExportRow = (row) => {
   };
 };
 
-export const loadReportPage = cacheable(
+const toIso = (value) => {
+  if (value == null || value === '') return null;
+  return value instanceof Date ? value.toISOString() : String(value);
+};
+
+const loadReportPageCached = cacheable(
   'reports',
   { ttl: 30_000, persist: false },
   async ({
@@ -69,8 +74,8 @@ export const loadReportPage = cacheable(
       p_page: page,
       p_page_size: pageSize,
       p_type: type || null,
-      p_from: from || null,
-      p_to: to || null,
+      p_from: toIso(from),
+      p_to: toIso(to),
       p_query: query || null,
       p_sort: sort,
     });
@@ -82,6 +87,9 @@ export const loadReportPage = cacheable(
     };
   },
 );
+
+export const loadReportPage = (args = {}) =>
+  loadReportPageCached({ ...args, from: toIso(args.from), to: toIso(args.to) });
 
 export const loadReportStats = cacheable(
   'reports',
@@ -109,7 +117,17 @@ export async function generateReport(reportType = 'FINANCIAL', format = 'PDF', r
     },
   });
   if (error) throw error;
+  invalidate('reports');
   return data ?? {};
+}
+
+export async function moveReportToTrash(id) {
+  const { error } = await supabase.rpc('admin_move_report_export_to_trash', {
+    p_report_id: id,
+  });
+  if (error) throw error;
+  invalidate('reports');
+  invalidate('trash');
 }
 
 export async function downloadReport(path) {

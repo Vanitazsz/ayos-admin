@@ -21,6 +21,7 @@ export const mapConversation = (row) => ({
   archived_at: row.archived_at,
   disabled_at: row.disabled_at,
   disabledBy: row.disabled_by,
+  bookingStatus: row.booking_status,
 });
 
 async function loadConversationsRaw({ p_search } = {}) {
@@ -110,10 +111,11 @@ export async function toggleConversationModeration(conversationId, disabled) {
 }
 
 export async function deleteConversation(conversationId) {
-  const { data, error } = await supabase.rpc('admin_delete_conversation', {
+  const { data, error } = await supabase.rpc('admin_move_conversation_to_trash', {
     p_conversation_id: conversationId,
   });
   if (error) throw error;
   invalidate('messages');
+  invalidate('trash');
   return data;
 }

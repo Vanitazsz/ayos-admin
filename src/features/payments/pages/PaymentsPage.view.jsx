@@ -12,11 +12,13 @@ import {
   Users,
   Briefcase,
   CheckCircle2,
+  Image as ImageIcon,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Pagination from '../../../components/ui/Pagination';
 import StatCard from '../../../components/ui/StatCard';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import Skeleton from '../../../components/ui/Skeleton';
 import Select, { SelectItem } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
 import Modal from '../../../components/ui/Modal';
@@ -62,7 +64,12 @@ const txnTypeVariant = {
 const txnStatusVariant = {
   Completed: 'success',
   Pending: 'warning',
+  'Awaiting Confirmation': 'info',
+  Processing: 'info',
+  'Requires Action': 'warning',
   Failed: 'danger',
+  Expired: 'default',
+  Cancelled: 'default',
   Refunded: 'default',
 };
 
@@ -112,7 +119,30 @@ const TransactionsTab = ({ model, onOpenAction, onViewDetails }) => (
           {model.isLoading ? (
             <TableSkeleton
               rows={6}
-              columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]}
+              columns={[
+                {
+                  children: (
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-40" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  ),
+                },
+                {
+                  children: (
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  ),
+                },
+                {},
+                {
+                  children: <Skeleton className="h-6 w-16 rounded-full" />,
+                },
+                {},
+                { className: 'text-right' },
+              ]}
             />
           ) : model.paginatedTxns.length > 0 ? (
             model.paginatedTxns.map((txn) => (
@@ -259,6 +289,8 @@ export function PaymentsView({ model }) {
     selectedTxn,
     isDrawerOpen,
     setIsDrawerOpen,
+    proofUrl,
+    isProofLoading,
     activeTab,
     setActiveTab,
     setCurrentPage,
@@ -545,6 +577,39 @@ export function PaymentsView({ model }) {
                 </div>
               </div>
             )}
+
+            <div className="border-t border-border pt-6">
+              <DetailSectionTitle>Proof of Payment</DetailSectionTitle>
+              {selectedTxn.proofPath ? (
+                isProofLoading ? (
+                  <Skeleton className="h-56 w-full max-w-64 rounded-lg" />
+                ) : proofUrl ? (
+                  <a
+                    href={proofUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block aspect-square w-full max-w-64 rounded-lg overflow-hidden border border-border bg-surface-200"
+                  >
+                    <img
+                      src={proofUrl}
+                      alt="Proof of payment receipt"
+                      className="h-full w-full object-cover"
+                    />
+                  </a>
+                ) : (
+                  <p className="text-sm text-foreground-lighter">
+                    The proof image could not be loaded.
+                  </p>
+                )
+              ) : (
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-200/60 px-4 py-3">
+                  <ImageIcon size={16} className="shrink-0 text-foreground-muted" />
+                  <p className="text-sm text-foreground-lighter">
+                    No proof attached. Customers can attach a receipt when paying for a booking.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </Drawer>

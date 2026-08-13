@@ -1,6 +1,7 @@
 import { supabase, status, identity } from './adminShared';
 import { cacheable, invalidate } from '../lib/cacheable';
 import { applyDateFilter, getRowDate } from '../lib/dateFilter';
+import { getSignedUrl, getSignedUrls } from '../lib/signedUrlCache';
 
 const asProfile = (row) =>
   Array.isArray(row.user_profiles) ? row.user_profiles[0] : row.user_profiles;
@@ -61,6 +62,40 @@ const USER_PAGE_SELECT =
 const USER_KEY_SELECT =
   'id,email,status,created_at,updated_at,user_profiles(display_name,verification_status,locations!user_profiles_location_id_fkey(id,name))';
 
+export const loadUserKeys = cacheable('users', { ttl: 60_000 }, async () => {
+  const [{ data: keys, error: keyError }, { data: trashed, error: trashError }] =
+    await Promise.all([
+      supabase
+        .from('accounts')
+        .select(USER_KEY_SELECT)
+        .eq('role', 'USER')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('trash_entries')
+        .select('id, entity_type, entity_id')
+        .eq('entity_type', 'user')
+        .is('restored_at', null),
+    ]);
+  if (keyError) throw keyError;
+  if (trashError) throw trashError;
+  return {
+    keys: keys ?? [],
+    trashById: Object.fromEntries((trashed ?? []).map((row) => [row.entity_id, row.id])),
+  };
+});
+
+export const loadUserPageRows = cacheable('users', { ttl: 60_000 }, async (ids) => {
+  const { data, error } = await supabase
+    .from('accounts')
+    .select(USER_PAGE_SELECT)
+    .eq('role', 'USER')
+    .is('deleted_at', null)
+    .in('id', ids);
+  if (error) throw error;
+  return data ?? [];
+});
+
 export async function loadUsersPageRaw({
   search = '',
   status = 'All',
@@ -72,25 +107,8 @@ export async function loadUsersPageRaw({
   page = 1,
   pageSize = 10,
 } = {}) {
-  const { data: keys, error: keyError } = await supabase
-    .from('accounts')
-    .select(USER_KEY_SELECT)
-    .eq('role', 'USER')
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false });
-  if (keyError) throw keyError;
+  const { keys: allKeys, trashById } = await loadUserKeys();
 
-  const { data: trashed, error: trashError } = await supabase
-    .from('trash_entries')
-    .select('id, entity_type, entity_id')
-    .eq('entity_type', 'user')
-    .is('restored_at', null);
-  if (trashError) throw trashError;
-  const trashById = new Map(
-    (trashed ?? []).map((row) => [row.entity_id, row.id]),
-  );
-
-  const allKeys = keys ?? [];
   const stats = {
     total: allKeys.length,
     active: allKeys.filter((row) => row.status === 'ACTIVE').length,
@@ -106,7 +124,7 @@ export async function loadUsersPageRaw({
       row.id.toLowerCase().includes(term)
     );
   };
-  const isTrashed = (row) => trashById.has(row.id);
+  const isTrashed = (row) => Boolean(trashById[row.id]);
   const matchesStatus = (row) =>
     status === 'All' ||
     (status === 'Trashed' ? isTrashed(row) : row.status === status);
@@ -139,23 +157,18 @@ export async function loadUsersPageRaw({
     .slice((page - 1) * pageSize, page * pageSize)
     .map((row) => row.id);
 
-  if (!pageIds.length) return { rows: [], count };
+  if (!pageIds.length) return { rows: [], count, stats };
 
-  const { data, error } = await supabase
-    .from('accounts')
-    .select(USER_PAGE_SELECT)
-    .eq('role', 'USER')
-    .is('deleted_at', null)
-    .in('id', pageIds);
-  if (error) throw error;
+  const data = await loadUserPageRows(pageIds);
 
-  const byId = new Map((data ?? []).map((row) => [row.id, row]));
+  const byId = new Map(data.map((row) => [row.id, row]));
   return {
     rows: pageIds
       .map((id) => {
         const user = mapUser(byId.get(id));
         if (!user) return null;
-        return { ...user, isTrashed: trashById.has(id), trashEntryId: trashById.get(id) ?? null };
+        const trashEntryId = trashById[id] ?? null;
+        return { ...user, isTrashed: Boolean(trashEntryId), trashEntryId };
       })
       .filter(Boolean),
     count,
@@ -171,7 +184,7 @@ export const loadCustomerVerifications = cacheable(
   async () => {
     const { data: rows, error } = await supabase
       .from('customer_verifications')
-      .select('*')
+      .select('id,customer_id,id_type,status,id_front_url,id_back_url,created_at')
       .eq('status', 'pending')
       .order('created_at');
     if (error) {
@@ -184,26 +197,24 @@ export const loadCustomerVerifications = cacheable(
       : { data: [], error: null };
     if (accountError) throw accountError;
     const byId = new Map((accounts ?? []).map((account) => [account.id, account]));
-    return Promise.all(
-      (rows ?? []).map(async (row) => {
-        const account = byId.get(row.customer_id);
-        const [front, back] = await Promise.all([
-          supabase.storage.from('verification-documents').createSignedUrl(row.id_front_url, 900),
-          row.id_back_url
-            ? supabase.storage.from('verification-documents').createSignedUrl(row.id_back_url, 900)
-            : Promise.resolve({ data: null, error: null }),
-        ]);
-        if (front.error) throw front.error;
-        if (back.error) throw back.error;
-        return {
-          ...row,
-          customerName: identity(account?.user_profiles?.display_name, 'Verification customer'),
-          email: account?.email ?? '',
-          frontUrl: front.data?.signedUrl ?? '',
-          backUrl: back.data?.signedUrl ?? '',
-        };
-      }),
-    );
+
+    const frontPaths = (rows ?? []).map((row) => row.id_front_url).filter(Boolean);
+    const backPaths = (rows ?? []).map((row) => row.id_back_url).filter(Boolean);
+    const [frontUrls, backUrls] = await Promise.all([
+      getSignedUrls('verification-documents', frontPaths),
+      getSignedUrls('verification-documents', backPaths),
+    ]);
+
+    return (rows ?? []).map((row) => {
+      const account = byId.get(row.customer_id);
+      return {
+        ...row,
+        customerName: identity(account?.user_profiles?.display_name, 'Verification customer'),
+        email: account?.email ?? '',
+        frontUrl: frontUrls.get(row.id_front_url) ?? '',
+        backUrl: backUrls.get(row.id_back_url) ?? '',
+      };
+    });
   },
 );
 
@@ -277,11 +288,7 @@ export async function updateCustomerVerification(
 export async function resolveUserAvatar(path) {
   if (!path) return '';
   if (/^https?:\/\//i.test(path)) return path;
-  const { data, error } = await supabase.storage
-    .from('profile-avatars')
-    .createSignedUrl(path, 3600);
-  if (error) throw error;
-  return data.signedUrl;
+  return getSignedUrl('profile-avatars', path, { ttl: 30 * 60_000 });
 }
 
 export const loadUserVerificationDocs = cacheable(
@@ -297,16 +304,9 @@ export const loadUserVerificationDocs = cacheable(
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
-    const isRemote = (path) => /^https?:\/\//i.test(path ?? '');
     const [front, back] = await Promise.all([
-      isRemote(data.id_front_url)
-        ? Promise.resolve({ data: { signedUrl: data.id_front_url }, error: null })
-        : supabase.storage.from('verification-documents').createSignedUrl(data.id_front_url, 900),
-      isRemote(data.id_back_url)
-        ? Promise.resolve({ data: { signedUrl: data.id_back_url }, error: null })
-        : data.id_back_url
-          ? supabase.storage.from('verification-documents').createSignedUrl(data.id_back_url, 900)
-          : Promise.resolve({ data: null, error: null }),
+      getSignedUrl('verification-documents', data.id_front_url),
+      getSignedUrl('verification-documents', data.id_back_url),
     ]);
     return {
       id: data.id,
@@ -314,8 +314,8 @@ export const loadUserVerificationDocs = cacheable(
       idType: data.id_type,
       frontPath: data.id_front_url ?? '',
       backPath: data.id_back_url ?? '',
-      frontUrl: front.data?.signedUrl ?? '',
-      backUrl: back.data?.signedUrl ?? '',
+      frontUrl: front ?? '',
+      backUrl: back ?? '',
     };
   },
 );

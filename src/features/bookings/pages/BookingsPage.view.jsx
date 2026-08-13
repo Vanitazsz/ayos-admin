@@ -13,6 +13,7 @@ import {
   Image as ImageIcon,
   Mic,
   ChevronDown,
+  Star,
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
@@ -48,6 +49,64 @@ import {
   TooltipProvider,
 } from '../../../components/ui/Tooltip';
 
+function ProofGallery({ label, items, failed }) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-3">
+      <p className="text-xs font-medium text-foreground-lighter mb-2">{label}</p>
+      {failed ? (
+        <p className="text-sm text-foreground-lighter">Couldn't load {label.toLowerCase()}.</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-foreground-lighter">No {label.toLowerCase()} uploaded yet.</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-2">
+          {items.map((image) => (
+            <a
+              key={image.path}
+              href={image.url}
+              target="_blank"
+              rel="noreferrer"
+              className="block aspect-square rounded-lg overflow-hidden border border-border bg-surface-200"
+            >
+              <img
+                src={image.url}
+                alt={`${label} photo`}
+                className="h-full w-full object-cover"
+              />
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WorkerProofSummary({ rating, comment }) {
+  const hasRating = Number.isInteger(rating) && rating >= 1 && rating <= 5;
+  if (!hasRating && !comment) return null;
+  return (
+    <div className="rounded-lg border border-border bg-card p-3">
+      <p className="text-xs font-medium text-foreground-lighter mb-2">Worker summary</p>
+      {hasRating && (
+        <div className="flex items-center gap-1.5 mb-2">
+          {[1, 2, 3, 4, 5].map((value) => (
+            <Star
+              key={value}
+              size={16}
+              className={value <= rating ? 'fill-amber-400 text-amber-400' : 'text-foreground-lighter'}
+            />
+          ))}
+          <span className="text-sm text-foreground-lighter ml-1">
+            {rating} / 5
+          </span>
+        </div>
+      )}
+      {comment && (
+        <p className="text-sm text-foreground whitespace-pre-wrap">{comment}</p>
+      )}
+    </div>
+  );
+}
+
 export function BookingsView({ model }) {
   const {
     searchTerm,
@@ -68,6 +127,8 @@ export function BookingsView({ model }) {
     setActionReason,
     replacementWorker,
     setReplacementWorker,
+    reassignWorkers,
+    loadingReassignWorkers,
     savingAction,
     confirm,
     closeConfirm,
@@ -205,11 +266,43 @@ export function BookingsView({ model }) {
               <TableSkeleton
                 rows={6}
                 columns={[
-                  {},
-                  {},
-                  {},
-                  {},
-                  {},
+                  {
+                    children: (
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-36" />
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-3 w-28" />
+                      </div>
+                    ),
+                  },
+                  {
+                    children: (
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-44" />
+                        <Skeleton className="h-3 w-32" />
+                        <Skeleton className="h-3 w-40" />
+                      </div>
+                    ),
+                  },
+                  {
+                    children: (
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    ),
+                  },
+                  {
+                    children: (
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                    ),
+                  },
+                  {
+                    children: <Skeleton className="h-6 w-16 rounded-full" />,
+                  },
                   { className: 'text-right' },
                 ]}
               />
@@ -514,6 +607,36 @@ export function BookingsView({ model }) {
               )}
             </div>
 
+            {/* Proof of work */}
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                Proof of Work
+              </h4>
+              {selectedBooking.proof === undefined ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-24 w-full rounded-lg" />
+                  <Skeleton className="h-24 w-full rounded-lg" />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <ProofGallery
+                    label="Worker proof"
+                    items={selectedBooking.proof.workerProof ?? []}
+                    failed={selectedBooking.proof.workerProof === null}
+                  />
+                  <WorkerProofSummary
+                    rating={selectedBooking.workerProofRating}
+                    comment={selectedBooking.workerProofComment}
+                  />
+                  <ProofGallery
+                    label="Customer proof"
+                    items={selectedBooking.proof.userProof ?? []}
+                    failed={selectedBooking.proof.userProof === null}
+                  />
+                </div>
+              )}
+            </div>
+
             {/* Booking event timeline */}
             <div className="border-t border-border pt-6">
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-6">
@@ -568,6 +691,7 @@ export function BookingsView({ model }) {
                   value={replacementWorker}
                   onChange={(event) => setReplacementWorker(event.target.value)}
                   aria-label="Matched worker"
+                  disabled={loadingReassignWorkers}
                 >
                   <SelectItem value="">Select a worker</SelectItem>
                   {action.booking.candidates?.map((candidate) => (
@@ -575,11 +699,26 @@ export function BookingsView({ model }) {
                       {candidate.name} · score {candidate.score.toFixed(1)}
                     </SelectItem>
                   ))}
+                  {reassignWorkers
+                    .filter(
+                      (worker) =>
+                        worker.id !== action.booking.workerId &&
+                        !action.booking.candidates?.some((candidate) => candidate.id === worker.id),
+                    )
+                    .map((worker) => (
+                      <SelectItem key={worker.id} value={worker.id}>
+                        {worker.name}
+                      </SelectItem>
+                    ))}
                 </Select>
-                {!action.booking.candidates?.length && (
-                  <p className="mt-1 text-xs text-destructive">
-                    No eligible match candidates are available.
-                  </p>
+                {loadingReassignWorkers ? (
+                  <p className="mt-1 text-xs text-foreground-light">Loading available workers…</p>
+                ) : (
+                  !action.booking.candidates?.length && !reassignWorkers.length && (
+                    <p className="mt-1 text-xs text-destructive">
+                      No available workers to reassign to.
+                    </p>
+                  )
                 )}
               </div>
             )}

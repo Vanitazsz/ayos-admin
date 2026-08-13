@@ -7,6 +7,7 @@ export {
 export { subscribe } from '../../../services/realtime';
 export {
   bulkSetWorkerVerification,
+  loadWorkerFinance,
   loadWorkerVerificationDocs,
   loadWorkers,
   reviewWorker,

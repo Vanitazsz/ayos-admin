@@ -34,6 +34,7 @@ export async function setAccountStatus(id, nextStatus) {
   if (error) throw error;
   invalidate('users');
   invalidate('workers');
+  invalidate('team');
   return data;
 }
 
@@ -45,6 +46,7 @@ export async function bulkSetAccountStatus(ids, nextStatus) {
   if (error) throw error;
   invalidate('users');
   invalidate('workers');
+  invalidate('team');
   return Number(data ?? 0);
 }
 

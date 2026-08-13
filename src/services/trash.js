@@ -6,15 +6,18 @@ const TYPE_TABS = {
   worker: 'Workers',
   booking: 'Bookings',
   payment: 'Bookings',
-  review: 'Reviews',
+  booking_proof: 'Reviews',
   industry: 'Industries',
   skill: 'Skills',
+  conversation: 'Conversations',
+  notification_campaign: 'Notifications',
+  report_export: 'Reports',
 };
 
 export const loadTrash = cacheable('trash', { ttl: 60_000 }, async () => {
   const { data, error } = await supabase
     .from('trash_entries')
-    .select('*')
+    .select('id,entity_type,entity_id,deleted_by,deleted_at,snapshot')
     .is('restored_at', null)
     .order('deleted_at', { ascending: false });
   if (error) throw error;
@@ -63,9 +66,17 @@ export const loadTrash = cacheable('trash', { ttl: 60_000 }, async () => {
   }
 
   const groups = Object.fromEntries(
-    ['Users', 'Workers', 'Bookings', 'Reviews', 'Industries', 'Skills'].map(
-      (tab) => [tab, []],
-    ),
+    [
+      'Users',
+      'Workers',
+      'Bookings',
+      'Reviews',
+      'Industries',
+      'Skills',
+      'Conversations',
+      'Notifications',
+      'Reports',
+    ].map((tab) => [tab, []]),
   );
   for (const row of rows) {
     const type = status(row.entity_type);
@@ -211,5 +222,99 @@ export async function hardDeleteSkillFromTrash(id) {
   if (error) throw error;
   invalidate('trash');
   invalidate('catalog');
+  return data;
+}
+
+export async function restoreConversationFromTrash(id) {
+  const { data, error } = await supabase.rpc('admin_restore_conversation_from_trash', {
+    p_trash_id: id,
+  });
+  if (error) throw error;
+  invalidate('trash');
+  invalidate('messages');
+  return data;
+}
+
+export async function hardDeleteConversationFromTrash(id, entityId) {
+  const { data, error } = await supabase.rpc(
+    'admin_hard_delete_conversation_from_trash',
+    {
+      p_trash_id: id,
+      p_confirmation: `DELETE ${entityId}`,
+    },
+  );
+  if (error) throw error;
+  invalidate('trash');
+  invalidate('messages');
+  return data;
+}
+
+export async function restoreNotificationCampaignFromTrash(id) {
+  const { data, error } = await supabase.rpc(
+    'admin_restore_notification_campaign_from_trash',
+    { p_trash_id: id },
+  );
+  if (error) throw error;
+  invalidate('trash');
+  invalidate('notifications');
+  return data;
+}
+
+export async function hardDeleteNotificationCampaignFromTrash(id, entityId) {
+  const { data, error } = await supabase.rpc(
+    'admin_hard_delete_notification_campaign_from_trash',
+    {
+      p_trash_id: id,
+      p_confirmation: `DELETE ${entityId}`,
+    },
+  );
+  if (error) throw error;
+  invalidate('trash');
+  invalidate('notifications');
+  return data;
+}
+
+export async function restoreReportExportFromTrash(id) {
+  const { data, error } = await supabase.rpc('admin_restore_report_export_from_trash', {
+    p_trash_id: id,
+  });
+  if (error) throw error;
+  invalidate('trash');
+  invalidate('reports');
+  return data;
+}
+
+export async function hardDeleteReportExportFromTrash(id, entityId) {
+  const { data, error } = await supabase.rpc('admin_hard_delete_report_export_from_trash', {
+    p_trash_id: id,
+    p_confirmation: `DELETE ${entityId}`,
+  });
+  if (error) throw error;
+  invalidate('trash');
+  invalidate('reports');
+  return data;
+}
+
+export async function restoreBookingProofFromTrash(id) {
+  const { data, error } = await supabase.rpc('admin_restore_booking_proof_from_trash', {
+    p_trash_id: id,
+  });
+  if (error) throw error;
+  invalidate('trash');
+  invalidate('proof-of-work');
+  return data;
+}
+
+export async function hardDeleteBookingProofFromTrash(id, entityId) {
+  const { data, error } = await supabase.rpc(
+    'admin_hard_delete_booking_proof_from_trash',
+    {
+      p_trash_id: id,
+      p_confirmation: `DELETE ${entityId}`,
+    },
+  );
+  if (error) throw error;
+  invalidate('trash');
+  invalidate('proof-of-work');
   return data;
 }

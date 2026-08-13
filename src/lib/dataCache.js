@@ -9,7 +9,6 @@ const SCOPE_TO_TABLES = {
   bookings: ['bookings', 'booking_status_events'],
   payments: ['payments'],
   workers: ['worker_profiles', 'worker_verifications'],
-  reviews: ['reviews'],
   support: ['support_tickets', 'account_reports', 'booking_disputes'],
   trash: ['trash_entries'],
   notifications: ['notifications', 'notification_campaigns'],
@@ -70,6 +69,8 @@ const hashKey = (text) => {
 
 const fullKey = (scope, args, subkey = '') =>
   `${STORAGE_PREFIX}:${currentUserId}:${scope}:${subkey}:${hashKey(stableKey(args))}`;
+
+export const cacheKey = fullKey;
 
 const isFresh = (entry, now) =>
   entry && entry.at > 0 && now - entry.at < entry.ttl;

@@ -4,6 +4,7 @@ import {
   generateReport,
   loadReportPage,
   loadReportStats,
+  moveReportToTrash,
 } from '../logic/ReportsPageLogic';
 import { useCallback, useMemo, useState } from 'react';
 import { FileText, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
@@ -162,6 +163,30 @@ export function useReportsPageController() {
     [pagination.rows, toast],
   );
 
+  const [trashTarget, setTrashTarget] = useState(null);
+
+  const handleMoveToTrash = useCallback(
+    (id) => {
+      const report = pagination.rows.find((item) => item.id === id);
+      if (report) setTrashTarget(report);
+    },
+    [pagination.rows],
+  );
+
+  const closeTrashConfirm = useCallback(() => setTrashTarget(null), []);
+
+  const confirmTrashMove = useCallback(async () => {
+    if (!trashTarget) return;
+    try {
+      await moveReportToTrash(trashTarget.id);
+      setTrashTarget(null);
+      toast.success('Report moved to trash', 'You can restore or permanently delete it from the Trash page.');
+      refreshAll();
+    } catch (error) {
+      toast.error('Move to trash failed', error instanceof Error ? error.message : 'Please try again.');
+    }
+  }, [trashTarget, toast, refreshAll]);
+
   return {
     stats,
     isStatsLoading,
@@ -182,6 +207,10 @@ export function useReportsPageController() {
     pageWindow: pagination.pageWindow,
     handleDownload,
     handleRetry,
+    trashTarget,
+    handleMoveToTrash,
+    closeTrashConfirm,
+    confirmTrashMove,
     reportTypes: REPORT_TYPES,
     isGeneratorOpen,
     openGenerator,

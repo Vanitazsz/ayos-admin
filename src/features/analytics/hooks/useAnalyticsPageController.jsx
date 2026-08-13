@@ -93,7 +93,7 @@ export function useAnalyticsPageController() {
 
   useEffect(() => {
     void refresh();
-    return subscribe('payments', refresh);
+    return subscribe('payments', refresh, { debounceMs: 5000 });
   }, [refresh]);
 
   return {

@@ -158,31 +158,43 @@ export function useMessagesPageController() {
     [refresh, toast, user?.id],
   );
 
+  const isBookingActive = useCallback((conversation) => {
+    const status = conversation?.bookingStatus;
+    return Boolean(status) && !['COMPLETED', 'CANCELLED'].includes(status);
+  }, []);
+
   const handleDelete = useCallback(
     (conversation) => {
+      if (isBookingActive(conversation)) {
+        toast.error(
+          'Cannot delete conversation',
+          'This conversation is linked to an active booking. The booking must be completed or cancelled before it can be moved to trash.',
+        );
+        return;
+      }
       setConfirm({
         isOpen: true,
-        title: 'Delete Conversation',
-        message: `Permanently delete the conversation between ${conversation.customerName} and ${conversation.workerName || 'the worker'}? This removes the thread and all ${conversation.messageCount} message(s). This cannot be undone.`,
-        confirmLabel: 'Delete',
+        title: 'Move Conversation to Trash',
+        message: `Move the conversation between ${conversation.customerName} and ${conversation.workerName || 'the worker'} to trash? It will be hidden from both parties and can be restored or permanently deleted from the Trash page.`,
+        confirmLabel: 'Move to Trash',
         variant: 'danger',
-        requireTypedText: 'DELETE',
+        requireTypedText: null,
         onConfirm: async () => {
           try {
             await deleteConversation(conversation.id);
-            toast.success('Conversation deleted');
+            toast.success('Conversation moved to trash');
             await refresh();
             if (selectedConversation?.id === conversation.id) {
               setIsThreadOpen(false);
               setSelectedConversation(null);
             }
           } catch (err) {
-            toast.error('Delete failed', err.message);
+            toast.error('Move to trash failed', err.message);
           }
         },
       });
     },
-    [refresh, toast, selectedConversation],
+    [refresh, toast, selectedConversation, isBookingActive],
   );
 
   return {
@@ -212,5 +224,6 @@ export function useMessagesPageController() {
     handleViewThread,
     handleToggle,
     handleDelete,
+    isBookingActive,
   };
 }

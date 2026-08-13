@@ -1,6 +1,7 @@
 import {
   bulkSetWorkerStatus,
   bulkSetWorkerVerification,
+  loadWorkerFinance,
   loadWorkerVerificationDocs,
   loadWorkers,
   reviewWorker,
@@ -57,7 +58,10 @@ export function useWorkersPageController() {
     onConfirm: () => {},
   });
   const isBulkLoading = bulkAction !== null;
-  const { schedule, mark } = useDebouncedRefresh();
+  const { schedule, mark } = useDebouncedRefresh({
+    debounceMs: 5000,
+    cooldownMs: 6000,
+  });
 
   const refresh = useCallback(async () => {
     try {
@@ -150,8 +154,40 @@ export function useWorkersPageController() {
     currentPage,
     setCurrentPage,
     totalPages,
-    pageData: paginatedWorkers,
+    pageData: pageRows,
   } = usePagination(filteredWorkers, 10);
+
+  const [finance, setFinance] = useState(new Map());
+
+  useEffect(() => {
+    const ids = pageRows.map((worker) => worker.id);
+    let cancelled = false;
+    void loadWorkerFinance(ids)
+      .then((statsById) => {
+        if (!cancelled) setFinance(statsById);
+      })
+      .catch(() => {
+        if (!cancelled) setFinance(new Map());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pageRows]);
+
+  const paginatedWorkers = useMemo(
+    () =>
+      pageRows.map((worker) => {
+        const stats = finance.get(worker.id);
+        if (!stats) return worker;
+        return {
+          ...worker,
+          rating:
+            stats.rating != null ? Number(stats.rating).toFixed(1) : worker.rating,
+          earnings: stats.earnings ?? worker.earnings,
+        };
+      }),
+    [pageRows, finance],
+  );
 
   const stats = useMemo(
     () => [

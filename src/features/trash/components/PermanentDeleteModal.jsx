@@ -4,8 +4,17 @@ import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 
 const IMPACT = {
-  Booking: 'the linked service request, payments, refunds, receipts, reviews, conversations, wallet transactions, and all related records.',
+  Booking: 'the linked service request, payments, refunds, receipts, conversations, wallet transactions, and all related records.',
   Payment: 'its refunds, receipts, and all related records.',
+  Conversation: 'its message thread, attachments, translations, and participant records.',
+  'Booking Proof': "its proof photos and the worker's rating/comment on the booking.",
+};
+
+const TITLES = {
+  Booking: 'Permanently delete booking',
+  Payment: 'Permanently delete payment',
+  Conversation: 'Permanently delete conversation',
+  'Booking Proof': 'Permanently delete proof of work',
 };
 
 const PermanentDeleteModal = ({ item, onClose, onDelete, onDeleted }) => {
@@ -13,7 +22,6 @@ const PermanentDeleteModal = ({ item, onClose, onDelete, onDeleted }) => {
   const [error, setError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const isBooking = item?.type === 'Booking';
   const shortCode = item?.entityId?.slice(0, 8);
   const matches =
     confirmation.trim().toLowerCase() === String(shortCode ?? '').toLowerCase();
@@ -37,7 +45,7 @@ const PermanentDeleteModal = ({ item, onClose, onDelete, onDeleted }) => {
     <Modal
       isOpen={Boolean(item)}
       onClose={isDeleting ? () => {} : onClose}
-      title={isBooking ? 'Permanently delete booking' : 'Permanently delete payment'}
+      title={TITLES[item?.type] ?? 'Permanently delete item'}
     >
       <div className="space-y-4">
         <div className="flex gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
@@ -46,7 +54,7 @@ const PermanentDeleteModal = ({ item, onClose, onDelete, onDeleted }) => {
             <p className="font-semibold text-destructive">This action cannot be undone.</p>
             <p className="mt-1 text-sm text-destructive-600 dark:text-destructive-400">
               Permanently deleting <span className="font-semibold">{item?.item}</span> also
-              removes {IMPACT[isBooking ? 'Booking' : 'Payment']}
+              removes {IMPACT[item?.type]}
             </p>
           </div>
         </div>

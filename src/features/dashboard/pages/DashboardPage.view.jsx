@@ -509,7 +509,33 @@ export function DashboardView({ model }) {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableSkeleton rows={4} columns={[{}, {}, {}, { className: 'text-right' }]} />
+                    <TableSkeleton
+                      rows={4}
+                      columns={[
+                        {
+                          children: (
+                            <div className="flex items-center">
+                              <Skeleton className="w-8 h-8 rounded-full mr-3 shrink-0" />
+                              <div className="space-y-2">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-3 w-24" />
+                              </div>
+                            </div>
+                          ),
+                        },
+                        {},
+                        {},
+                        {
+                          className: 'text-right',
+                          children: (
+                            <div className="flex justify-end space-x-2">
+                              <Skeleton className="h-8 w-8 rounded-lg" />
+                              <Skeleton className="h-8 w-8 rounded-lg" />
+                            </div>
+                          ),
+                        },
+                      ]}
+                    />
                   ) : pendingWorkers.length > 0 ? (
                     pendingWorkers.map((worker) => (
                       <TableRow key={worker.id}>

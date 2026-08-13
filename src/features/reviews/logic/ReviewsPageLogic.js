@@ -1,7 +1,9 @@
+// Logic keeps actions lean so they can be shared by the controller.
 export {
-  loadReviews,
-  moderateReview,
-  resolveReviewMedia,
-  moveReviewToTrash,
-} from '../../../services/reviews';
+  loadProofOfWork,
+  resolveProofMedia,
+  hasWorkerProof,
+  hasCustomerProof,
+  moveBookingProofToTrash,
+} from '../../../services/proofOfWork';
 export { subscribe } from '../../../services/realtime';

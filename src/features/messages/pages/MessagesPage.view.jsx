@@ -1,4 +1,5 @@
 import {
+  AlertCircle,
   Ban,
   Briefcase,
   Clock,
@@ -18,6 +19,7 @@ import Drawer from '../../../components/ui/Drawer';
 import Pagination from '../../../components/ui/Pagination';
 import StatCard from '../../../components/ui/StatCard';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import Skeleton from '../../../components/ui/Skeleton';
 import Select, { SelectItem } from '../../../components/ui/Select';
 import Button from '../../../components/ui/Button';
 import EmptyState from '../../../components/ui/EmptyState';
@@ -128,6 +130,7 @@ export function MessagesView({ model }) {
     handleViewThread,
     handleToggle,
     handleDelete,
+    isBookingActive,
   } = model;
 
   const lastMessageSenderName = (conversation) => {
@@ -223,7 +226,32 @@ export function MessagesView({ model }) {
             {isLoading ? (
               <TableSkeleton
                 rows={6}
-                columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]}
+                columns={[
+                  {
+                    children: (
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-36" />
+                        <Skeleton className="h-3 w-28" />
+                      </div>
+                    ),
+                  },
+                  {
+                    children: (
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-44" />
+                        <Skeleton className="h-3 w-28" />
+                      </div>
+                    ),
+                  },
+                  {
+                    children: <Skeleton className="h-6 w-10 rounded-md" />,
+                  },
+                  {
+                    children: <Skeleton className="h-6 w-16 rounded-full" />,
+                  },
+                  {},
+                  { className: 'text-right' },
+                ]}
               />
             ) : conversations.length > 0 ? (
               conversations.map((conversation) => {
@@ -273,6 +301,14 @@ export function MessagesView({ model }) {
                       >
                         {conversationStatusLabel(conversation)}
                       </span>
+                      {isBookingActive(conversation) && (
+                        <span
+                          title="Linked to an active booking — cannot be moved to trash until the booking is completed or cancelled"
+                          className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-destructive/10 text-destructive"
+                        >
+                          <AlertCircle size={12} className="mr-1" /> Active booking
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-foreground-lighter">
                       {formatActivity(lastActivityAt(conversation))}
@@ -309,9 +345,10 @@ export function MessagesView({ model }) {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onSelect={() => handleDelete(conversation)}
-                                className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
+                                disabled={isBookingActive(conversation)}
+                                className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                <Trash2 className="mr-2" /> Delete
+                                <Trash2 className="mr-2" /> Move to Trash
                               </DropdownMenuItem>
                             </>
                           )}
@@ -373,8 +410,9 @@ export function MessagesView({ model }) {
                 size="sm"
                 className="flex-1"
                 onClick={() => handleDelete(selectedConversation)}
+                disabled={isBookingActive(selectedConversation)}
               >
-                <Trash2 /> Delete
+                <Trash2 /> Move to Trash
               </Button>
             </div>
           ) : null
@@ -382,6 +420,15 @@ export function MessagesView({ model }) {
       >
         {selectedConversation ? (
           <div className="space-y-6">
+            {isBookingActive(selectedConversation) && (
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                <span>
+                  This conversation is linked to an active booking. It cannot be moved to
+                  trash until the booking is completed or cancelled.
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-4 rounded-xl bg-surface-200 p-4">
               <div className="flex items-center gap-3">
                 <div className="flex size-9 items-center justify-center rounded-full bg-brand-500/10">

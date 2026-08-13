@@ -1,14 +1,8 @@
 import { supabase } from '../lib/supabase';
+import { cacheable, invalidate } from '../lib/cacheable';
+import { getSignedUrl } from '../lib/signedUrlCache';
 
-async function signedAvatar(path) {
-  if (!path) return '';
-  if (/^https?:\/\//i.test(path)) return path;
-  const { data, error } = await supabase.storage.from('profile-avatars').createSignedUrl(path, 3600);
-  if (error) throw error;
-  return data.signedUrl;
-}
-
-export async function loadAdminProfile() {
+async function loadAdminProfileRaw() {
   const [{ data, error }, { data: sessionData }, { data: factors, error: factorError }] = await Promise.all([
     supabase.rpc('get_my_profile'),
     supabase.auth.getSession(),
@@ -17,7 +11,7 @@ export async function loadAdminProfile() {
   if (error) throw error;
   if (factorError) throw factorError;
   if (!data?.account || !data.profile?.display_name) throw new Error('Administrator profile is missing');
-  const { data: events, error: eventError } = await supabase.from('authentication_events').select('*').eq('account_id', data.account.id).order('created_at', { ascending: false }).limit(50);
+  const { data: events, error: eventError } = await supabase.from('authentication_events').select('id,event_type,ip_address,user_agent,created_at').eq('account_id', data.account.id).order('created_at', { ascending: false }).limit(50);
   if (eventError) throw eventError;
   return {
     id: data.account.id,
@@ -30,7 +24,7 @@ export async function loadAdminProfile() {
     location: data.profile.location ?? '',
     bio: data.profile.bio ?? '',
     avatarPath: data.profile.avatar_path ?? null,
-    avatarUri: await signedAvatar(data.profile.avatar_path),
+    avatarUri: await getSignedUrl('profile-avatars', data.profile.avatar_path),
     joined: data.account.created_at,
     passwordChangedAt: data.account.password_changed_at ?? null,
     profileComplete: Boolean(data.profile_complete),
@@ -40,6 +34,8 @@ export async function loadAdminProfile() {
     authenticationEvents: events ?? [],
   };
 }
+
+export const loadAdminProfile = cacheable('profile', { ttl: 60_000 }, loadAdminProfileRaw);
 
 export async function saveAdminProfile(input, currentEmail) {
   if (input.email.trim().toLowerCase() !== currentEmail.toLowerCase()) {
@@ -56,6 +52,7 @@ export async function saveAdminProfile(input, currentEmail) {
     p_family_name: input.familyName.trim() || null,
   });
   if (error) throw error;
+  invalidate('profile');
   return loadAdminProfile();
 }
 
@@ -73,6 +70,7 @@ export async function uploadAdminAvatar(file) {
     await supabase.storage.from('profile-avatars').remove([path]);
     throw profileError;
   }
+  invalidate('profile');
   return loadAdminProfile();
 }
 
@@ -89,6 +87,7 @@ export async function changeAdminPassword(password) {
   if (error) throw error;
   const { error: recordError } = await supabase.rpc('record_my_password_change');
   if (recordError) throw recordError;
+  invalidate('profile');
 }
 
 export function describeUserAgent(value) {

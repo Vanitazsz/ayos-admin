@@ -1,6 +1,7 @@
 import {
   loadSafetyCases,
   loadSupport,
+  loadSupportMessages,
   sendSupportReply,
   updateSupport,
 } from '../logic/SupportPageLogic';
@@ -22,6 +23,7 @@ export function useSupportPageController() {
   const [filterStatus, setFilterStatus] = useState('All');
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [safetyCases, setSafetyCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -104,9 +106,24 @@ export function useSupportPageController() {
     return 'bg-brand-500/10 text-brand-700 dark:text-brand-300';
   };
   const getStatusColor = (status) => badgeFor(SUPPORT_STATUS_BADGE, status);
-  const openTicket = (ticket) => {
+  const openTicket = async (ticket) => {
     setSelectedTicket(ticket);
     setIsDrawerOpen(true);
+    if (!ticket.messages?.length) {
+      setIsMessagesLoading(true);
+      try {
+        const messages = await loadSupportMessages(ticket.id);
+        setSelectedTicket((current) =>
+          current ? { ...current, messages } : current,
+        );
+      } catch {
+        setSelectedTicket((current) =>
+          current ? { ...current, messages: [] } : current,
+        );
+      } finally {
+        setIsMessagesLoading(false);
+      }
+    }
   };
   const handleSendReply = async () => {
     if (!replyText.trim()) return;
@@ -161,6 +178,7 @@ export function useSupportPageController() {
     setCurrentPage,
     selectedTicket,
     isLoading,
+    isMessagesLoading,
     isDrawerOpen,
     setIsDrawerOpen,
     replyText,

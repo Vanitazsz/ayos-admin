@@ -1,10 +1,35 @@
-import { Bell, Send, Filter, Search, Trash2 } from 'lucide-react';
+import {
+  Bell,
+  Send,
+  Filter,
+  Search,
+  Trash2,
+  MoreVertical,
+  Eye,
+  Pencil,
+  Users,
+  Calendar,
+  Clock,
+} from 'lucide-react';
 import Modal from '../../../components/ui/Modal';
+import Drawer from '../../../components/ui/Drawer';
 import Select, { SelectItem } from '../../../components/ui/Select';
 import Pagination from '../../../components/ui/Pagination';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import Skeleton from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import DateFilter from '../../../components/ui/DateFilter';
+import Button from '../../../components/ui/Button';
+import Input from '../../../components/ui/Input';
+import Textarea from '../../../components/ui/Textarea';
+import EmptyState from '../../../components/ui/EmptyState';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../../components/ui/DropdownMenu';
 import {
   Table,
   TableHeader,
@@ -14,28 +39,43 @@ import {
   TableCell,
 } from '../../../components/ui/Table';
 
+const formatActivity = (value) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
+};
+
 export function NotificationsView({ model }) {
   const {
     isLoading,
     error,
     searchTerm,
     setSearchTerm,
-    filterType,
-    setFilterType,
+    filterStatus,
+    setFilterStatus,
     dateFilter,
     currentPage,
     setCurrentPage,
     isModalOpen,
     setIsModalOpen,
+    editingCampaign,
     campaign,
     setCampaign,
+    selectedCampaign,
+    isDetailsOpen,
     filteredNotifs,
     totalPages,
     paginatedNotifs,
     stats,
-    getTypeIcon,
+    confirm,
+    closeConfirm,
     getStatusColor,
-    handleDelete,
+    handleCreateNew,
+    handleEditDraft,
+    handleViewDetails,
+    handleCloseDetails,
+    handleMoveToTrash,
+    handlePublish,
     saveCampaign,
   } = model;
   return (
@@ -45,12 +85,12 @@ export function NotificationsView({ model }) {
           <h1 className="text-2xl font-bold text-foreground">Notifications Engine</h1>
           <p className="text-foreground-lighter mt-1">Manage email, SMS, and push notification campaigns</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="mt-4 sm:mt-0 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center"
+        <Button
+          onClick={handleCreateNew}
+          className="mt-4 sm:mt-0"
         >
-          <Bell size={18} className="mr-2" /> Create Notification
-        </button>
+          <Bell size={18} /> Create Notification
+        </Button>
       </div>
       {error && (
         <div
@@ -83,19 +123,20 @@ export function NotificationsView({ model }) {
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
           <DateFilter model={dateFilter} />
-          <Filter size={18} className="text-foreground-lighter" />
-          <Select
-            icon={Filter}
-            aria-label="Filter by channel"
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="w-full flex-1 sm:w-auto sm:flex-none"
-          >
-            <SelectItem value="All">All Channels</SelectItem>
-            <SelectItem value="Email">Email</SelectItem>
-            <SelectItem value="SMS">SMS</SelectItem>
-            <SelectItem value="Push">Push Notification</SelectItem>
-          </Select>
+          <div className="w-full sm:w-44">
+            <Select
+              icon={Filter}
+              aria-label="Filter campaigns by status"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <SelectItem value="All">All Statuses</SelectItem>
+              <SelectItem value="Sent">Sent</SelectItem>
+              <SelectItem value="Scheduled">Scheduled</SelectItem>
+              <SelectItem value="Draft">Draft</SelectItem>
+              <SelectItem value="Failed">Failed</SelectItem>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -105,7 +146,6 @@ export function NotificationsView({ model }) {
             <TableRow>
               <TableHead scope="col">Campaign Details</TableHead>
               <TableHead scope="col">Target Audience</TableHead>
-              <TableHead scope="col">Channel</TableHead>
               <TableHead scope="col">Status / Date</TableHead>
               <TableHead scope="col" className="text-right">Actions</TableHead>
             </TableRow>
@@ -114,14 +154,25 @@ export function NotificationsView({ model }) {
             {isLoading ? (
               <TableSkeleton
                 rows={6}
-                columns={[{}, {}, {}, {}, { className: 'text-right' }]}
+                columns={[
+                  {},
+                  {},
+                  {
+                    children: <Skeleton className="h-5 w-16 rounded" />,
+                  },
+                  { className: 'text-right' },
+                ]}
               />
             ) : paginatedNotifs.length > 0 ? (
               paginatedNotifs.map((n) => (
-                <TableRow key={n.id}>
+                <TableRow
+                  key={n.id}
+                  onClick={() => handleViewDetails(n)}
+                  className="cursor-pointer"
+                >
                   <TableCell className="whitespace-nowrap">
                     <div className="text-sm font-bold text-foreground">{n.title}</div>
-                    <div className="text-xs text-foreground-lighter">{n.id}</div>
+                    <div className="text-xs text-foreground-lighter">{n.date}</div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="text-sm text-foreground">{n.audience}</div>
@@ -132,36 +183,56 @@ export function NotificationsView({ model }) {
                     )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    <div className="flex items-center text-sm text-foreground-light bg-surface-200 px-2 py-1 rounded inline-flex">
-                      {getTypeIcon(n.type)}
-                      <span className="ml-2 font-medium">{n.type}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
                     <span
                       className={`inline-flex px-2 py-0.5 rounded text-xs font-medium mb-1 ${getStatusColor(n.status)}`}
                     >
                       {n.status}
                     </span>
-                    <div className="text-xs text-foreground-lighter">{n.date}</div>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-right font-medium">
-                    <div className="flex justify-end space-x-2">
-                      <button
-                        onClick={() => handleDelete(n.id)}
-                        className="text-foreground-muted hover:text-destructive p-1 rounded-lg hover:bg-destructive/10 transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+                  <TableCell className="whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          aria-label={`Open actions for ${n.title}`}
+                          className="inline-flex items-center justify-center rounded-full p-1.5 text-foreground-muted transition-colors hover:bg-surface-200 hover:text-foreground"
+                        >
+                          <MoreVertical size={20} />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onSelect={() => handleViewDetails(n)}
+                          className="cursor-pointer"
+                        >
+                          <Eye className="mr-2" /> More Details
+                        </DropdownMenuItem>
+                        {n.status === 'Draft' && (
+                          <DropdownMenuItem
+                            onSelect={() => handleEditDraft(n)}
+                            className="cursor-pointer"
+                          >
+                            <Pencil className="mr-2" /> Edit Draft
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          onSelect={() => handleMoveToTrash(n.id, n.title)}
+                          className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
+                        >
+                          <Trash2 className="mr-2" /> Move to Trash
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow hover={false}>
-                <TableCell colSpan="5" className="py-12 text-center text-foreground-lighter">
-                  No notifications found.
+                <TableCell colSpan="4" className="p-0">
+                  <EmptyState
+                    icon={Bell}
+                    title="No notifications found"
+                    description="No notifications match your current filters."
+                  />
                 </TableCell>
               </TableRow>
             )}
@@ -180,75 +251,164 @@ export function NotificationsView({ model }) {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Create New Notification"
+        title={editingCampaign ? 'Edit Notification' : 'Create New Notification'}
         maxWidth="max-w-2xl"
       >
         <form className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground-light mb-1">Campaign Title</label>
-            <input
-              type="text"
-              value={campaign.title}
-              onChange={(event) => setCampaign({ ...campaign, title: event.target.value })}
-              className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring"
-              placeholder="e.g. Service update"
-            />
-          </div>
+          <Input
+            label="Campaign Title"
+            value={campaign.title}
+            onChange={(event) => setCampaign({ ...campaign, title: event.target.value })}
+            placeholder="e.g. Service update"
+          />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <Select
-                label="Target Audience"
-                value={campaign.audience}
-                onChange={(event) => setCampaign({ ...campaign, audience: event.target.value })}
-              >
-                <SelectItem value="EVERYONE">All Users</SelectItem>
-                <SelectItem value="WORKERS">Workers Only</SelectItem>
-                <SelectItem value="USERS">Customers Only</SelectItem>
-              </Select>
-            </div>
-            <div>
-              <Select label="Channel" value="In-App">
-                <SelectItem value="In-App">In-App</SelectItem>
-                <SelectItem value="Push" disabled>Push (Unavailable)</SelectItem>
-                <SelectItem value="SMS" disabled>SMS (Unavailable)</SelectItem>
-              </Select>
-            </div>
+            <Select
+              label="Target Audience"
+              value={campaign.audience}
+              onChange={(event) => setCampaign({ ...campaign, audience: event.target.value })}
+            >
+              <SelectItem value="EVERYONE">All Users</SelectItem>
+              <SelectItem value="WORKERS">Workers Only</SelectItem>
+              <SelectItem value="USERS">Customers Only</SelectItem>
+            </Select>
+            <Select label="Channel" value="In-App" disabled>
+              <SelectItem value="In-App">In-App</SelectItem>
+              <SelectItem value="Push">Push</SelectItem>
+              <SelectItem value="SMS">SMS</SelectItem>
+            </Select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground-light mb-1">Message Content</label>
-            <textarea
-              rows={4}
-              value={campaign.message}
-              onChange={(event) => setCampaign({ ...campaign, message: event.target.value })}
-              className="w-full border border-border-strong rounded-lg px-3 py-2 focus-ring"
-              placeholder="Type your message here..."
-            ></textarea>
-          </div>
+          <Textarea
+            label="Message Content"
+            rows={4}
+            value={campaign.message}
+            onChange={(event) => setCampaign({ ...campaign, message: event.target.value })}
+            placeholder="Type your message here..."
+          />
           <div className="pt-4 border-t border-border flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <button
+            <Button
               type="button"
+              variant="default"
               onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 border border-border-strong rounded-lg text-sm font-medium text-foreground-light"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="default"
               onClick={() => void saveCampaign(false)}
-              className="px-4 py-2 border border-border-strong rounded-lg text-sm font-medium text-foreground-light"
             >
               Save as Draft
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="primary"
               onClick={() => void saveCampaign(true)}
-              className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium flex items-center"
             >
-              <Send size={16} className="mr-2" /> Send Now
-            </button>
+              <Send size={16} /> Send Now
+            </Button>
           </div>
         </form>
       </Modal>
+
+      <Drawer
+        isOpen={isDetailsOpen}
+        onClose={handleCloseDetails}
+        title="Campaign Details"
+        width="max-w-xl"
+        footer={
+          selectedCampaign &&
+          (selectedCampaign.status === 'Draft' || selectedCampaign.status === 'Scheduled') ? (
+            <Button
+              variant="primary"
+              onClick={() => handlePublish(selectedCampaign)}
+            >
+              <Send size={16} /> Submit Notif
+            </Button>
+          ) : null
+        }
+      >
+        {selectedCampaign ? (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <h3 className="text-lg font-semibold text-foreground break-words">
+                  {selectedCampaign.title}
+                </h3>
+                <span
+                  className={`mt-2 inline-flex px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(selectedCampaign.status)}`}
+                >
+                  {selectedCampaign.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-100 px-3 py-2.5">
+                <Users size={16} className="shrink-0 text-foreground-lighter" />
+                <div className="min-w-0">
+                  <div className="text-xs text-foreground-lighter">Audience</div>
+                  <div className="text-sm font-medium text-foreground truncate">
+                    {selectedCampaign.audience}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-100 px-3 py-2.5">
+                <Calendar size={16} className="shrink-0 text-foreground-lighter" />
+                <div className="min-w-0">
+                  <div className="text-xs text-foreground-lighter">Created</div>
+                  <div className="text-sm font-medium text-foreground truncate">
+                    {formatActivity(selectedCampaign.created_at)}
+                  </div>
+                </div>
+              </div>
+              {selectedCampaign.status === 'Sent' && (
+                <>
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-100 px-3 py-2.5">
+                    <Clock size={16} className="shrink-0 text-foreground-lighter" />
+                    <div className="min-w-0">
+                      <div className="text-xs text-foreground-lighter">Sent</div>
+                      <div className="text-sm font-medium text-foreground truncate">
+                        {formatActivity(selectedCampaign.sent_at)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-100 px-3 py-2.5">
+                    <Send size={16} className="shrink-0 text-success" />
+                    <div className="min-w-0">
+                      <div className="text-xs text-foreground-lighter">Open Rate</div>
+                      <div className="text-sm font-medium text-foreground truncate">
+                        {selectedCampaign.openRate}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div>
+              <div className="mb-1.5 text-xs font-medium uppercase tracking-wide text-foreground-lighter">
+                Message
+              </div>
+              <div className="whitespace-pre-wrap break-words rounded-lg border border-border bg-surface-100 p-4 text-sm leading-relaxed text-foreground">
+                {selectedCampaign.message || '—'}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-foreground-lighter">No campaign selected.</p>
+        )}
+      </Drawer>
+
+      <ConfirmModal
+        isOpen={confirm.isOpen}
+        onClose={closeConfirm}
+        title={confirm.title}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        confirmLabel={confirm.confirmLabel}
+        variant={confirm.variant}
+        requireTypedText={confirm.requireTypedText}
+      />
     </div>
   );
 }

@@ -8,11 +8,19 @@ import {
   restorePaymentFromTrash,
   restoreIndustryFromTrash,
   restoreSkillFromTrash,
+  restoreConversationFromTrash,
+  restoreNotificationCampaignFromTrash,
   hardDeleteAccountFromTrash,
   hardDeleteBookingFromTrash,
   hardDeletePaymentFromTrash,
   hardDeleteIndustryFromTrash,
   hardDeleteSkillFromTrash,
+  hardDeleteConversationFromTrash,
+  hardDeleteNotificationCampaignFromTrash,
+  restoreReportExportFromTrash,
+  hardDeleteReportExportFromTrash,
+  restoreBookingProofFromTrash,
+  hardDeleteBookingProofFromTrash,
 } from '../logic/TrashPageLogic';
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -84,6 +92,13 @@ export function useTrashPageController() {
       await restoreAccountFromTrash(item.id);
     else if (item.type === 'Booking') await restoreBookingFromTrash(item.id);
     else if (item.type === 'Payment') await restorePaymentFromTrash(item.id);
+    else if (item.type === 'Conversation')
+      await restoreConversationFromTrash(item.id);
+    else if (item.type === 'Notification Campaign')
+      await restoreNotificationCampaignFromTrash(item.id);
+    else if (item.type === 'Report Export')
+      await restoreReportExportFromTrash(item.id);
+    else if (item.type === 'Booking Proof') await restoreBookingProofFromTrash(item.id);
     else await restoreTrash(item.id);
   };
 
@@ -96,6 +111,14 @@ export function useTrashPageController() {
       await hardDeleteBookingFromTrash(item.id, item.entityId);
     else if (item.type === 'Payment')
       await hardDeletePaymentFromTrash(item.id, item.entityId);
+    else if (item.type === 'Conversation')
+      await hardDeleteConversationFromTrash(item.id, item.entityId);
+    else if (item.type === 'Notification Campaign')
+      await hardDeleteNotificationCampaignFromTrash(item.id, item.entityId);
+    else if (item.type === 'Report Export')
+      await hardDeleteReportExportFromTrash(item.id, item.entityId);
+    else if (item.type === 'Booking Proof')
+      await hardDeleteBookingProofFromTrash(item.id, item.entityId);
     else await permanentlyDeleteTrash(item.id, item.entityId);
   };
 
@@ -142,13 +165,13 @@ export function useTrashPageController() {
       });
       return;
     }
-    if (item.type === 'Booking' || item.type === 'Payment') {
+    if (item.type === 'Booking' || item.type === 'Payment' || item.type === 'Conversation' || item.type === 'Booking Proof') {
       setBookingToDelete(item);
       return;
     }
     const permanent =
       item.type === 'Industry' || item.type === 'Skill'
-        ? `Permanently delete "${item.item}" and ALL data tied to it (service requests, bookings, payments, receipts, reviews, wallet transactions)? This CANNOT be undone.`
+        ? `Permanently delete "${item.item}" and ALL data tied to it (service requests, bookings, payments, receipts, wallet transactions)? This CANNOT be undone.`
         : 'Permanently delete this item? This CANNOT be undone.';
     setConfirm({
       isOpen: true,
