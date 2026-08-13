@@ -6,9 +6,6 @@ import {
   Trash2,
   Ban,
   ShieldCheck,
-  ShieldOff,
-  CheckSquare,
-  CheckCheck,
   Mail,
   Phone,
   Eye,
@@ -16,9 +13,7 @@ import {
   Calendar,
   Clock,
   User,
-  UserCheck,
   ArrowLeft,
-  X,
   ArchiveRestore,
   MapPinned,
   Upload,
@@ -38,7 +33,6 @@ import {
 } from '../../../components/ui/Table';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
-import Checkbox from '../../../components/ui/Checkbox';
 import Textarea from '../../../components/ui/Textarea';
 import Pagination from '../../../components/ui/Pagination';
 import DateFilter from '../../../components/ui/DateFilter';
@@ -108,17 +102,6 @@ export function UsersView({ model }) {
     cancelVerificationEdit,
     handleSaveVerificationEdit,
     actionLoadingId,
-    selectedIds,
-    selectedCount,
-    isSelectionActive,
-    bulkAction,
-    isBulkLoading,
-    toggleSelectUser,
-    selectUser,
-    toggleSelectAll,
-    clearSelection,
-    handleBulkStatus,
-    handleBulkVerification,
     itemsPerPage,
     decide,
     reviewUserDocs,
@@ -232,82 +215,10 @@ export function UsersView({ model }) {
             </div>
           </CardHeader>
 
-          {isSelectionActive ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-brand-500/5 px-4 py-2.5">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-foreground">
-                  {selectedCount} selected
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearSelection}
-                  disabled={isBulkLoading}
-                >
-                  <X size={14} className="mr-1.5" /> Clear
-                </Button>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => void handleBulkStatus('SUSPENDED')}
-                  isLoading={isBulkLoading && bulkAction === 'SUSPENDED'}
-                  disabled={isBulkLoading && bulkAction !== 'SUSPENDED'}
-                >
-                  <Ban size={14} /> Suspend
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => void handleBulkStatus('ACTIVE')}
-                  isLoading={isBulkLoading && bulkAction === 'ACTIVE'}
-                  disabled={isBulkLoading && bulkAction !== 'ACTIVE'}
-                >
-                  <UserCheck size={14} /> Reactivate
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => void handleBulkVerification('verified')}
-                  isLoading={isBulkLoading && bulkAction === 'verified'}
-                  disabled={isBulkLoading && bulkAction !== 'verified'}
-                >
-                  <ShieldCheck size={14} /> Verify
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void handleBulkVerification('unverified')}
-                  isLoading={isBulkLoading && bulkAction === 'unverified'}
-                  disabled={isBulkLoading && bulkAction !== 'unverified'}
-                >
-                  <ShieldOff size={14} /> Unverify
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
           <div className="min-h-[400px]">
             <Table>
               <TableHeader>
                 <TableRow>
-                  {isSelectionActive ? (
-                    <TableHead scope="col" className="w-12 text-center">
-                      <div className="flex justify-center">
-                        <Checkbox
-                          aria-label="Select all users"
-                          checked={
-                            currentUsers.length > 0 &&
-                            currentUsers.every((user) => selectedIds.has(user.id))
-                              ? true
-                              : selectedCount > 0
-                                ? 'indeterminate'
-                                : false
-                          }
-                          onCheckedChange={() => toggleSelectAll(currentUsers)}
-                        />
-                      </div>
-                    </TableHead>
-                  ) : null}
                   <TableHead scope="col">User Details</TableHead>
                   <TableHead scope="col" className="hidden xl:table-cell">Location</TableHead>
                   <TableHead scope="col" className="hidden lg:table-cell">Contact</TableHead>
@@ -324,7 +235,6 @@ export function UsersView({ model }) {
                 {isLoading ? (
                   <TableSkeleton
                     rows={6}
-                    withSelect={isSelectionActive}
                     columns={[
                       {
                         children: (
@@ -363,7 +273,7 @@ export function UsersView({ model }) {
                   />
                 ) : currentUsers.length === 0 ? (
                   <TableRow hover={false}>
-                    <TableCell colSpan={isSelectionActive ? 9 : 8} className="h-64 text-center">
+                    <TableCell colSpan={8} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center text-foreground-lighter">
                         <Search className="h-12 w-12 text-foreground-muted mb-4" />
                         <p className="text-lg font-medium text-foreground">
@@ -384,17 +294,6 @@ export function UsersView({ model }) {
                       onClick={() => handleViewProfile(user)}
                       className={`cursor-pointer ${user.isTrashed ? 'opacity-55 grayscale' : ''}`}
                     >
-                      {isSelectionActive ? (
-                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-center">
-                            <Checkbox
-                              aria-label={`Select ${user.name}`}
-                              checked={selectedIds.has(user.id)}
-                              onCheckedChange={() => toggleSelectUser(user.id)}
-                            />
-                          </div>
-                        </TableCell>
-                      ) : null}
                       <TableCell>
                         <div className="flex items-center">
                           <div className="w-10 h-10 rounded-full bg-brand-500/10 text-brand-600 flex items-center justify-center font-bold text-sm shrink-0 mr-3">
@@ -475,18 +374,6 @@ export function UsersView({ model }) {
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem
-                              onSelect={() => selectUser(user.id)}
-                              className="cursor-pointer"
-                            >
-                              <CheckSquare className="mr-2" /> Select
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onSelect={() => toggleSelectAll(currentUsers)}
-                              className="cursor-pointer"
-                            >
-                              <CheckCheck className="mr-2" /> Select All
-                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onSelect={() => void handleViewProfile(user)}
                               className="cursor-pointer"
