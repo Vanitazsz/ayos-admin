@@ -1,5 +1,5 @@
 import { supabase, identity } from './adminShared';
-import { cacheable } from '../lib/cacheable';
+import { cacheable, invalidate } from '../lib/cacheable';
 import { getSignedUrls } from '../lib/signedUrlCache';
 
 const PROOF_CACHE_SCOPE = 'proof-of-work';
@@ -44,7 +44,20 @@ export const hasCustomerProof = (record) => record.customerPhotos.length > 0;
 export async function loadProofOfWorkRaw() {
   const { data: rows, error } = await supabase.rpc('admin_list_proof_of_work');
   if (error) throw error;
-  return (rows ?? []).map(mapProofOfWork);
+
+  const { data: trashed, error: trashError } = await supabase
+    .from('trash_entries')
+    .select('id, entity_id')
+    .eq('entity_type', 'booking_proof')
+    .is('restored_at', null);
+  if (trashError) throw trashError;
+  const trashById = new Map((trashed ?? []).map((row) => [row.entity_id, row.id]));
+
+  return (rows ?? []).map((row) => {
+    const proof = mapProofOfWork(row);
+    const trashEntryId = trashById.get(proof.bookingId) ?? null;
+    return { ...proof, isTrashed: Boolean(trashEntryId), trashEntryId };
+  });
 }
 
 export const loadProofOfWork = cacheable(
@@ -52,6 +65,41 @@ export const loadProofOfWork = cacheable(
   { ttl: 60_000 },
   loadProofOfWorkRaw,
 );
+
+export async function moveBookingProofToTrash(bookingId, reason) {
+  const { data, error } = await supabase.rpc('admin_move_booking_proof_to_trash', {
+    p_booking_id: bookingId,
+    p_reason: reason,
+  });
+  if (error) throw error;
+  invalidate(PROOF_CACHE_SCOPE);
+  invalidate('trash');
+  return data;
+}
+
+export async function restoreBookingProofFromTrash(trashId) {
+  const { data, error } = await supabase.rpc('admin_restore_booking_proof_from_trash', {
+    p_trash_id: trashId,
+  });
+  if (error) throw error;
+  invalidate(PROOF_CACHE_SCOPE);
+  invalidate('trash');
+  return data;
+}
+
+export async function hardDeleteBookingProofFromTrash(trashId, bookingId) {
+  const { data, error } = await supabase.rpc(
+    'admin_hard_delete_booking_proof_from_trash',
+    {
+      p_trash_id: trashId,
+      p_confirmation: `DELETE ${bookingId}`,
+    },
+  );
+  if (error) throw error;
+  invalidate(PROOF_CACHE_SCOPE);
+  invalidate('trash');
+  return data;
+}
 
 const dedupeByPath = (items) => {
   const seen = new Set();

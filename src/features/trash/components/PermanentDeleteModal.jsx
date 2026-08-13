@@ -7,12 +7,14 @@ const IMPACT = {
   Booking: 'the linked service request, payments, refunds, receipts, conversations, wallet transactions, and all related records.',
   Payment: 'its refunds, receipts, and all related records.',
   Conversation: 'its message thread, attachments, translations, and participant records.',
+  'Booking Proof': "its proof photos and the worker's rating/comment on the booking.",
 };
 
 const TITLES = {
   Booking: 'Permanently delete booking',
   Payment: 'Permanently delete payment',
   Conversation: 'Permanently delete conversation',
+  'Booking Proof': 'Permanently delete proof of work',
 };
 
 const PermanentDeleteModal = ({ item, onClose, onDelete, onDeleted }) => {

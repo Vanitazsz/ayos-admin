@@ -19,6 +19,8 @@ import {
   hardDeleteNotificationCampaignFromTrash,
   restoreReportExportFromTrash,
   hardDeleteReportExportFromTrash,
+  restoreBookingProofFromTrash,
+  hardDeleteBookingProofFromTrash,
 } from '../logic/TrashPageLogic';
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -96,6 +98,7 @@ export function useTrashPageController() {
       await restoreNotificationCampaignFromTrash(item.id);
     else if (item.type === 'Report Export')
       await restoreReportExportFromTrash(item.id);
+    else if (item.type === 'Booking Proof') await restoreBookingProofFromTrash(item.id);
     else await restoreTrash(item.id);
   };
 
@@ -114,6 +117,8 @@ export function useTrashPageController() {
       await hardDeleteNotificationCampaignFromTrash(item.id, item.entityId);
     else if (item.type === 'Report Export')
       await hardDeleteReportExportFromTrash(item.id, item.entityId);
+    else if (item.type === 'Booking Proof')
+      await hardDeleteBookingProofFromTrash(item.id, item.entityId);
     else await permanentlyDeleteTrash(item.id, item.entityId);
   };
 
@@ -160,7 +165,7 @@ export function useTrashPageController() {
       });
       return;
     }
-    if (item.type === 'Booking' || item.type === 'Payment' || item.type === 'Conversation') {
+    if (item.type === 'Booking' || item.type === 'Payment' || item.type === 'Conversation' || item.type === 'Booking Proof') {
       setBookingToDelete(item);
       return;
     }

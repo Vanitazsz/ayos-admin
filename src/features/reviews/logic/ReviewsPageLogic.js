@@ -4,5 +4,6 @@ export {
   resolveProofMedia,
   hasWorkerProof,
   hasCustomerProof,
+  moveBookingProofToTrash,
 } from '../../../services/proofOfWork';
 export { subscribe } from '../../../services/realtime';

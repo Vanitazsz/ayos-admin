@@ -10,6 +10,8 @@ import {
   Star,
   Image as ImageIcon,
   ChevronDown,
+  Trash2,
+  ExternalLink,
 } from 'lucide-react';
 import Pagination from '../../../components/ui/Pagination';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
@@ -29,12 +31,20 @@ import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/Tabs';
 import { formatDateTime } from '../../../services/adminShared';
 import Skeleton from '../../../components/ui/Skeleton';
 import Drawer from '../../../components/ui/Drawer';
+import Modal from '../../../components/ui/Modal';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from '../../../components/ui/Tooltip';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuCheckboxItem,
+  DropdownMenuSeparator,
 } from '../../../components/ui/DropdownMenu';
 
 export function ReviewsView({ model }) {
@@ -45,6 +55,8 @@ export function ReviewsView({ model }) {
     setSearchTerm,
     filterRating,
     setFilterRating,
+    filterStatus,
+    setFilterStatus,
     mediaFilter,
     setMediaFilter,
     dateFilter,
@@ -62,8 +74,17 @@ export function ReviewsView({ model }) {
     isProofMediaLoading,
     closeProofDetails,
     renderStars,
+    trashTarget,
+    trashReason,
+    setTrashReason,
+    isTrashing,
+    openTrash,
+    closeTrash,
+    confirmTrash,
+    goToTrash,
   } = model;
   return (
+    <TooltipProvider>
     <div className="p-4 sm:p-6">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
@@ -101,6 +122,17 @@ export function ReviewsView({ model }) {
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
           <DateFilter model={dateFilter} />
+          <div className="w-full sm:w-40">
+            <Select
+              icon={Filter}
+              aria-label="Filter by status"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <SelectItem value="All">All Status</SelectItem>
+              <SelectItem value="In Trash">In Trash</SelectItem>
+            </Select>
+          </div>
           <div className="w-full sm:w-40">
             <Select
               icon={Filter}
@@ -160,6 +192,8 @@ export function ReviewsView({ model }) {
           isLoading={isLoading}
           proofs={paginatedProofs}
           onViewDetails={handleViewDetails}
+          onMoveToTrash={openTrash}
+          goToTrash={goToTrash}
         />
       ) : (
         <WorkerProofsTable
@@ -167,6 +201,8 @@ export function ReviewsView({ model }) {
           proofs={paginatedProofs}
           renderStars={renderStars}
           onViewDetails={handleViewDetails}
+          onMoveToTrash={openTrash}
+          goToTrash={goToTrash}
         />
       )}
 
@@ -186,11 +222,51 @@ export function ReviewsView({ model }) {
         isMediaLoading={isProofMediaLoading}
         renderStars={renderStars}
       />
+
+      <Modal
+        isOpen={Boolean(trashTarget)}
+        onClose={closeTrash}
+        title="Move Proof of Work to Trash"
+      >
+        {trashTarget && (
+          <div className="space-y-4">
+            <p className="text-sm text-foreground-light">
+              {trashTarget.worker} · {trashTarget.customer} · {trashTarget.service}
+            </p>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Admin reason</label>
+              <textarea
+                value={trashReason}
+                onChange={(event) => setTrashReason(event.target.value)}
+                maxLength={1000}
+                className="min-h-24 w-full rounded-lg border border-border-strong p-3"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                disabled={isTrashing}
+                onClick={closeTrash}
+                className="rounded-lg border px-4 py-2"
+              >
+                Close
+              </button>
+              <button
+                disabled={isTrashing || trashReason.trim().length < 3}
+                onClick={() => void confirmTrash()}
+                className="rounded-lg bg-destructive px-4 py-2 font-medium text-white disabled:opacity-50"
+              >
+                {isTrashing ? 'Moving to trash…' : 'Move to Trash'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
+    </TooltipProvider>
   );
 }
 
-function ActionsMenu({ proof, onViewDetails }) {
+function ActionsMenu({ proof, onViewDetails, onMoveToTrash, goToTrash }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -202,12 +278,27 @@ function ActionsMenu({ proof, onViewDetails }) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuItem
-          onSelect={() => onViewDetails(proof)}
-          className="cursor-pointer"
-        >
-          <FileText className="mr-2" /> View Details
-        </DropdownMenuItem>
+        {proof.isTrashed ? (
+          <DropdownMenuItem onSelect={() => goToTrash(proof.trashEntryId)} className="cursor-pointer">
+            <ExternalLink className="mr-2" /> View in Trash
+          </DropdownMenuItem>
+        ) : (
+          <>
+            <DropdownMenuItem
+              onSelect={() => onViewDetails(proof)}
+              className="cursor-pointer"
+            >
+              <FileText className="mr-2" /> View Details
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => onMoveToTrash(proof)}
+              className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
+            >
+              <Trash2 className="mr-2" /> Move to Trash
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -226,7 +317,7 @@ function EmptyState({ message, colSpan = 6 }) {
   );
 }
 
-function CustomerProofsTable({ isLoading, proofs, onViewDetails }) {
+function CustomerProofsTable({ isLoading, proofs, onViewDetails, onMoveToTrash, goToTrash }) {
   return (
     <div className="bg-card shadow-sm border border-border">
       <Table>
@@ -246,50 +337,76 @@ function CustomerProofsTable({ isLoading, proofs, onViewDetails }) {
           {isLoading ? (
             <TableSkeleton rows={6} columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]} />
           ) : proofs.length > 0 ? (
-            proofs.map((proof) => (
-              <TableRow
-                key={proof.bookingId}
-                onClick={() => onViewDetails(proof)}
-                className="cursor-pointer"
-              >
-                <TableCell>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-foreground">{proof.customer}</span>
-                    <span className="text-xs text-foreground-lighter mt-1">{proof.date}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  <span className="text-sm text-foreground">{proof.worker}</span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm text-foreground">{proof.service}</span>
-                </TableCell>
-                <TableCell>
-                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
-                    <ImageIcon size={16} className="text-foreground-muted" />
-                    {proof.customerPhotos.length}
-                  </span>
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-sm text-foreground">
-                  {proof.date}
-                </TableCell>
-                <TableCell
-                  className="whitespace-nowrap text-right font-medium"
-                  onClick={(e) => e.stopPropagation()}
+            proofs.map((proof) => {
+              const row = (
+                <TableRow
+                  key={proof.bookingId}
+                  onClick={() =>
+                    proof.isTrashed
+                      ? goToTrash(proof.trashEntryId)
+                      : onViewDetails(proof)
+                  }
+                  className={`cursor-pointer ${proof.isTrashed ? 'opacity-55 grayscale' : ''}`}
                 >
-                  <ActionsMenu proof={proof} onViewDetails={onViewDetails} />
-                </TableCell>
-              </TableRow>
-            ))
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-foreground">{proof.customer}</span>
+                      <span className="text-xs text-foreground-lighter mt-1">{proof.date}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <span className="text-sm text-foreground">{proof.worker}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-foreground">{proof.service}</span>
+                  </TableCell>
+                  <TableCell>
+                    {proof.isTrashed ? (
+                      <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-warning/10 text-warning-600 dark:text-warning-400">
+                        In Trash
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+                        <ImageIcon size={16} className="text-foreground-muted" />
+                        {proof.customerPhotos.length}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-sm text-foreground">
+                    {proof.date}
+                  </TableCell>
+                  <TableCell
+                    className="whitespace-nowrap text-right font-medium"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ActionsMenu
+                      proof={proof}
+                      onViewDetails={onViewDetails}
+                      onMoveToTrash={onMoveToTrash}
+                      goToTrash={goToTrash}
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+              return proof.isTrashed ? (
+                <Tooltip key={proof.bookingId} delayDuration={150}>
+                  <TooltipTrigger asChild>{row}</TooltipTrigger>
+                  <TooltipContent>In trash — click to open in Trash</TooltipContent>
+                </Tooltip>
+              ) : (
+                row
+              );
+            })
           ) : (
             <EmptyState message="No customer proof of work found" />
-          )}        </TableBody>
+          )}
+        </TableBody>
       </Table>
     </div>
   );
 }
 
-function WorkerProofsTable({ isLoading, proofs, renderStars, onViewDetails }) {
+function WorkerProofsTable({ isLoading, proofs, renderStars, onViewDetails, onMoveToTrash, goToTrash }) {
   return (
     <div className="bg-card shadow-sm border border-border">
       <Table>
@@ -314,47 +431,72 @@ function WorkerProofsTable({ isLoading, proofs, renderStars, onViewDetails }) {
               columns={[{}, {}, {}, {}, {}, {}, {}, { className: 'text-right' }]}
             />
           ) : proofs.length > 0 ? (
-            proofs.map((proof) => (
-              <TableRow
-                key={proof.bookingId}
-                onClick={() => onViewDetails(proof)}
-                className="cursor-pointer"
-              >
-                <TableCell>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-foreground">{proof.worker}</span>
-                    <span className="text-xs text-foreground-lighter mt-1">{proof.date}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  <span className="text-sm text-foreground">{proof.customer}</span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm text-foreground">{proof.service}</span>
-                </TableCell>
-                <TableCell className="whitespace-nowrap">{renderStars(proof.rating)}</TableCell>
-                <TableCell>
-                  <p className="text-sm text-foreground-light italic max-w-[240px] truncate">
-                    "{proof.comment}"
-                  </p>
-                </TableCell>
-                <TableCell>
-                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
-                    <ImageIcon size={16} className="text-foreground-muted" />
-                    {proof.workerPhotos.length}
-                  </span>
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-sm text-foreground">
-                  {proof.date}
-                </TableCell>
-                <TableCell
-                  className="whitespace-nowrap text-right font-medium"
-                  onClick={(e) => e.stopPropagation()}
+            proofs.map((proof) => {
+              const row = (
+                <TableRow
+                  key={proof.bookingId}
+                  onClick={() =>
+                    proof.isTrashed
+                      ? goToTrash(proof.trashEntryId)
+                      : onViewDetails(proof)
+                  }
+                  className={`cursor-pointer ${proof.isTrashed ? 'opacity-55 grayscale' : ''}`}
                 >
-                  <ActionsMenu proof={proof} onViewDetails={onViewDetails} />
-                </TableCell>
-              </TableRow>
-            ))
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-foreground">{proof.worker}</span>
+                      <span className="text-xs text-foreground-lighter mt-1">{proof.date}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <span className="text-sm text-foreground">{proof.customer}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-foreground">{proof.service}</span>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">{renderStars(proof.rating)}</TableCell>
+                  <TableCell>
+                    <p className="text-sm text-foreground-light italic max-w-[240px] truncate">
+                      "{proof.comment}"
+                    </p>
+                  </TableCell>
+                  <TableCell>
+                    {proof.isTrashed ? (
+                      <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-warning/10 text-warning-600 dark:text-warning-400">
+                        In Trash
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+                        <ImageIcon size={16} className="text-foreground-muted" />
+                        {proof.workerPhotos.length}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-sm text-foreground">
+                    {proof.date}
+                  </TableCell>
+                  <TableCell
+                    className="whitespace-nowrap text-right font-medium"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ActionsMenu
+                      proof={proof}
+                      onViewDetails={onViewDetails}
+                      onMoveToTrash={onMoveToTrash}
+                      goToTrash={goToTrash}
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+              return proof.isTrashed ? (
+                <Tooltip key={proof.bookingId} delayDuration={150}>
+                  <TooltipTrigger asChild>{row}</TooltipTrigger>
+                  <TooltipContent>In trash — click to open in Trash</TooltipContent>
+                </Tooltip>
+              ) : (
+                row
+              );
+            })
           ) : (
             <EmptyState message="No worker proof of work found" colSpan={8} />
           )}

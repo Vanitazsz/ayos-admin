@@ -6,6 +6,7 @@ const TYPE_TABS = {
   worker: 'Workers',
   booking: 'Bookings',
   payment: 'Bookings',
+  booking_proof: 'Reviews',
   industry: 'Industries',
   skill: 'Skills',
   conversation: 'Conversations',
@@ -16,7 +17,7 @@ const TYPE_TABS = {
 export const loadTrash = cacheable('trash', { ttl: 60_000 }, async () => {
   const { data, error } = await supabase
     .from('trash_entries')
-    .select('*')
+    .select('id,entity_type,entity_id,deleted_by,deleted_at,snapshot')
     .is('restored_at', null)
     .order('deleted_at', { ascending: false });
   if (error) throw error;
@@ -69,6 +70,7 @@ export const loadTrash = cacheable('trash', { ttl: 60_000 }, async () => {
       'Users',
       'Workers',
       'Bookings',
+      'Reviews',
       'Industries',
       'Skills',
       'Conversations',
@@ -290,5 +292,29 @@ export async function hardDeleteReportExportFromTrash(id, entityId) {
   if (error) throw error;
   invalidate('trash');
   invalidate('reports');
+  return data;
+}
+
+export async function restoreBookingProofFromTrash(id) {
+  const { data, error } = await supabase.rpc('admin_restore_booking_proof_from_trash', {
+    p_trash_id: id,
+  });
+  if (error) throw error;
+  invalidate('trash');
+  invalidate('proof-of-work');
+  return data;
+}
+
+export async function hardDeleteBookingProofFromTrash(id, entityId) {
+  const { data, error } = await supabase.rpc(
+    'admin_hard_delete_booking_proof_from_trash',
+    {
+      p_trash_id: id,
+      p_confirmation: `DELETE ${entityId}`,
+    },
+  );
+  if (error) throw error;
+  invalidate('trash');
+  invalidate('proof-of-work');
   return data;
 }

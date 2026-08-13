@@ -30,4 +30,6 @@ export {
   hardDeleteNotificationCampaignFromTrash,
   restoreReportExportFromTrash,
   hardDeleteReportExportFromTrash,
+  restoreBookingProofFromTrash,
+  hardDeleteBookingProofFromTrash,
 } from '../../../services/trash';
