@@ -45,6 +45,7 @@ import {
   TableCell,
 } from '../../../components/ui/Table';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import Skeleton from '../../../components/ui/Skeleton';
 
 export function ServicesView({ model }) {
   const {
@@ -199,7 +200,27 @@ export function ServicesView({ model }) {
                 {isLoading ? (
                   <TableSkeleton
                     rows={6}
-                    columns={[{}, {}, {}, {}, { className: 'text-right' }]}
+                    columns={[
+                      {
+                        children: (
+                          <div className="flex items-center">
+                            <Skeleton className="h-10 w-10 rounded-lg mr-3 shrink-0" />
+                            <div className="space-y-2">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-20" />
+                            </div>
+                          </div>
+                        ),
+                      },
+                      {
+                        children: <Skeleton className="h-6 w-16 rounded-full" />,
+                      },
+                      {},
+                      {
+                        children: <Skeleton className="h-6 w-16 rounded-full" />,
+                      },
+                      { className: 'text-right' },
+                    ]}
                   />
                 ) : paginatedSkills.length > 0 ? (
                   paginatedSkills.map((skill) => {
@@ -398,7 +419,32 @@ export function ServicesView({ model }) {
                 {isLoading ? (
                   <TableSkeleton
                     rows={6}
-                    columns={[{}, {}, {}, {}, { className: 'text-right' }]}
+                    columns={[
+                      {
+                        children: (
+                          <div className="flex items-center">
+                            <Skeleton className="h-10 w-10 rounded-lg mr-3 shrink-0" />
+                            <div className="space-y-2">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-20" />
+                            </div>
+                          </div>
+                        ),
+                      },
+                      {
+                        children: (
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-40" />
+                            <Skeleton className="h-3 w-28" />
+                          </div>
+                        ),
+                      },
+                      {},
+                      {
+                        children: <Skeleton className="h-6 w-16 rounded-full" />,
+                      },
+                      { className: 'text-right' },
+                    ]}
                   />
                 ) : filteredIndustries.length > 0 ? (
                   filteredIndustries.map((industry) => {

@@ -17,6 +17,7 @@ import Drawer from '../../../components/ui/Drawer';
 import Pagination from '../../../components/ui/Pagination';
 import StatCard from '../../../components/ui/StatCard';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import Skeleton from '../../../components/ui/Skeleton';
 import Select, { SelectItem } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
 import Modal from '../../../components/ui/Modal';
@@ -62,7 +63,12 @@ const txnTypeVariant = {
 const txnStatusVariant = {
   Completed: 'success',
   Pending: 'warning',
+  'Awaiting Confirmation': 'info',
+  Processing: 'info',
+  'Requires Action': 'warning',
   Failed: 'danger',
+  Expired: 'default',
+  Cancelled: 'default',
   Refunded: 'default',
 };
 
@@ -112,7 +118,30 @@ const TransactionsTab = ({ model, onOpenAction, onViewDetails }) => (
           {model.isLoading ? (
             <TableSkeleton
               rows={6}
-              columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]}
+              columns={[
+                {
+                  children: (
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-40" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  ),
+                },
+                {
+                  children: (
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  ),
+                },
+                {},
+                {
+                  children: <Skeleton className="h-6 w-16 rounded-full" />,
+                },
+                {},
+                { className: 'text-right' },
+              ]}
             />
           ) : model.paginatedTxns.length > 0 ? (
             model.paginatedTxns.map((txn) => (

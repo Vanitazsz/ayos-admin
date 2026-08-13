@@ -1,4 +1,14 @@
-export const TRASH_TABS = ['Users', 'Workers', 'Bookings', 'Reviews', 'Industries', 'Skills'];
+export const TRASH_TABS = [
+  'Users',
+  'Workers',
+  'Bookings',
+  'Reviews',
+  'Industries',
+  'Skills',
+  'Conversations',
+  'Notifications',
+  'Reports',
+];
 
 export {
   loadTrash,
@@ -9,9 +19,15 @@ export {
   restorePaymentFromTrash,
   restoreIndustryFromTrash,
   restoreSkillFromTrash,
+  restoreConversationFromTrash,
+  restoreNotificationCampaignFromTrash,
   hardDeleteAccountFromTrash,
   hardDeleteBookingFromTrash,
   hardDeletePaymentFromTrash,
   hardDeleteIndustryFromTrash,
   hardDeleteSkillFromTrash,
+  hardDeleteConversationFromTrash,
+  hardDeleteNotificationCampaignFromTrash,
+  restoreReportExportFromTrash,
+  hardDeleteReportExportFromTrash,
 } from '../../../services/trash';

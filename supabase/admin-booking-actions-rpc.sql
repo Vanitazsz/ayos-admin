@@ -391,6 +391,11 @@ begin
     where id = target_booking.service_request_id;
   end if;
 
+  -- Give the new customer <-> worker pair a fresh conversation. The previous
+  -- thread (if any) stays in the DB as unmatched history, hidden from the
+  -- participants by chat_can_read/chat_can_send.
+  perform public.chat_ensure_booking_conversation(target_booking.id);
+
   insert into public.booking_status_events(
     booking_id,
     from_status,
@@ -445,7 +450,6 @@ declare
   v_booking_id uuid;
   v_service_request_id uuid;
   v_payment_ids uuid[];
-  v_review_ids uuid[];
 begin
   if not public.is_admin(true) then
     raise exception using errcode = '42501', message = 'AAL2_ADMIN_REQUIRED';
@@ -482,8 +486,6 @@ begin
 
   select coalesce(array_agg(id), '{}') into v_payment_ids
   from public.payments where booking_id = v_booking_id;
-  select coalesce(array_agg(id), '{}') into v_review_ids
-  from public.reviews where booking_id = v_booking_id;
 
   perform public._admin_hard_delete_triggers(true);
 
@@ -491,12 +493,6 @@ begin
   delete from cash_confirmations where payment_id = any(v_payment_ids);
   delete from receipts where payment_id = any(v_payment_ids);
   delete from refunds where payment_id = any(v_payment_ids);
-  -- leaves under reviews
-  delete from review_ai_insights where review_id = any(v_review_ids);
-  delete from review_media where review_id = any(v_review_ids);
-  delete from review_replies where review_id = any(v_review_ids);
-  delete from review_reports where review_id = any(v_review_ids);
-  delete from review_votes where review_id = any(v_review_ids);
   -- leaves under bookings
   delete from account_reports where booking_id = v_booking_id;
   delete from booking_disputes where booking_id = v_booking_id;
@@ -509,7 +505,6 @@ begin
   delete from wallet_transactions where booking_id = v_booking_id;
   delete from worker_feedback where booking_id = v_booking_id;
   delete from payments where booking_id = v_booking_id;
-  delete from reviews where booking_id = v_booking_id;
   delete from conversations where booking_id = v_booking_id;
   -- children of the linked service request
   delete from ai_analysis_jobs where service_request_id = v_service_request_id;

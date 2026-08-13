@@ -1,6 +1,6 @@
 import { supabase } from './adminShared';
 import { applyDateFilter, getRowDate } from '../lib/dateFilter';
-import { cacheable } from '../lib/cacheable';
+import { cacheable, invalidate } from '../lib/cacheable';
 
 const rpcErrorMessage = (error) => {
   const message = error?.message;
@@ -95,6 +95,7 @@ export async function setMemberRole(accountId, role) {
     p_admin_role: role,
   });
   if (error) throw error;
+  invalidate('team');
   return data;
 }
 
@@ -108,5 +109,6 @@ export async function inviteMember({ email, displayName, role, redirectTo }) {
     },
   });
   if (error) throw new Error(await edgeFunctionError(error));
+  invalidate('team');
   return data;
 }

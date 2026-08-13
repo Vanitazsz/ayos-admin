@@ -340,9 +340,16 @@ export function UsersView({ model }) {
                       { className: 'hidden xl:table-cell' },
                       { className: 'hidden lg:table-cell' },
                       { className: 'hidden lg:table-cell' },
-                      {},
-                      { className: 'hidden xl:table-cell' },
-                      {},
+                      {
+                        children: <Skeleton className="h-6 w-10 rounded-md" />,
+                      },
+                      {
+                        className: 'hidden xl:table-cell',
+                        children: <Skeleton className="h-6 w-16 rounded-full" />,
+                      },
+                      {
+                        children: <Skeleton className="h-6 w-16 rounded-full" />,
+                      },
                       {
                         className: 'text-right',
                         children: (
@@ -533,7 +540,24 @@ export function UsersView({ model }) {
               </TableHeader>
               <TableBody>
                 {isVerificationsLoading ? (
-                  <TableSkeleton rows={4} columns={4} />
+                  <TableSkeleton
+                    rows={4}
+                    columns={[
+                      {
+                        children: (
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                        ),
+                      },
+                      {},
+                      {},
+                      {
+                        children: <Skeleton className="h-8 w-24 rounded-lg" />,
+                      },
+                    ]}
+                  />
                 ) : verifications.length ? (
                   verifications.map((verification) => (
                     <TableRow key={verification.id}>
@@ -915,43 +939,25 @@ export function UsersView({ model }) {
                     <Phone size={16} className="mr-3 text-foreground-muted" />{' '}
                     {selectedUser.phone || 'Not provided'}
                   </div>
-                  {(selectedUser.addresses?.length ?? 0) > 0 ? (
-                    <div className="space-y-2">
-                      {selectedUser.addresses.map((address) => (
-                        <div
-                          key={address.id}
-                          className="flex items-start gap-3 rounded-lg bg-surface-200 p-3"
-                        >
-                          <MapPin
-                            size={16}
-                            className="mt-0.5 shrink-0 text-foreground-muted"
-                          />
-                          <div className="min-w-0">
-                            {(address.label || address.isDefault) && (
-                              <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                                {address.label && (
-                                  <span className="text-xs font-medium text-foreground-light">
-                                    {address.label}
-                                  </span>
-                                )}
-                                {address.isDefault && (
-                                  <Badge variant="primary">Default</Badge>
-                                )}
-                              </div>
-                            )}
-                            <p className="text-sm text-foreground">
-                              {address.display || 'Address not provided'}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex items-center text-sm text-foreground-light">
-                      <MapPin size={16} className="mr-3 text-foreground-muted" />{' '}
-                      Not provided
-                    </div>
-                  )}
+                  <div className="flex items-center text-sm text-foreground-light">
+                    <MapPin size={16} className="mr-3 shrink-0 text-foreground-muted" />
+                    <span className="truncate">
+                      {selectedUser.addresses?.find((address) => address.isDefault)?.display ||
+                        selectedUser.addresses?.[0]?.display ||
+                        'Not provided'}
+                    </span>
+                    {(selectedUser.addresses?.length ?? 0) > 1 && (
+                      <span
+                        className="ml-1 shrink-0 text-xs text-foreground-muted"
+                        title={selectedUser.addresses
+                          .slice(1)
+                          .map((address) => address.display)
+                          .join('\n')}
+                      >
+                        +{selectedUser.addresses.length - 1} more
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center text-sm text-foreground-light">
                     <Calendar size={16} className="mr-3 text-foreground-muted" /> Registered{' '}
                     {selectedUser.registeredAt}

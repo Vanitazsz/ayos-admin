@@ -2,6 +2,20 @@ import { supabase, status } from './adminShared';
 import { cacheable, invalidate } from '../lib/cacheable';
 import { applyDateFilter, getRowDate } from '../lib/dateFilter';
 
+export const PAYMENT_STATUS_LABELS = {
+  SUCCESSFUL: 'Completed',
+  PENDING: 'Pending',
+  AWAITING_CONFIRMATIONS: 'Awaiting Confirmation',
+  REQUIRES_ACTION: 'Requires Action',
+  PROCESSING: 'Processing',
+  FAILED: 'Failed',
+  EXPIRED: 'Expired',
+  CANCELLED: 'Cancelled',
+  REFUNDED: 'Refunded',
+};
+
+const paymentStatus = (raw) => PAYMENT_STATUS_LABELS[raw] ?? status(raw);
+
 export const mapPayment = (row) => ({
   id: row.id,
   bookingId: row.booking_id,
@@ -11,7 +25,7 @@ export const mapPayment = (row) => ({
   fee: Number(row.commission_amount),
   net: Number(row.worker_net_amount),
   method: status(row.method),
-  status: row.status === 'SUCCESSFUL' ? 'Completed' : status(row.status),
+  status: paymentStatus(row.status),
   type: 'Payment',
   date: new Date(row.created_at).toLocaleDateString(),
   created_at: row.created_at,
@@ -23,8 +37,6 @@ const PAYMENT_PAGE_SELECT =
 
 const PAYMENT_KEY_SELECT =
   'id,status,method,created_at,updated_at,service_amount,commission_amount,bookings(user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name))';
-
-const paymentStatus = (raw) => (raw === 'SUCCESSFUL' ? 'Completed' : status(raw));
 
 export async function loadPaymentsPageRaw({
   search = '',

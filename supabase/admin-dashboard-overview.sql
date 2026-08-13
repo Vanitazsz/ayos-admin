@@ -139,14 +139,26 @@ begin
       ) ru
     ),
     'system_notifications', (
-      select case when to_regclass('public.notifications') is not null
-        then (select coalesce(jsonb_agg(jsonb_build_object(
-                'id', id, 'title', title, 'message', body)
-                order by created_at desc), '[]'::jsonb)
-              from (select id, title, body, created_at
-                    from notifications
-                    where audience is not null
-                    order by created_at desc limit 3) n)
+      -- Prefer the campaign model: one row per SENT campaign (the per-recipient
+      -- fan-out in notifications is deduped away), falling back to the legacy
+      -- single-row audience notifications for installs without the table.
+      select case
+        when to_regclass('public.notification_campaigns') is not null then
+          (select coalesce(jsonb_agg(jsonb_build_object(
+                  'id', id, 'title', title, 'message', body)
+                  order by sent_at desc nulls last, created_at desc), '[]'::jsonb)
+            from (select id, title, body, sent_at, created_at
+                  from notification_campaigns
+                  where status = 'SENT' and deleted_at is null
+                  order by sent_at desc nulls last, created_at desc limit 3) c)
+        when to_regclass('public.notifications') is not null then
+          (select coalesce(jsonb_agg(jsonb_build_object(
+                  'id', id, 'title', title, 'message', body)
+                  order by created_at desc), '[]'::jsonb)
+            from (select id, title, body, created_at
+                  from notifications
+                  where audience is not null
+                  order by created_at desc limit 3) n)
         else '[]'::jsonb end
     )
   ) into result;

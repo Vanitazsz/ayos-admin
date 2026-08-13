@@ -57,7 +57,10 @@ export function useWorkersPageController() {
     onConfirm: () => {},
   });
   const isBulkLoading = bulkAction !== null;
-  const { schedule, mark } = useDebouncedRefresh();
+  const { schedule, mark } = useDebouncedRefresh({
+    debounceMs: 5000,
+    cooldownMs: 6000,
+  });
 
   const refresh = useCallback(async () => {
     try {

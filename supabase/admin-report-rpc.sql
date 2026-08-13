@@ -5,7 +5,7 @@
 --   * admin_report_exports_page - one page of exports + total, server-side filters.
 --   * admin_report_stats        - single aggregated row of status counts.
 -- Write side (consumed by the report-export edge function):
---   * admin_report_workers/customers/services/reviews - tabular detail per report type.
+--   * admin_report_workers/customers/services - tabular detail per report type.
 --   * Financial reuses admin_analytics_summary / admin_revenue_series.
 
 drop function if exists public.admin_report_exports_page(int, int, text, timestamptz, timestamptz, text, text);
@@ -55,6 +55,7 @@ begin
         or lower(coalesce(up.display_name, wp.display_name, ap.display_name, ''))
            like '%' || lower(p_query) || '%'
       )
+      and e.deleted_at is null
   ),
   total as (select count(*) as n from base)
   select jsonb_build_object(
@@ -94,7 +95,8 @@ begin
     'processing', count(*) filter (where status in ('pending', 'processing')),
     'failed', count(*) filter (where status = 'failed')
   ) into result
-  from report_exports;
+  from report_exports
+  where deleted_at is null;
   return result;
 end $$;
 
@@ -121,14 +123,13 @@ begin
            count(distinct b.id) filter (where b.status = 'COMPLETED'),
            coalesce(sum(p.service_amount), 0),
            coalesce(sum(p.worker_net_amount), 0),
-           round(coalesce(avg(r.stars), 0), 2)
+           0::numeric
     from worker_profiles wp
     join accounts a on a.id = wp.account_id and a.deleted_at is null
     left join bookings b on b.worker_account_id = wp.account_id
        and (p_from is null or b.created_at >= p_from)
        and (p_to is null or b.created_at <= p_to)
     left join payments p on p.booking_id = b.id and p.status = 'SUCCESSFUL'
-    left join reviews r on r.booking_id = b.id
     group by wp.account_id, wp.display_name, a.email
     order by total_revenue desc;
 end $$;
@@ -158,13 +159,12 @@ begin
            count(b.id) filter (where b.status = 'COMPLETED'),
            coalesce(sum(b.agreed_service_amount) filter (where b.status = 'COMPLETED'), 0),
            greatest(count(b.id) - 1, 0),
-           round(coalesce(avg(r.stars), 0), 2)
+           0::numeric
     from user_profiles up
     join accounts a on a.id = up.account_id and a.deleted_at is null and a.role = 'USER'
     left join bookings b on b.user_account_id = up.account_id
        and (p_from is null or b.created_at >= p_from)
        and (p_to is null or b.created_at <= p_to)
-    left join reviews r on r.booking_id = b.id
     group by up.account_id, up.display_name, a.email
     order by total_spend desc;
 end $$;
@@ -202,53 +202,18 @@ begin
     order by request_count desc;
 end $$;
 
--- Review Sentiment detail (rating distribution 1-5 + totals).
-create or replace function public.admin_report_reviews(
-  p_from timestamptz default null,
-  p_to timestamptz default null
-)
-returns table (
-  stars int,
-  review_count bigint,
-  total_reviews bigint,
-  avg_rating numeric
-)
-language plpgsql security definer set search_path = public as $$
-begin
-  if coalesce((select role::text from public.accounts where id = auth.uid()), '') <> 'ADMIN'
-  then raise exception 'Not authorized'; end if;
-  return query
-    with filtered as (
-      select r.stars
-      from reviews r
-      where (p_from is null or r.created_at >= p_from)
-        and (p_to is null or r.created_at <= p_to)
-    ),
-    agg as (
-      select count(*) as total, round(coalesce(avg(stars), 0), 2) as avg from filtered
-    )
-    select gs.stars,
-           (select count(*) from filtered f where f.stars = gs.stars),
-           (select total from agg),
-           (select avg from agg)
-    from generate_series(1, 5) as gs
-    order by gs.stars;
-end $$;
-
 -- grants
 revoke execute on function public.admin_report_exports_page(int, int, text, timestamptz, timestamptz, text, text) from public;
 revoke execute on function public.admin_report_stats() from public;
 revoke execute on function public.admin_report_workers(timestamptz, timestamptz) from public;
 revoke execute on function public.admin_report_customers(timestamptz, timestamptz) from public;
 revoke execute on function public.admin_report_services(timestamptz, timestamptz) from public;
-revoke execute on function public.admin_report_reviews(timestamptz, timestamptz) from public;
 
 grant execute on function public.admin_report_exports_page(int, int, text, timestamptz, timestamptz, text, text) to authenticated;
 grant execute on function public.admin_report_stats() to authenticated;
 grant execute on function public.admin_report_workers(timestamptz, timestamptz) to authenticated;
 grant execute on function public.admin_report_customers(timestamptz, timestamptz) to authenticated;
 grant execute on function public.admin_report_services(timestamptz, timestamptz) to authenticated;
-grant execute on function public.admin_report_reviews(timestamptz, timestamptz) to authenticated;
 
 -- Force PostgREST to reload its schema cache so the fresh RPCs are visible
 -- immediately instead of returning 404 for a few seconds.

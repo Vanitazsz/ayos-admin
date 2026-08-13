@@ -1,7 +1,7 @@
 -- Admin hard-delete RPCs for Industries & Skills.
 -- Hard delete permanently removes the row and its entire reference tree
--- (service requests, bookings, payments, receipts, reviews, wallet
--- transactions, worker assignments, etc.). Irreversible.
+-- (service requests, bookings, payments, receipts, wallet transactions,
+-- worker assignments, etc.). Irreversible.
 --
 -- Run in the Supabase SQL editor.
 --
@@ -25,10 +25,9 @@ declare
 begin
   for t in select unnest(array[
     'cash_confirmations', 'receipts', 'refunds',
-    'review_ai_insights', 'review_media', 'review_replies', 'review_reports', 'review_votes',
     'account_reports', 'booking_disputes', 'booking_proof_media', 'booking_status_events',
     'cancellations', 'location_updates', 'route_snapshots', 'support_tickets',
-    'wallet_transactions', 'worker_feedback', 'payments', 'reviews', 'conversations',
+    'wallet_transactions', 'worker_feedback', 'payments', 'conversations',
     'ai_analysis_jobs', 'live_dispatch_sessions', 'match_candidates', 'request_bids',
     'request_media', 'service_request_dispatches', 'bookings', 'service_requests',
     'worker_offerings', 'service_templates', 'services', 'worker_skills',
@@ -52,7 +51,6 @@ declare
   v_req_ids uuid[];
   v_booking_ids uuid[];
   v_payment_ids uuid[];
-  v_review_ids uuid[];
   v_bookings bigint;
   v_requests bigint;
   v_worker_skills bigint;
@@ -72,8 +70,6 @@ begin
     from bookings b where b.service_request_id = any(v_req_ids);
   select coalesce(array_agg(p.id), '{}') into v_payment_ids
     from payments p where p.booking_id = any(v_booking_ids);
-  select coalesce(array_agg(rv.id), '{}') into v_review_ids
-    from reviews rv where rv.booking_id = any(v_booking_ids);
 
   select count(*) into v_bookings from bookings b where b.service_request_id = any(v_req_ids);
   select count(*) into v_requests from service_requests where category_id = p_id;
@@ -85,12 +81,6 @@ begin
   delete from cash_confirmations where payment_id = any(v_payment_ids);
   delete from receipts where payment_id = any(v_payment_ids);
   delete from refunds where payment_id = any(v_payment_ids);
-  -- leaves under reviews
-  delete from review_ai_insights where review_id = any(v_review_ids);
-  delete from review_media where review_id = any(v_review_ids);
-  delete from review_replies where review_id = any(v_review_ids);
-  delete from review_reports where review_id = any(v_review_ids);
-  delete from review_votes where review_id = any(v_review_ids);
   -- leaves under bookings
   delete from account_reports where booking_id = any(v_booking_ids);
   delete from booking_disputes where booking_id = any(v_booking_ids);
@@ -103,7 +93,6 @@ begin
   delete from wallet_transactions where booking_id = any(v_booking_ids);
   delete from worker_feedback where booking_id = any(v_booking_ids);
   delete from payments where booking_id = any(v_booking_ids);
-  delete from reviews where booking_id = any(v_booking_ids);
   delete from conversations
     where booking_id = any(v_booking_ids) or service_request_id = any(v_req_ids);
   -- children of service_requests

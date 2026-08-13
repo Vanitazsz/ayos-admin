@@ -1,6 +1,7 @@
 import { supabase, status, identity } from './adminShared';
 import { cacheable, invalidate } from '../lib/cacheable';
 import { applyDateFilter, getRowDate } from '../lib/dateFilter';
+import { getSignedUrls } from '../lib/signedUrlCache';
 
 const dedupeByPath = (items) => {
   const seen = new Set();
@@ -60,6 +61,7 @@ export const mapBooking = (row) => ({
   version: row.version,
   customer: identity(row.user_profiles?.display_name, 'Booking customer'),
   worker: row.worker_profiles?.display_name ?? '',
+  workerId: row.worker_account_id ?? '',
   service: identity(row.service_requests?.description, 'Booking request'),
   category: identity(row.service_requests?.service_categories?.name, 'Booking category'),
   address: [
@@ -94,10 +96,12 @@ export const mapBooking = (row) => ({
       contentType: item.content_type,
     })),
   ),
+  workerProofRating: row.worker_proof_rating ?? null,
+  workerProofComment: row.worker_proof_comment ?? '',
 });
 
 const BOOKING_PAGE_SELECT =
-  'id,service_request_id,status,version,created_at,agreed_service_amount,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),service_requests(description,scheduled_at,addresses(line1,barangay,city),service_categories(name),match_candidates(worker_id,score,eligible,worker_profiles:worker_id(display_name)),request_media(storage_path,content_type)),payments(method,status,service_amount,homeowner_platform_charge,refunds(status,reason)),cancellations(reason,fee_amount,refund_amount,resolution_status),booking_status_events(from_status,to_status,reason,created_at)';
+  'id,service_request_id,status,version,created_at,agreed_service_amount,worker_proof_rating,worker_proof_comment,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),service_requests(description,scheduled_at,addresses(line1,barangay,city),service_categories(name),match_candidates(worker_id,score,eligible,worker_profiles:worker_id(display_name)),request_media(storage_path,content_type)),payments(method,status,service_amount,homeowner_platform_charge,refunds(status,reason)),cancellations(reason,fee_amount,refund_amount,resolution_status),booking_status_events(from_status,to_status,reason,created_at)';
 
 const BOOKING_KEY_SELECT =
   'id,status,created_at,updated_at,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),service_requests(description,scheduled_at,request_media(storage_path,content_type))';
@@ -244,6 +248,55 @@ export const loadBookingsForWorker = cacheable(
     return (data ?? []).map(mapBooking);
   },
 );
+
+async function signProofPaths(paths) {
+  if (!paths.length) return new Map();
+  return getSignedUrls('booking-proof', paths);
+}
+
+async function fetchProofPhotos(bookingId, submittedBy) {
+  const { data, error } = await supabase
+    .from('booking_proof_media')
+    .select('storage_path,content_type,created_at')
+    .eq('booking_id', bookingId)
+    .eq('submitted_by', submittedBy)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return dedupeByPath(
+    (data ?? []).map((item) => ({
+      path: item.storage_path,
+      contentType: item.content_type,
+    })),
+  );
+}
+
+const resolveProofSet = async (fetchItems) => {
+  try {
+    const items = await fetchItems();
+    const urls = await signProofPaths(items.map((item) => item.path));
+    return items
+      .map((item) => ({ ...item, url: urls.get(item.path) }))
+      .filter((item) => item.url);
+  } catch {
+    return null;
+  }
+};
+
+export async function resolveBookingProofs(bookingId) {
+  const cached = mediaCache.get(`proof-${bookingId}`);
+  if (cached && Date.now() - cached.signedAt < MEDIA_CACHE_TTL_MS) {
+    return cached.result;
+  }
+
+  const [workerProof, userProof] = await Promise.all([
+    resolveProofSet(() => fetchProofPhotos(bookingId, 'worker')),
+    resolveProofSet(() => fetchProofPhotos(bookingId, 'customer')),
+  ]);
+
+  const result = { workerProof, userProof };
+  mediaCache.set(`proof-${bookingId}`, { signedAt: Date.now(), result });
+  return result;
+}
 
 export async function cancelBookingAsAdmin(id, reason) {
   const { data, error } = await supabase.rpc('admin_cancel_booking', {

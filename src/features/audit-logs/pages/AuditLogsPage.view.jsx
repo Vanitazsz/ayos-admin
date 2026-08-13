@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import Pagination from '../../../components/ui/Pagination';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import Skeleton from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import Input from '../../../components/ui/Input';
 import Select, { SelectItem } from '../../../components/ui/Select';
@@ -107,7 +108,24 @@ export function AuditLogsView({ model }) {
             {isLoading ? (
               <TableSkeleton
                 rows={6}
-                columns={[{}, {}, {}, {}, {}, {}, { className: 'text-right' }]}
+                columns={[
+                  {},
+                  {},
+                  {
+                    children: <Skeleton className="h-6 w-16 rounded-full" />,
+                  },
+                  {},
+                  {},
+                  {},
+                  {
+                    className: 'text-right',
+                    children: (
+                      <div className="flex justify-end">
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                      </div>
+                    ),
+                  },
+                ]}
               />
             ) : paginatedLogs.length > 0 ? (
               paginatedLogs.map((log) => (

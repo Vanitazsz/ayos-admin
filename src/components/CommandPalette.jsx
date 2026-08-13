@@ -16,7 +16,6 @@ import {
   Calendar,
   Wrench,
   CreditCard,
-  Star,
   Headset,
   FileBarChart,
   BarChart3,
@@ -50,7 +49,6 @@ const navigation = [
   {
     group: 'Community',
     items: [
-      { title: 'Customer Reviews', to: '/admin/reviews', icon: Star },
       { title: 'Support Tickets', to: '/admin/support', icon: Headset },
     ],
   },

@@ -10,7 +10,12 @@ export const BOOKING_STATUS_BADGE = {
 export const PAYMENT_STATUS_BADGE = {
   Completed: 'bg-success/10 text-success-600 dark:text-success-400',
   Pending: 'bg-warning/10 text-warning-600 dark:text-warning-400',
+  'Awaiting Confirmation': 'bg-info/10 text-info-600 dark:text-info-400',
+  Processing: 'bg-info/10 text-info-600 dark:text-info-400',
+  'Requires Action': 'bg-warning/10 text-warning-600 dark:text-warning-400',
   Failed: 'bg-destructive/10 text-destructive-600 dark:text-destructive-400',
+  Expired: 'bg-surface-200 text-foreground',
+  Cancelled: 'bg-surface-200 text-foreground',
   Refunded: 'bg-surface-200 text-foreground',
 };
 

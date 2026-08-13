@@ -140,18 +140,14 @@ begin
   );
 end $$;
 
--- 6. Batched worker ratings (replaces embedding every review row)
+-- 6. Batched worker ratings (customer reviews were removed; rating is 0).
 create or replace function public.get_worker_rating_stats(p_worker_ids uuid[])
 returns table (worker_id uuid, avg_rating numeric, review_count bigint)
 language plpgsql security definer set search_path = public as $$
 begin
   if coalesce((select role::text from public.accounts where id = auth.uid()), '') <> 'ADMIN'
   then raise exception 'Not authorized'; end if;
-  return query
-    select worker_account_id, round(avg(stars), 2), count(*)
-    from reviews
-    where worker_account_id = any(p_worker_ids)
-    group by worker_account_id;
+  return;
 end $$;
 
 -- 7. RBAC: restrict EXECUTE of the admin RPCs to authenticated users only.

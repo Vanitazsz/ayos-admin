@@ -8,7 +8,6 @@ export * from './notifications';
 export * from './payments';
 export * from './realtime';
 export * from './reports';
-export * from './reviews';
 export * from './settings';
 export * from './locations';
 export * from './support';

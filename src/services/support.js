@@ -42,7 +42,7 @@ export const loadSupport = cacheable('support', { ttl: 60_000, key: 'tickets' },
   const { data, error } = await supabase
     .from('support_tickets')
     .select(
-      'id,subject,description,status,category,priority,created_at,updated_at,owner:accounts!support_tickets_owner_id_fkey(user_profiles(display_name),worker_profiles(display_name),admin_profiles(display_name)),assignee:admin_profiles!support_tickets_assigned_admin_id_fkey(display_name),support_ticket_messages(id,body,created_at,sender_id,sender:accounts!support_ticket_messages_sender_id_fkey(user_profiles(display_name),worker_profiles(display_name),admin_profiles(display_name)))',
+      'id,subject,description,status,category,priority,created_at,updated_at,owner:accounts!support_tickets_owner_id_fkey(user_profiles(display_name),worker_profiles(display_name),admin_profiles(display_name)),assignee:admin_profiles!support_tickets_assigned_admin_id_fkey(display_name),support_ticket_messages(count)',
     )
     .order('created_at', { ascending: false });
   if (error) throw error;
@@ -55,11 +55,28 @@ export const loadSupport = cacheable('support', { ttl: 60_000, key: 'tickets' },
     status: status(row.status),
     date: new Date(row.created_at).toLocaleDateString(),
     assignedTo: row.assignee?.display_name ?? '',
-    messageCount: row.support_ticket_messages?.length ?? 0,
+    messageCount: row.support_ticket_messages?.[0]?.count ?? 0,
     description: row.description,
     created_at: row.created_at,
     updated_at: row.updated_at ?? null,
-    messages: (row.support_ticket_messages ?? [])
+    messages: [],
+  }));
+});
+
+export const loadSupportMessages = cacheable(
+  'support',
+  { ttl: 30_000, key: 'messages' },
+  async (ticketId) => {
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .select(
+        'id,support_ticket_messages(id,body,created_at,sender_id,sender:accounts!support_ticket_messages_sender_id_fkey(user_profiles(display_name),worker_profiles(display_name),admin_profiles(display_name)))',
+      )
+      .eq('id', ticketId)
+      .maybeSingle();
+    if (error) throw error;
+    const messages = data?.support_ticket_messages ?? [];
+    return [...messages]
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
       .map((message) => ({
         id: message.id,
@@ -67,9 +84,9 @@ export const loadSupport = cacheable('support', { ttl: 60_000, key: 'tickets' },
         createdAt: message.created_at,
         senderId: message.sender_id,
         sender: identity(accountName(message.sender), 'Support participant'),
-      })),
-  }));
-});
+      }));
+  },
+);
 
 export async function sendSupportReply(ticketId, body) {
   const { error } = await supabase.rpc('send_support_message', {

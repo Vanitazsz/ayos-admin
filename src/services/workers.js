@@ -1,5 +1,6 @@
 import { supabase, status, identity } from './adminShared';
 import { cacheable, invalidate } from '../lib/cacheable';
+import { getSignedUrls } from '../lib/signedUrlCache';
 
 export async function loadWorkersRaw() {
   const { data, error } = await supabase
@@ -103,6 +104,41 @@ export async function loadWorkersRaw() {
 
 export const loadWorkers = cacheable('workers', { ttl: 60_000 }, loadWorkersRaw);
 
+export async function loadReassignWorkersRaw() {
+  const { data, error } = await supabase
+    .from('worker_profiles')
+    .select(
+      'account_id,display_name,approval_status,is_available,accounts!worker_profiles_account_id_fkey!inner(status,role,deleted_at)',
+    )
+    .eq('accounts.role', 'WORKER')
+    .is('accounts.deleted_at', null)
+    .eq('approval_status', 'APPROVED')
+    .eq('is_available', true)
+    .order('display_name', { ascending: true });
+  if (error) throw error;
+
+  const { data: trashed, error: trashError } = await supabase
+    .from('trash_entries')
+    .select('id, entity_id')
+    .eq('entity_type', 'worker')
+    .is('restored_at', null);
+  if (trashError) throw trashError;
+  const trashedIds = new Set((trashed ?? []).map((row) => row.entity_id));
+
+  return (data ?? [])
+    .filter((row) => !trashedIds.has(row.account_id))
+    .map((row) => ({
+      id: row.account_id,
+      name: identity(row.display_name, 'Worker'),
+    }));
+}
+
+export const loadReassignWorkers = cacheable(
+  'workers',
+  { ttl: 60_000 },
+  loadReassignWorkersRaw,
+);
+
 export async function reviewWorker(verificationId, decision, notes) {
   const { data, error } = await supabase.rpc('review_worker_verification', {
     verification_id: verificationId,
@@ -180,22 +216,13 @@ export const loadWorkerVerificationDocs = cacheable(
     if (error) throw error;
     if (!data) return null;
     const paths = Array.isArray(data.document_paths) ? data.document_paths : [];
-    const isRemote = (path) => /^https?:\/\//i.test(path ?? '');
-    const signed = await Promise.all(
-      paths.map((path) =>
-        isRemote(path)
-          ? Promise.resolve({ data: { signedUrl: path }, error: null })
-          : supabase.storage.from('verification-documents').createSignedUrl(path, 900),
-      ),
-    );
+    const urls = await getSignedUrls('verification-documents', paths);
     return {
       id: data.id,
       status: data.status,
       idType: data.identity_data?.idType ?? '',
       documentPaths: paths,
-      documents: signed
-        .map((result) => result.data?.signedUrl ?? '')
-        .filter(Boolean),
+      documents: paths.map((path) => urls.get(path) ?? '').filter(Boolean),
     };
   },
 );

@@ -183,9 +183,13 @@ export function TeamView({ model }) {
                       ),
                     },
                     {},
-                    {},
+                    {
+                      children: <Skeleton className="h-6 w-16 rounded-full" />,
+                    },
                     { className: 'hidden lg:table-cell' },
-                    {},
+                    {
+                      children: <Skeleton className="h-6 w-16 rounded-full" />,
+                    },
                     { className: 'text-right' },
                   ]}
                 />

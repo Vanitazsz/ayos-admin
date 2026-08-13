@@ -8,7 +8,6 @@ import {
   Calendar,
   Wrench,
   CreditCard,
-  Star,
   Headset,
   FileBarChart,
   BarChart3,
@@ -70,7 +69,6 @@ const navigationGroups = [
     title: 'Community',
     icon: MessageSquare,
     items: [
-      { name: 'Reviews', to: '/admin/reviews', icon: Star },
       { name: 'Support', to: '/admin/support', icon: Headset },
     ],
   },

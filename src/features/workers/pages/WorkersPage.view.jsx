@@ -357,9 +357,17 @@ export function WorkersView({ model }) {
                   {},
                   { className: 'hidden xl:table-cell' },
                   {},
-                  { className: 'hidden xl:table-cell' },
-                  { className: 'hidden lg:table-cell' },
-                  {},
+                  {
+                    className: 'hidden xl:table-cell',
+                    children: <Skeleton className="h-6 w-16 rounded-full" />,
+                  },
+                  {
+                    className: 'hidden lg:table-cell',
+                    children: <Skeleton className="h-6 w-16 rounded-full" />,
+                  },
+                  {
+                    children: <Skeleton className="h-6 w-16 rounded-full" />,
+                  },
                   {
                     className: 'text-right',
                     children: (

@@ -1,9 +1,10 @@
-import { HeadphonesIcon, Search, Filter, CheckCircle, Send, User } from 'lucide-react';
+import { HeadphonesIcon, Search, Filter, CheckCircle, Send, User, Loader2 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Pagination from '../../../components/ui/Pagination';
 import { formatDateTime } from '../../../services/adminShared';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import Skeleton from '../../../components/ui/Skeleton';
 import StatCard from '../../../components/ui/StatCard';
 import DateFilter from '../../../components/ui/DateFilter';
 import Select, { SelectItem } from '../../../components/ui/Select';
@@ -164,7 +165,21 @@ export function SupportView({ model }) {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableSkeleton rows={6} columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]} />
+              <TableSkeleton
+                rows={6}
+                columns={[
+                  {},
+                  {},
+                  {},
+                  {
+                    children: <Skeleton className="h-6 w-16 rounded-full" />,
+                  },
+                  {
+                    children: <Skeleton className="h-6 w-16 rounded-full" />,
+                  },
+                  { className: 'text-right' },
+                ]}
+              />
             ) : paginatedTickets.length > 0 ? (
               paginatedTickets.map((ticket) => (
                 <TableRow
@@ -285,7 +300,12 @@ export function SupportView({ model }) {
                   <p className="text-xs text-foreground-muted mt-1">{selectedTicket.date}</p>
                 </div>
               </div>
-              {selectedTicket.messages.map((message) => {
+              {isMessagesLoading ? (
+                <div className="flex items-center justify-center py-10 text-foreground-lighter">
+                  <Loader2 size={18} className="animate-spin mr-2" /> Loading messages...
+                </div>
+              ) : selectedTicket.messages.length ? (
+                selectedTicket.messages.map((message) => {
                 const fromRequester = message.sender === selectedTicket.customer;
                 return (
                   <div
@@ -313,7 +333,12 @@ export function SupportView({ model }) {
                     </div>
                   </div>
                 );
-              })}
+              })
+              ) : (
+                <p className="text-sm text-foreground-lighter text-center py-10">
+                  No messages yet.
+                </p>
+              )}
             </div>
 
             {/* Reply box */}

@@ -187,10 +187,10 @@ export function useUsersPageController() {
     const stops = [
       subscribe('accounts', () => {
         void refreshUsersRef.current();
-      }),
+      }, { debounceMs: 5000 }),
       subscribe('customer_verifications', () => {
         void loadVerificationsRef.current();
-      }),
+      }, { filter: 'status=eq.pending' }),
     ];
     return () => {
       stops.forEach((stop) => stop());
