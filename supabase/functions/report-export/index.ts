@@ -2,7 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import * as XLSX from 'npm:xlsx@0.18.5';
 import PDFDocument from 'npm:pdfkit@0.15.0';
 
-const REPORT_TYPES = ['FINANCIAL', 'WORKERS', 'CUSTOMERS', 'SERVICES'] as const;
+const REPORT_TYPES = ['FINANCIAL', 'WORKERS', 'CUSTOMERS', 'SERVICES', 'REVIEWS'] as const;
 type ReportType = (typeof REPORT_TYPES)[number];
 type Format = 'PDF' | 'CSV' | 'XLSX';
 
@@ -11,6 +11,7 @@ const REPORT_LABELS: Record<ReportType, string> = {
   WORKERS: 'Worker Performance',
   CUSTOMERS: 'Customer Activity',
   SERVICES: 'Service Popularity',
+  REVIEWS: 'Review Sentiment',
 };
 
 const corsHeaders = {
@@ -282,6 +283,24 @@ async function buildDataset(
       title: label,
       subtitle,
       columns: ['Category', 'Requests', 'Completed Bookings', 'Completion Rate (%)', 'Revenue'],
+      rows,
+    };
+  }
+
+  if (reportType === 'REVIEWS') {
+    const data = await runRpc(userClient, 'admin_report_reviews', args);
+    const rows = (data ?? []).map((r: any) => [
+      r.reviewer,
+      r.worker,
+      r.service,
+      Number(r.rating ?? 0),
+      r.comment ?? '',
+      r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString('en-US') : '',
+    ]);
+    return {
+      title: label,
+      subtitle,
+      columns: ['Reviewer', 'Worker', 'Service', 'Rating', 'Comment', 'Date'],
       rows,
     };
   }

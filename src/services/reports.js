@@ -22,6 +22,11 @@ export const REPORT_TYPES = [
     label: 'Service Popularity',
     description: 'Requests, completion rate and revenue by service category.',
   },
+  {
+    code: 'REVIEWS',
+    label: 'Review Sentiment',
+    description: 'Ratings and comments per review.',
+  },
 ];
 
 const typeLabel = (code) =>

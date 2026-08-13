@@ -5,7 +5,7 @@
 --   * admin_report_exports_page - one page of exports + total, server-side filters.
 --   * admin_report_stats        - single aggregated row of status counts.
 -- Write side (consumed by the report-export edge function):
---   * admin_report_workers/customers/services - tabular detail per report type.
+--   * admin_report_workers/customers/services/reviews - tabular detail per report type.
 --   * Financial reuses admin_analytics_summary / admin_revenue_series.
 
 drop function if exists public.admin_report_exports_page(int, int, text, timestamptz, timestamptz, text, text);
@@ -202,18 +202,56 @@ begin
     order by request_count desc;
 end $$;
 
+-- Review Sentiment detail (per review row).
+drop function if exists public.admin_report_reviews(timestamptz, timestamptz);
+create or replace function public.admin_report_reviews(
+  p_from timestamptz default null,
+  p_to timestamptz default null
+)
+returns table (
+  reviewer text,
+  worker text,
+  service text,
+  rating int,
+  comment text,
+  reviewed_at timestamptz
+)
+language plpgsql security definer set search_path = public as $$
+begin
+  if coalesce((select role::text from public.accounts where id = auth.uid()), '') <> 'ADMIN'
+  then raise exception 'Not authorized'; end if;
+  return query
+    select coalesce(up.display_name, 'Unknown reviewer'),
+           coalesce(wp.display_name, 'Unknown worker'),
+           c.name,
+           r.stars,
+           r.body,
+           r.created_at
+    from reviews r
+    join bookings b on b.id = r.booking_id
+    join service_requests sr on sr.id = b.service_request_id
+    join service_categories c on c.id = sr.category_id
+    left join user_profiles up on up.account_id = r.user_account_id
+    left join worker_profiles wp on wp.account_id = r.worker_account_id
+    where (p_from is null or r.created_at >= p_from)
+      and (p_to is null or r.created_at <= p_to)
+    order by r.created_at desc;
+end $$;
+
 -- grants
 revoke execute on function public.admin_report_exports_page(int, int, text, timestamptz, timestamptz, text, text) from public;
 revoke execute on function public.admin_report_stats() from public;
 revoke execute on function public.admin_report_workers(timestamptz, timestamptz) from public;
 revoke execute on function public.admin_report_customers(timestamptz, timestamptz) from public;
 revoke execute on function public.admin_report_services(timestamptz, timestamptz) from public;
+revoke execute on function public.admin_report_reviews(timestamptz, timestamptz) from public;
 
 grant execute on function public.admin_report_exports_page(int, int, text, timestamptz, timestamptz, text, text) to authenticated;
 grant execute on function public.admin_report_stats() to authenticated;
 grant execute on function public.admin_report_workers(timestamptz, timestamptz) to authenticated;
 grant execute on function public.admin_report_customers(timestamptz, timestamptz) to authenticated;
 grant execute on function public.admin_report_services(timestamptz, timestamptz) to authenticated;
+grant execute on function public.admin_report_reviews(timestamptz, timestamptz) to authenticated;
 
 -- Force PostgREST to reload its schema cache so the fresh RPCs are visible
 -- immediately instead of returning 404 for a few seconds.
