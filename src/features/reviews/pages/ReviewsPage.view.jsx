@@ -221,6 +221,8 @@ export function ReviewsView({ model }) {
         media={proofMedia}
         isMediaLoading={isProofMediaLoading}
         renderStars={renderStars}
+        onMoveToTrash={openTrash}
+        goToTrash={goToTrash}
       />
 
       <Modal
@@ -549,10 +551,45 @@ function PhotoGrid({ title, images }) {
   );
 }
 
-function ProofDetailsDrawer({ proof, isOpen, onClose, media, isMediaLoading, renderStars }) {
+function ProofDetailsDrawer({
+  proof,
+  isOpen,
+  onClose,
+  media,
+  isMediaLoading,
+  renderStars,
+  onMoveToTrash,
+  goToTrash,
+}) {
   const schedule = proof?.serviceDetails?.schedule;
+  const footer = proof ? (
+    proof.isTrashed ? (
+      <button
+        onClick={() => goToTrash(proof.trashEntryId)}
+        className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 font-medium text-foreground transition-colors hover:bg-surface-100"
+      >
+        <ExternalLink size={16} /> View in Trash
+      </button>
+    ) : (
+      <button
+        onClick={() => {
+          onClose();
+          onMoveToTrash(proof);
+        }}
+        className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 font-medium text-white transition-opacity hover:opacity-90"
+      >
+        <Trash2 size={16} /> Move to Trash
+      </button>
+    )
+  ) : null;
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title="Proof of Work Details" width="max-w-lg">
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Proof of Work Details"
+      width="max-w-lg"
+      footer={footer}
+    >
       {proof && (
         <div className="space-y-6">
           <div>
