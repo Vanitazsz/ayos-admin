@@ -23,7 +23,7 @@ export const loadWorkerKeys = cacheable('workers', { ttl: 60_000 }, async () => 
   if (trashError) throw trashError;
   return {
     keys: data ?? [],
-    trashById: new Map((trashed ?? []).map((row) => [row.entity_id, row.id])),
+    trashById: Object.fromEntries((trashed ?? []).map((row) => [row.entity_id, row.id])),
   };
 });
 
@@ -77,8 +77,8 @@ const mapWorker = (row, trashById) => {
     earnings: 0,
     verificationStatus: verification?.status ?? row.approval_status,
     verificationId: verification?.id ?? null,
-    isTrashed: trashById.has(row.account_id),
-    trashEntryId: trashById.get(row.account_id) ?? null,
+    trashEntryId: trashById[row.account_id] ?? null,
+    isTrashed: Boolean(trashById[row.account_id]),
     matchingReady,
     matchingMissing,
   };

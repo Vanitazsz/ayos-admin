@@ -136,7 +136,7 @@ export const loadBookingKeys = cacheable('bookings', { ttl: 60_000 }, async () =
   if (trashError) throw trashError;
   return {
     keys: keys ?? [],
-    trashById: new Map((trashed ?? []).map((row) => [row.entity_id, row.id])),
+    trashById: Object.fromEntries((trashed ?? []).map((row) => [row.entity_id, row.id])),
   };
 });
 
@@ -183,7 +183,7 @@ export async function loadBookingsPageRaw({
     filterStatus === 'All'
       ? matched
       : filterStatus === 'Trashed'
-        ? matched.filter((row) => trashById.has(row.id))
+        ? matched.filter((row) => Boolean(trashById[row.id]))
         : matched.filter((row) => status(row.status) === filterStatus);
   const mediaFiltered =
     media.length === 0
@@ -219,7 +219,7 @@ export async function loadBookingsPageRaw({
       .map((id) => {
         const booking = mapBooking(byId.get(id));
         if (!booking) return null;
-        const trashEntryId = trashById.get(booking.id) ?? null;
+        const trashEntryId = trashById[booking.id] ?? null;
         return { ...booking, isTrashed: Boolean(trashEntryId), trashEntryId };
       })
       .filter(Boolean),

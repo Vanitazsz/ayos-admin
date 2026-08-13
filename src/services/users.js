@@ -81,7 +81,7 @@ export const loadUserKeys = cacheable('users', { ttl: 60_000 }, async () => {
   if (trashError) throw trashError;
   return {
     keys: keys ?? [],
-    trashById: new Map((trashed ?? []).map((row) => [row.entity_id, row.id])),
+    trashById: Object.fromEntries((trashed ?? []).map((row) => [row.entity_id, row.id])),
   };
 });
 
@@ -124,7 +124,7 @@ export async function loadUsersPageRaw({
       row.id.toLowerCase().includes(term)
     );
   };
-  const isTrashed = (row) => trashById.has(row.id);
+  const isTrashed = (row) => Boolean(trashById[row.id]);
   const matchesStatus = (row) =>
     status === 'All' ||
     (status === 'Trashed' ? isTrashed(row) : row.status === status);
@@ -167,7 +167,8 @@ export async function loadUsersPageRaw({
       .map((id) => {
         const user = mapUser(byId.get(id));
         if (!user) return null;
-        return { ...user, isTrashed: trashById.has(id), trashEntryId: trashById.get(id) ?? null };
+        const trashEntryId = trashById[id] ?? null;
+        return { ...user, isTrashed: Boolean(trashEntryId), trashEntryId };
       })
       .filter(Boolean),
     count,
