@@ -1,6 +1,8 @@
 import {
-  loadWorkerProofs,
+  loadProofOfWork,
   resolveProofMedia,
+  hasWorkerProof,
+  hasCustomerProof,
   subscribe,
 } from '../logic/ReviewsPageLogic';
 import { useEffect, useMemo, useState } from 'react';
@@ -13,6 +15,7 @@ export function useReviewsPageController() {
   const dateFilter = useDateFilter({ canModify: true });
   const [proofs, setProofs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('customer');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRating, setFilterRating] = useState('All');
   const [mediaFilter, setMediaFilter] = useState([]);
@@ -24,7 +27,7 @@ export function useReviewsPageController() {
   const refresh = async () => {
     setIsLoading(true);
     try {
-      setProofs(await loadWorkerProofs());
+      setProofs(await loadProofOfWork());
     } finally {
       setIsLoading(false);
     }
@@ -34,7 +37,11 @@ export function useReviewsPageController() {
     return subscribe('booking_proof_media', refresh);
   }, []);
 
-  const matchedProofs = proofs.filter((proof) => {
+  const workerProofs = useMemo(() => proofs.filter(hasWorkerProof), [proofs]);
+  const customerProofs = useMemo(() => proofs.filter(hasCustomerProof), [proofs]);
+  const tabProofs = activeTab === 'customer' ? customerProofs : workerProofs;
+
+  const matchedProofs = tabProofs.filter((proof) => {
     const term = searchTerm.trim().toLowerCase();
     const matchesSearch =
       !term ||
@@ -42,10 +49,14 @@ export function useReviewsPageController() {
       proof.customer.toLowerCase().includes(term) ||
       proof.service.toLowerCase().includes(term) ||
       proof.comment.toLowerCase().includes(term);
-    const matchesRating = filterRating === 'All' || proof.rating.toString() === filterRating;
+    const matchesRating =
+      filterRating === 'All' || proof.rating?.toString() === filterRating;
+    const hasPhotos =
+      activeTab === 'customer'
+        ? proof.customerPhotos.length > 0
+        : proof.workerPhotos.length > 0;
     const matchesMedia =
-      mediaFilter.length === 0 ||
-      (mediaFilter.includes('image') && proof.proofMedia.length > 0);
+      mediaFilter.length === 0 || (mediaFilter.includes('image') && hasPhotos);
     return matchesSearch && matchesRating && matchesMedia;
   });
   const filteredProofs = applyDateFilter(matchedProofs, {
@@ -61,26 +72,42 @@ export function useReviewsPageController() {
     pageData: paginatedProofs,
   } = usePagination(filteredProofs, 10);
 
-  const avgRating = proofs.length
-    ? (proofs.reduce((sum, proof) => sum + proof.rating, 0) / proofs.length).toFixed(1)
-    : '0.0';
-  const stats = useMemo(
-    () => [
-      { label: 'Total Proofs', value: proofs.length, icon: MessageSquare },
-      { label: 'Average Rating', value: avgRating, icon: Star },
+  const avgOf = (rows) => {
+    const rated = rows.filter((proof) => proof.rating);
+    return rated.length
+      ? (rated.reduce((sum, proof) => sum + proof.rating, 0) / rated.length).toFixed(1)
+      : '0.0';
+  };
+  const stats = useMemo(() => {
+    if (activeTab === 'worker') {
+      return [
+        { label: 'Total Proofs', value: workerProofs.length, icon: MessageSquare },
+        { label: 'Average Rating', value: avgOf(workerProofs), icon: Star },
+        {
+          label: 'With Photos',
+          value: workerProofs.filter((proof) => proof.workerPhotos.length > 0).length,
+          icon: ImageIcon,
+        },
+        {
+          label: 'With Comments',
+          value: workerProofs.filter((proof) => (proof.comment ?? '').trim() !== '').length,
+          icon: MessageSquare,
+        },
+      ];
+    }
+    return [
+      { label: 'Total Proofs', value: customerProofs.length, icon: MessageSquare },
+      { label: 'With Photos', value: customerProofs.length, icon: ImageIcon },
+      { label: 'Avg Worker Rating', value: avgOf(customerProofs), icon: Star },
       {
-        label: 'With Photos',
-        value: proofs.filter((proof) => proof.proofMedia.length > 0).length,
-        icon: ImageIcon,
-      },
-      {
-        label: 'With Comments',
-        value: proofs.filter((proof) => (proof.comment ?? '').trim() !== '').length,
+        label: 'With Worker Feedback',
+        value: customerProofs.filter(
+          (proof) => proof.rating || (proof.comment ?? '').trim() !== '',
+        ).length,
         icon: MessageSquare,
       },
-    ],
-    [proofs, avgRating],
-  );
+    ];
+  }, [activeTab, workerProofs, customerProofs]);
 
   const handleViewDetails = async (proof) => {
     setSelectedProof(proof);
@@ -90,7 +117,7 @@ export function useReviewsPageController() {
     try {
       setProofMedia(await resolveProofMedia(proof));
     } catch {
-      setProofMedia({ images: [] });
+      setProofMedia({ workerImages: [], customerImages: [] });
     } finally {
       setIsProofMediaLoading(false);
     }
@@ -115,6 +142,8 @@ export function useReviewsPageController() {
   };
 
   return {
+    activeTab,
+    setActiveTab,
     searchTerm,
     setSearchTerm,
     filterRating,
