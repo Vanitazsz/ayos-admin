@@ -1,4 +1,4 @@
-import { loadPaymentsPage, movePaymentToTrash, confirmCashPayment } from '../logic/PaymentsPageLogic';
+import { loadPaymentsPage, movePaymentToTrash, confirmCashPayment, resolvePaymentProof } from '../logic/PaymentsPageLogic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DollarSign, TrendingUp, CreditCard, ArrowDownRight } from 'lucide-react';
 import { money } from '../../../services/adminShared';
@@ -36,6 +36,8 @@ export function usePaymentsPageController() {
   const [filterType, setFilterType] = useState('All');
   const [selectedTxn, setSelectedTxn] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [proofUrl, setProofUrl] = useState(null);
+  const [isProofLoading, setIsProofLoading] = useState(false);
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [activeTab, setActiveTab] = useState('transactions');
   const [action, setAction] = useState(null);
@@ -131,10 +133,21 @@ export function usePaymentsPageController() {
   }, [meta]);
 
   const getStatusColor = (status) => badgeFor(PAYMENT_STATUS_BADGE, status);
-  const handleViewDetails = (txn) => {
+  const handleViewDetails = async (txn) => {
     setSelectedTxn(txn);
     setIsDrawerOpen(true);
     setActionMenuOpenId(null);
+    setProofUrl(null);
+    if (!txn?.proofPath) return;
+    setIsProofLoading(true);
+    try {
+      const url = await resolvePaymentProof(txn);
+      if (url) setProofUrl(url);
+    } catch (err) {
+      console.error('Failed to resolve payment proof:', err);
+    } finally {
+      setIsProofLoading(false);
+    }
   };
 
   const openAction = useCallback((type, txn) => {
@@ -262,6 +275,8 @@ export function usePaymentsPageController() {
     selectedTxn,
     isDrawerOpen,
     setIsDrawerOpen,
+    proofUrl,
+    isProofLoading,
     actionMenuOpenId,
     setActionMenuOpenId,
     activeTab,

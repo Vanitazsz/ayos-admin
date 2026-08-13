@@ -1,6 +1,7 @@
 import { supabase, status } from './adminShared';
 import { cacheable, invalidate } from '../lib/cacheable';
 import { applyDateFilter, getRowDate } from '../lib/dateFilter';
+import { getSignedUrl } from '../lib/signedUrlCache';
 
 export const PAYMENT_STATUS_LABELS = {
   SUCCESSFUL: 'Completed',
@@ -27,16 +28,42 @@ export const mapPayment = (row) => ({
   method: status(row.method),
   status: paymentStatus(row.status),
   type: 'Payment',
+  proofPath: row.proof_path ?? null,
   date: new Date(row.created_at).toLocaleDateString(),
   created_at: row.created_at,
   updated_at: row.updated_at ?? null,
 });
 
 const PAYMENT_PAGE_SELECT =
-  'id,booking_id,service_amount,commission_amount,worker_net_amount,method,status,created_at,updated_at,bookings(user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name))';
+  'id,booking_id,service_amount,commission_amount,worker_net_amount,method,status,created_at,updated_at,proof_path,bookings(user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name))';
 
 const PAYMENT_KEY_SELECT =
-  'id,status,method,created_at,updated_at,service_amount,commission_amount,bookings(user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name))';
+  'id,status,method,created_at,updated_at,service_amount,commission_amount,proof_path,bookings(user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name))';
+
+export const loadPaymentKeys = cacheable('payments', { ttl: 60_000 }, async () => {
+  const [{ data: keys, error: keyError }, { data: trashedData }] = await Promise.all([
+    supabase.from('payments').select(PAYMENT_KEY_SELECT).order('created_at', { ascending: false }),
+    supabase
+      .from('trash_entries')
+      .select('entity_id')
+      .eq('entity_type', 'payment')
+      .is('restored_at', null),
+  ]);
+  if (keyError) throw keyError;
+  return {
+    keys: keys ?? [],
+    trashedIds: new Set((trashedData ?? []).map((t) => t.entity_id)),
+  };
+});
+
+export const loadPaymentPageRows = cacheable('payments', { ttl: 60_000 }, async (ids) => {
+  const { data, error } = await supabase
+    .from('payments')
+    .select(PAYMENT_PAGE_SELECT)
+    .in('id', ids);
+  if (error) throw error;
+  return data ?? [];
+});
 
 export async function loadPaymentsPageRaw({
   search = '',
@@ -48,18 +75,7 @@ export async function loadPaymentsPageRaw({
   page = 1,
   pageSize = 10,
 } = {}) {
-  const { data: trashedData } = await supabase
-    .from('trash_entries')
-    .select('entity_id')
-    .eq('entity_type', 'payment')
-    .is('restored_at', null);
-  const trashedIds = new Set((trashedData ?? []).map((t) => t.entity_id));
-
-  const { data: keys, error: keyError } = await supabase
-    .from('payments')
-    .select(PAYMENT_KEY_SELECT)
-    .order('created_at', { ascending: false });
-  if (keyError) throw keyError;
+  const { keys, trashedIds } = await loadPaymentKeys();
 
   const rows = (keys ?? []).filter((row) => !trashedIds.has(row.id));
 
@@ -110,13 +126,9 @@ export async function loadPaymentsPageRaw({
 
   if (!pageIds.length) return { rows: [], count, stats };
 
-  const { data, error } = await supabase
-    .from('payments')
-    .select(PAYMENT_PAGE_SELECT)
-    .in('id', pageIds);
-  if (error) throw error;
+  const data = await loadPaymentPageRows(pageIds);
 
-  const byId = new Map((data ?? []).map((row) => [row.id, row]));
+  const byId = new Map(data.map((row) => [row.id, row]));
   return {
     rows: pageIds.map((id) => mapPayment(byId.get(id))).filter(Boolean),
     count,
@@ -144,4 +156,10 @@ export async function confirmCashPayment(id, notes) {
   if (error) throw error;
   invalidate('payments');
   return data;
+}
+
+export async function resolvePaymentProof(payment) {
+  const path = payment?.proofPath ?? null;
+  if (!path) return null;
+  return getSignedUrl('booking-proof', path);
 }
