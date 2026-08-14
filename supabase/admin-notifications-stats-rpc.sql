@@ -5,11 +5,13 @@
 -- Returns one row per campaign with total delivery count and how many were
 -- read, so the admin list no longer pulls every notification_deliveries row.
 
+drop function if exists public.admin_get_notification_campaign_stats(uuid[]);
+
 create or replace function public.admin_get_notification_campaign_stats(
   p_campaign_ids uuid[]
 )
 returns table (
-  notification_id uuid,
+  campaign_id uuid,
   total bigint,
   read bigint
 )
@@ -22,12 +24,12 @@ begin
     return;
   end if;
   return query
-    select d.notification_id,
+    select d.campaign_id,
            count(*)::bigint as total,
            count(*) filter (where d.read_at is not null)::bigint as read
     from public.notification_deliveries d
-    where d.notification_id = any(p_campaign_ids)
-    group by d.notification_id;
+    where d.campaign_id = any(p_campaign_ids)
+    group by d.campaign_id;
 end $$;
 
 revoke all on function public.admin_get_notification_campaign_stats(uuid[]) from public, anon;
