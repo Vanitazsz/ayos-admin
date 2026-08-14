@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { setCacheUser, clearCache } from '../lib/dataCache';
+import { setCacheUser, clearCache, invalidateCache } from '../lib/dataCache';
+import { subscribe } from '../services/realtime';
 
 const AuthContext = createContext();
 const RECOVERY_FLAG_KEY = 'ayos-recovery-pending';
@@ -102,6 +103,49 @@ export const AuthProvider = ({ children }) => {
     });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  const resyncRef = useRef(null);
+  resyncRef.current = async () => {
+    if (localStorage.getItem(RECOVERY_FLAG_KEY) === '1') return;
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return;
+    try {
+      const [{ data: adminRole, error: roleError }, { data: permissions, error: permissionError }] =
+        await Promise.all([
+          supabase.rpc('admin_get_my_role'),
+          supabase.rpc('admin_get_my_permissions'),
+        ]);
+      if (roleError && roleError.code !== 'PGRST202') return;
+      if (permissionError && permissionError.code !== 'PGRST202') return;
+      setUser((current) =>
+        current
+          ? {
+              ...current,
+              adminRole:
+                roleError?.code === 'PGRST202'
+                  ? current.adminRole
+                  : (adminRole ?? current.adminRole),
+              permissions:
+                permissionError?.code === 'PGRST202'
+                  ? current.permissions
+                  : [...new Set(permissions ?? [])],
+            }
+          : current,
+      );
+      invalidateCache('profile');
+    } catch {
+      /* keep current session state on transient re-sync errors */
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+    return subscribe('admin_profiles', () => void resyncRef.current(), {
+      filter: `account_id=eq.${user.id}`,
+    });
+  }, [isAuthenticated, user?.id]);
 
   const login = async (email, password) => {
     localStorage.removeItem(RECOVERY_FLAG_KEY);
