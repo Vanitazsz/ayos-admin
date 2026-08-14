@@ -555,6 +555,14 @@ export function useWorkersPageController() {
           verified: nextStatus === 'verified',
           verificationStatus: nextStatus === 'verified' ? 'APPROVED' : 'PENDING',
         });
+        try {
+          const docs = await loadWorkerVerificationDocs(worker.id);
+          setVerificationDocs(
+            docs ?? { status: 'NOT_SUBMITTED', idType: '', documents: [] },
+          );
+        } catch {
+          // keep the currently displayed docs
+        }
         await refresh();
         toast.success(
           nextStatus === 'verified' ? 'Worker verified' : 'Verification removed',
@@ -570,7 +578,7 @@ export function useWorkersPageController() {
         setActionMenuOpenId(null);
       }
     },
-    [refresh, syncSelectedWorker, toast],
+    [refresh, syncSelectedWorker, toast, loadWorkerVerificationDocs],
   );
 
   const approveWorker = useCallback(
