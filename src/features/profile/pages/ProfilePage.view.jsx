@@ -152,7 +152,7 @@ export function ProfileView({ model }) {
             <h2 className="text-xl font-bold text-foreground">
               {profile.firstName} {profile.lastName}
             </h2>
-            <p className="text-brand-600 font-medium text-sm mt-1">{profile.role}</p>
+            <p className="text-brand-600 font-medium text-sm mt-1">{profile.roleLabel || profile.role}</p>
 
             <div className="mt-6 pt-6 border-t border-border space-y-3 text-sm text-left">
               <div className="flex items-center text-foreground-light">
