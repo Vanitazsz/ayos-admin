@@ -40,6 +40,8 @@ export function useUsersPageController() {
   const [verifications, setVerifications] = useState([]);
   const [isVerificationsLoading, setIsVerificationsLoading] = useState(false);
   const [selectedVerification, setSelectedVerification] = useState(null);
+  const [selectedVerificationDetails, setSelectedVerificationDetails] = useState(null);
+  const [isVerificationDrawerOpen, setIsVerificationDrawerOpen] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
   const [reviewing, setReviewing] = useState(false);
   const [confirm, setConfirm] = useState({
@@ -132,6 +134,16 @@ export function useUsersPageController() {
     await refreshUsers();
     await loadVerifications();
   }, [refreshUsers, loadVerifications]);
+
+  const openVerificationDetails = useCallback((verification) => {
+    setSelectedVerificationDetails(verification);
+    setIsVerificationDrawerOpen(true);
+  }, []);
+
+  const closeVerificationDetails = useCallback(() => {
+    setIsVerificationDrawerOpen(false);
+    setSelectedVerificationDetails(null);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -622,6 +634,10 @@ export function useUsersPageController() {
       isVerificationsLoading,
       selectedVerification,
       setSelectedVerification,
+      selectedVerificationDetails,
+      isVerificationDrawerOpen,
+      openVerificationDetails,
+      closeVerificationDetails,
       reviewNotes,
       setReviewNotes,
       reviewing,
@@ -686,6 +702,10 @@ export function useUsersPageController() {
       verifications,
       isVerificationsLoading,
       selectedVerification,
+      selectedVerificationDetails,
+      isVerificationDrawerOpen,
+      openVerificationDetails,
+      closeVerificationDetails,
       reviewNotes,
       reviewing,
       error,

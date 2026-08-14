@@ -195,7 +195,12 @@ export const loadCustomerVerifications = cacheable(
     }
     const ids = [...new Set((rows ?? []).map((row) => row.customer_id))];
     const { data: accounts, error: accountError } = ids.length
-      ? await supabase.from('accounts').select('id,email,user_profiles(display_name)').in('id', ids)
+      ? await supabase
+          .from('accounts')
+          .select(
+            'id,email,mobile,status,created_at,user_profiles(display_name,verification_status),addresses(id,label,line1,line2,barangay,city,province,postal_code,is_default)',
+          )
+          .in('id', ids)
       : { data: [], error: null };
     if (accountError) throw accountError;
     const byId = new Map((accounts ?? []).map((account) => [account.id, account]));
@@ -209,10 +214,27 @@ export const loadCustomerVerifications = cacheable(
 
     return (rows ?? []).map((row) => {
       const account = byId.get(row.customer_id);
+      const profile = asProfile(account);
+      const addresses = (account?.addresses ?? []).map((address) => ({
+        id: address.id,
+        label: address.label ?? '',
+        display: [address.line1, address.line2, address.barangay, address.city, address.province]
+          .filter(Boolean)
+          .join(', '),
+        isDefault: Boolean(address.is_default),
+      }));
+      const primaryAddress = addresses.find((address) => address.isDefault) ?? addresses[0];
       return {
         ...row,
-        customerName: identity(account?.user_profiles?.display_name, 'Verification customer'),
+        customerName: identity(profile?.display_name, 'Verification customer'),
         email: account?.email ?? '',
+        phone: account?.mobile ?? '',
+        accountStatus: status(account?.status),
+        registeredAt: account?.created_at
+          ? new Date(account.created_at).toLocaleDateString()
+          : '',
+        addressDisplay: primaryAddress?.display ?? '',
+        verificationStatus: (profile?.verification_status ?? '').toLowerCase(),
         frontUrl: frontUrls.get(row.id_front_url) ?? '',
         backUrl: backUrls.get(row.id_back_url) ?? '',
       };
