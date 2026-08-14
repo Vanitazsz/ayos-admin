@@ -5,7 +5,6 @@ import {
   Calculator,
   Save,
   RotateCcw,
-  Sparkles,
   Users,
   Briefcase,
   CheckCircle2,
@@ -13,6 +12,7 @@ import {
 import { Button } from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Switch from '../../../components/ui/Switch';
+import { Label } from '../../../components/ui/Label';
 import { Badge } from '../../../components/ui/Badge';
 import { Alert } from '../../../components/ui/Alert';
 import {
@@ -24,6 +24,39 @@ import {
   CardFooter,
 } from '../../../components/ui/Card';
 import { money } from '../../../services/adminShared';
+
+function FeeTypePills({ value, onChange, options }) {
+  return (
+    <div className="flex items-center gap-1 rounded-lg bg-surface-200 p-1" role="group">
+      {options.map(({ key, label, icon: Icon }) => (
+        <button
+          key={key}
+          type="button"
+          aria-pressed={value === key}
+          onClick={() => onChange(key)}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-ring-btn ${
+            value === key
+              ? 'bg-foreground text-foreground-contrast'
+              : 'text-foreground-lighter hover:text-foreground'
+          }`}
+        >
+          <Icon className="size-4" />
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SimStat({ label, value, sub, valueClass = 'text-foreground' }) {
+  return (
+    <div className="rounded-lg border border-border bg-surface-100 p-3.5 shadow-sm">
+      <h4 className="heading-meta truncate">{label}</h4>
+      <p className={`mt-1 text-xl font-normal leading-tight ${valueClass}`}>{value}</p>
+      <p className="mt-1 text-xs text-foreground-lighter">{sub}</p>
+    </div>
+  );
+}
 
 export function CommissionFeeSettings({
   feeSettings,
@@ -168,9 +201,7 @@ export function CommissionFeeSettings({
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-lg font-bold text-foreground">
-              Commission & Fee Configuration
-            </CardTitle>
+            <CardTitle>Commission & Fee Configuration</CardTitle>
             <CardDescription>
               Configure fee structures for both service providers (workers) and customers (users).
             </CardDescription>
@@ -203,23 +234,20 @@ export function CommissionFeeSettings({
         </CardHeader>
 
         <CardContent>
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={16} className="text-warning-500" />
-            <span className="text-xs font-semibold text-foreground-light uppercase tracking-wider">
-              Quick Fee Presets
-            </span>
+          <div className="mb-3">
+            <span className="heading-meta">Quick Fee Presets</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <button
               type="button"
               onClick={() => handleApplyPreset('standard')}
-              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring-btn"
+              className="rounded-lg border border-border bg-card p-3 text-left transition-colors focus-ring-btn hover:border-border-strong hover:bg-accent"
             >
-              <div className="font-semibold text-foreground group-hover:text-brand-600 flex items-center justify-between">
-                Standard Model
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-foreground">Standard Model</span>
                 <Badge variant="primary">10% Worker</Badge>
               </div>
-              <p className="text-foreground-lighter mt-1 text-[11px]">
+              <p className="mt-1 text-xs text-foreground-lighter">
                 10% Worker commission, ₱0 User fee
               </p>
             </button>
@@ -227,13 +255,13 @@ export function CommissionFeeSettings({
             <button
               type="button"
               onClick={() => handleApplyPreset('shared')}
-              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring-btn"
+              className="rounded-lg border border-border bg-card p-3 text-left transition-colors focus-ring-btn hover:border-border-strong hover:bg-accent"
             >
-              <div className="font-semibold text-foreground group-hover:text-brand-600 flex items-center justify-between">
-                Shared Fee Model
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-foreground">Shared Fee Model</span>
                 <Badge variant="info">5% / 5%</Badge>
               </div>
-              <p className="text-foreground-lighter mt-1 text-[11px]">
+              <p className="mt-1 text-xs text-foreground-lighter">
                 5% Worker commission + 5% User fee
               </p>
             </button>
@@ -241,13 +269,13 @@ export function CommissionFeeSettings({
             <button
               type="button"
               onClick={() => handleApplyPreset('flat_user')}
-              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring-btn"
+              className="rounded-lg border border-border bg-card p-3 text-left transition-colors focus-ring-btn hover:border-border-strong hover:bg-accent"
             >
-              <div className="font-semibold text-foreground group-hover:text-brand-600 flex items-center justify-between">
-                Flat Customer Fee
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-foreground">Flat Customer Fee</span>
                 <Badge variant="success">₱30 Flat</Badge>
               </div>
-              <p className="text-foreground-lighter mt-1 text-[11px]">
+              <p className="mt-1 text-xs text-foreground-lighter">
                 ₱0 Worker commission, ₱30 Customer booking fee
               </p>
             </button>
@@ -255,13 +283,13 @@ export function CommissionFeeSettings({
             <button
               type="button"
               onClick={() => handleApplyPreset('promo_zero')}
-              className="p-3 text-left rounded-lg border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all text-xs group focus-ring-btn"
+              className="rounded-lg border border-border bg-card p-3 text-left transition-colors focus-ring-btn hover:border-border-strong hover:bg-accent"
             >
-              <div className="font-semibold text-foreground group-hover:text-brand-600 flex items-center justify-between">
-                Zero Fee Promo
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-foreground">Zero Fee Promo</span>
                 <Badge variant="warning">0% Promo</Badge>
               </div>
-              <p className="text-foreground-lighter mt-1 text-[11px]">
+              <p className="mt-1 text-xs text-foreground-lighter">
                 0% Worker commission, ₱0 User fee
               </p>
             </button>
@@ -274,17 +302,11 @@ export function CommissionFeeSettings({
         {/* Worker Commission Settings */}
         <Card className="flex h-full flex-col">
           <CardHeader className="flex-row items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-brand-500/10 rounded-lg flex items-center justify-center text-brand-600">
-                <Briefcase size={20} />
-              </div>
+            <div className="flex min-w-0 items-center gap-2">
+              <Briefcase className="size-4 shrink-0 text-foreground-muted" strokeWidth={1.5} />
               <div>
-                <CardTitle className="text-base font-bold text-foreground">
-                  Worker Commission Fee
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Fee deducted from the worker's earnings per completed job
-                </CardDescription>
+                <CardTitle>Worker Commission Fee</CardTitle>
+                <CardDescription>Fee deducted from the worker's earnings per completed job</CardDescription>
               </div>
             </div>
             <Switch
@@ -299,47 +321,26 @@ export function CommissionFeeSettings({
               <div className="space-y-4">
                 {/* Fee Type Selection */}
                 <div>
-                  <label className="block text-xs font-semibold text-foreground-light mb-1.5">
-                    Commission Fee Structure
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      aria-pressed={feeSettings.workerFeeType === 'percentage'}
-                      onClick={() => updateSetting('workerFeeType', 'percentage')}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring-btn ${
-                        feeSettings.workerFeeType === 'percentage'
-                          ? 'border-brand-500 bg-brand-500/10 text-brand-700 font-semibold'
-                          : 'border-border-strong text-foreground-lighter hover:bg-surface-200'
-                      }`}
-                    >
-                      <Percent size={14} />
-                      Percentage (%)
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={feeSettings.workerFeeType === 'fixed'}
-                      onClick={() => updateSetting('workerFeeType', 'fixed')}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring-btn ${
-                        feeSettings.workerFeeType === 'fixed'
-                          ? 'border-brand-500 bg-brand-500/10 text-brand-700 font-semibold'
-                          : 'border-border-strong text-foreground-lighter hover:bg-surface-200'
-                      }`}
-                    >
-                      <DollarSign size={14} />
-                      Fixed Fee (₱)
-                    </button>
+                  <Label>Commission Fee Structure</Label>
+                  <div className="mt-1.5">
+                    <FeeTypePills
+                      value={feeSettings.workerFeeType}
+                      onChange={(value) => updateSetting('workerFeeType', value)}
+                      options={[
+                        { key: 'percentage', label: 'Percentage (%)', icon: Percent },
+                        { key: 'fixed', label: 'Fixed Fee (₱)', icon: DollarSign },
+                      ]}
+                    />
                   </div>
                 </div>
 
                 {/* Rate / Fee Input */}
                 {feeSettings.workerFeeType === 'percentage' ? (
                   <div>
-                    <label className="block text-xs font-semibold text-foreground-light mb-1">
-                      Commission Percentage Rate (%)
-                    </label>
-                    <div className="relative">
+                    <Label htmlFor="worker-rate">Commission Percentage Rate (%)</Label>
+                    <div className="relative mt-1.5">
                       <Input
+                        id="worker-rate"
                         type="number"
                         min="0"
                         max="50"
@@ -350,24 +351,23 @@ export function CommissionFeeSettings({
                         }
                         inputClassName="pr-10"
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-foreground-muted">
                         %
                       </span>
                     </div>
-                    <p className="text-[11px] text-foreground-lighter mt-1">
+                    <p className="mt-1.5 text-xs text-foreground-lighter">
                       Standard industry range: 5% – 20%
                     </p>
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-xs font-semibold text-foreground-light mb-1">
-                      Fixed Commission Amount per Job (₱)
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
+                    <Label htmlFor="worker-fixed">Fixed Commission Amount per Job (₱)</Label>
+                    <div className="relative mt-1.5">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-foreground-muted">
                         ₱
                       </span>
                       <Input
+                        id="worker-fixed"
                         type="number"
                         min="0"
                         step="5"
@@ -383,14 +383,13 @@ export function CommissionFeeSettings({
 
                 {/* Minimum Floor Fee */}
                 <div>
-                  <label className="block text-xs font-semibold text-foreground-light mb-1">
-                    Minimum Fee Floor (₱)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
+                  <Label htmlFor="worker-min">Minimum Fee Floor (₱)</Label>
+                  <div className="relative mt-1.5">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-foreground-muted">
                       ₱
                     </span>
                     <Input
+                      id="worker-min"
                       type="number"
                       min="0"
                       step="5"
@@ -401,18 +400,18 @@ export function CommissionFeeSettings({
                       inputClassName="pl-7"
                     />
                   </div>
-                  <p className="text-[11px] text-foreground-lighter mt-1">
+                  <p className="mt-1.5 text-xs text-foreground-lighter">
                     Guarantees minimum platform earnings even on low-cost jobs.
                   </p>
                 </div>
 
                 {/* Auto Deduct Toggle */}
-                <div className="pt-2 border-t border-border flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3 border-t border-border pt-2">
                   <div>
-                    <span className="text-xs font-medium text-foreground">
+                    <span className="text-sm font-medium text-foreground">
                       Auto-deduct from Payout
                     </span>
-                    <p className="text-[11px] text-foreground-lighter">
+                    <p className="text-xs text-foreground-lighter">
                       Automatically deduct commission when releasing worker payouts
                     </p>
                   </div>
@@ -424,17 +423,18 @@ export function CommissionFeeSettings({
                 </div>
               </div>
             ) : (
-              <div className="p-4 rounded-lg bg-surface-200 text-center text-xs text-foreground-lighter">
-                Worker commission is currently <span className="font-bold text-destructive">Disabled</span>. Workers will receive 100% of their job payout amount.
-              </div>
+              <Alert variant="info">
+                Worker commission is currently{' '}
+                <strong className="font-semibold text-foreground">Disabled</strong>. Workers will
+                receive 100% of their job payout amount.
+              </Alert>
             )}
           </CardContent>
 
           <CardFooter>
-            <Alert className="w-full border-brand-500/20 bg-brand-500/5">
-              <span className="text-foreground-light">
-                Worker commission is deducted from the service provider when the booking reaches Completed status.
-              </span>
+            <Alert variant="info" className="w-full">
+              Worker commission is deducted from the service provider when the booking reaches
+              Completed status.
             </Alert>
           </CardFooter>
         </Card>
@@ -442,17 +442,11 @@ export function CommissionFeeSettings({
         {/* User / Customer Fee Settings */}
         <Card className="flex h-full flex-col">
           <CardHeader className="flex-row items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-info/10 rounded-lg flex items-center justify-center text-info">
-                <Users size={20} />
-              </div>
+            <div className="flex min-w-0 items-center gap-2">
+              <Users className="size-4 shrink-0 text-foreground-muted" strokeWidth={1.5} />
               <div>
-                <CardTitle className="text-base font-bold text-foreground">
-                  User Service / Convenience Fee
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Fee added to the customer's total invoice at checkout
-                </CardDescription>
+                <CardTitle>User Service / Convenience Fee</CardTitle>
+                <CardDescription>Fee added to the customer's total invoice at checkout</CardDescription>
               </div>
             </div>
             <Switch
@@ -467,47 +461,26 @@ export function CommissionFeeSettings({
               <div className="space-y-4">
                 {/* Fee Type Selection */}
                 <div>
-                  <label className="block text-xs font-semibold text-foreground-light mb-1.5">
-                    User Fee Structure
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      aria-pressed={feeSettings.userFeeType === 'percentage'}
-                      onClick={() => updateSetting('userFeeType', 'percentage')}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring-btn ${
-                        feeSettings.userFeeType === 'percentage'
-                          ? 'border-info bg-info/10 text-info font-semibold'
-                          : 'border-border-strong text-foreground-lighter hover:bg-surface-200'
-                      }`}
-                    >
-                      <Percent size={14} />
-                      Percentage (%)
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={feeSettings.userFeeType === 'fixed'}
-                      onClick={() => updateSetting('userFeeType', 'fixed')}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors focus-ring-btn ${
-                        feeSettings.userFeeType === 'fixed'
-                          ? 'border-info bg-info/10 text-info font-semibold'
-                          : 'border-border-strong text-foreground-lighter hover:bg-surface-200'
-                      }`}
-                    >
-                      <DollarSign size={14} />
-                      Fixed Fee (₱)
-                    </button>
+                  <Label>User Fee Structure</Label>
+                  <div className="mt-1.5">
+                    <FeeTypePills
+                      value={feeSettings.userFeeType}
+                      onChange={(value) => updateSetting('userFeeType', value)}
+                      options={[
+                        { key: 'percentage', label: 'Percentage (%)', icon: Percent },
+                        { key: 'fixed', label: 'Fixed Fee (₱)', icon: DollarSign },
+                      ]}
+                    />
                   </div>
                 </div>
 
                 {/* Rate / Fee Input */}
                 {feeSettings.userFeeType === 'percentage' ? (
                   <div>
-                    <label className="block text-xs font-semibold text-foreground-light mb-1">
-                      User Service Fee Percentage (%)
-                    </label>
-                    <div className="relative">
+                    <Label htmlFor="user-rate">User Service Fee Percentage (%)</Label>
+                    <div className="relative mt-1.5">
                       <Input
+                        id="user-rate"
                         type="number"
                         min="0"
                         max="30"
@@ -518,21 +491,20 @@ export function CommissionFeeSettings({
                         }
                         inputClassName="pr-10"
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-foreground-muted">
                         %
                       </span>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-xs font-semibold text-foreground-light mb-1">
-                      Fixed Booking Service Fee (₱)
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
+                    <Label htmlFor="user-fixed">Fixed Booking Service Fee (₱)</Label>
+                    <div className="relative mt-1.5">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-foreground-muted">
                         ₱
                       </span>
                       <Input
+                        id="user-fixed"
                         type="number"
                         min="0"
                         step="5"
@@ -548,14 +520,13 @@ export function CommissionFeeSettings({
 
                 {/* Minimum User Fee */}
                 <div>
-                  <label className="block text-xs font-semibold text-foreground-light mb-1">
-                    Minimum Customer Fee (₱)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
+                  <Label htmlFor="user-min">Minimum Customer Fee (₱)</Label>
+                  <div className="relative mt-1.5">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-foreground-muted">
                       ₱
                     </span>
                     <Input
+                      id="user-min"
                       type="number"
                       min="0"
                       step="5"
@@ -570,32 +541,33 @@ export function CommissionFeeSettings({
 
                 {/* Fee Display Label */}
                 <div>
-                  <label className="block text-xs font-semibold text-foreground-light mb-1">
-                    Customer Invoice Label
-                  </label>
-                  <Input
-                    type="text"
-                    value={feeSettings.userFeeLabel}
-                    onChange={(e) => updateSetting('userFeeLabel', e.target.value)}
-                    placeholder="e.g. Platform Service Fee"
-                  />
-                  <p className="text-[11px] text-foreground-lighter mt-1">
+                  <Label htmlFor="user-label">Customer Invoice Label</Label>
+                  <div className="mt-1.5">
+                    <Input
+                      id="user-label"
+                      type="text"
+                      value={feeSettings.userFeeLabel}
+                      onChange={(e) => updateSetting('userFeeLabel', e.target.value)}
+                      placeholder="e.g. Platform Service Fee"
+                    />
+                  </div>
+                  <p className="mt-1.5 text-xs text-foreground-lighter">
                     This text will be shown on customer receipt line items.
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="p-4 rounded-lg bg-surface-200 text-center text-xs text-foreground-lighter">
-                User service fee is currently <span className="font-bold text-foreground">Disabled (Free)</span>. Customers pay exact service booking cost with zero surcharge.
-              </div>
+              <Alert variant="info">
+                User service fee is currently{' '}
+                <strong className="font-semibold text-foreground">Disabled (Free)</strong>.
+                Customers pay exact service booking cost with zero surcharge.
+              </Alert>
             )}
           </CardContent>
 
           <CardFooter>
             <Alert variant="info" className="w-full">
-              <span className="text-foreground-light">
-                User service fee is added directly to the total booking charge during checkout.
-              </span>
+              User service fee is added directly to the total booking charge during checkout.
             </Alert>
           </CardFooter>
         </Card>
@@ -604,110 +576,90 @@ export function CommissionFeeSettings({
       {/* Live Revenue & Fee Breakdown Simulator */}
       <Card>
         <CardHeader className="flex-row items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 bg-warning-500/10 rounded-lg flex items-center justify-center text-warning-500 font-bold">
-              <Calculator size={20} />
-            </div>
+          <div className="flex min-w-0 items-center gap-2">
+            <Calculator className="size-4 shrink-0 text-foreground-muted" strokeWidth={1.5} />
             <div>
-              <CardTitle className="text-base font-bold text-foreground">
-                Live Fee & Revenue Simulator
-              </CardTitle>
-              <CardDescription className="text-xs">
+              <CardTitle>Live Fee & Revenue Simulator</CardTitle>
+              <CardDescription>
                 Test how your current fee rules affect a sample booking transaction
               </CardDescription>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-foreground-light">Sample Job Subtotal:</span>
+            <span className="text-xs font-medium text-foreground-light">Sample Job Subtotal:</span>
             <div className="relative w-36">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-foreground-lighter font-bold">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-foreground-muted">
                 ₱
               </span>
               <Input
+                id="sample-amount"
                 type="number"
                 min="50"
                 step="50"
                 value={sampleAmount}
                 onChange={(e) => setSampleAmount(Math.max(1, Number(e.target.value)))}
-                inputClassName="pl-6 pr-2 text-xs font-bold"
+                inputClassName="pl-6 pr-2 text-xs"
               />
             </div>
           </div>
         </CardHeader>
 
         <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {/* Card 1: Job Subtotal */}
-          <div className="p-4 rounded-xl bg-surface-100 border border-border">
-            <span className="text-xs text-foreground-lighter font-medium">Job Base Price</span>
-            <p className="text-2xl font-bold text-foreground mt-1">
-              {money(simulation.amount)}
-            </p>
-            <span className="text-[11px] text-foreground-lighter block mt-1">
-              Agreed service price
-            </span>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <SimStat
+              label="Job Base Price"
+              value={money(simulation.amount)}
+              sub="Agreed service price"
+            />
+
+            <SimStat
+              label="Customer Total Charge"
+              value={money(simulation.customerTotal)}
+              sub={`Subtotal + ${money(simulation.userFee)} Customer Fee`}
+              valueClass="text-info"
+            />
+
+            <SimStat
+              label="Total Platform Earnings"
+              value={money(simulation.platformRevenue)}
+              sub={`${money(simulation.userFee)} User Fee + ${money(simulation.workerCommission)} Worker Cut`}
+              valueClass="text-brand-600"
+            />
+
+            <SimStat
+              label="Net Worker Payout"
+              value={money(simulation.workerNet)}
+              sub={`Subtotal - ${money(simulation.workerCommission)} Commission`}
+              valueClass="text-success"
+            />
           </div>
 
-          {/* Card 2: Customer Pays */}
-          <div className="p-4 rounded-xl bg-info/10 border border-info/30">
-            <span className="text-xs text-info font-semibold">Customer Total Charge</span>
-            <p className="text-2xl font-bold text-info mt-1">
-              {money(simulation.customerTotal)}
-            </p>
-            <span className="text-[11px] text-foreground-lighter block mt-1">
-              Subtotal + {money(simulation.userFee)} Customer Fee
-            </span>
-          </div>
-
-          {/* Card 3: Platform Earns */}
-          <div className="p-4 rounded-xl bg-brand-500/10 border border-brand-500/30">
-            <span className="text-xs text-brand-700 font-semibold">Total Platform Earnings</span>
-            <p className="text-2xl font-bold text-brand-600 mt-1">
-              {money(simulation.platformRevenue)}
-            </p>
-            <span className="text-[11px] text-foreground-lighter block mt-1">
-              {money(simulation.userFee)} User Fee + {money(simulation.workerCommission)} Worker Cut
-            </span>
-          </div>
-
-          {/* Card 4: Worker Receives */}
-          <div className="p-4 rounded-xl bg-success/10 border border-success/30">
-            <span className="text-xs text-success-600 dark:text-success-400 font-semibold">Net Worker Payout</span>
-            <p className="text-2xl font-bold text-success mt-1">
-              {money(simulation.workerNet)}
-            </p>
-            <span className="text-[11px] text-foreground-lighter block mt-1">
-              Subtotal - {money(simulation.workerCommission)} Commission
-            </span>
-          </div>
-        </div>
-
-        {/* Visual Share Bar */}
-        <div>
-          <div className="flex justify-between text-xs font-semibold text-foreground mb-2">
-            <span>Payment Distribution Breakdown</span>
-            <span>
-              Worker Payout: <strong className="text-success">{simulation.workerPct}%</strong> | Platform Revenue: <strong className="text-brand-600">{simulation.platformPct}%</strong>
-            </span>
-          </div>
-          <div className="h-4 w-full bg-surface-200 rounded-full overflow-hidden flex">
-            <div
-              className="bg-success-500 h-full transition-all duration-300 flex items-center justify-center text-[10px] text-white font-bold"
-              style={{ width: `${simulation.workerPct}%` }}
-              title={`Worker Net: ${money(simulation.workerNet)}`}
-            >
-              {simulation.workerPct > 15 && `${simulation.workerPct}%`}
+          {/* Visual Share Bar */}
+          <div>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <span className="heading-meta">Payment Distribution Breakdown</span>
+              <span className="text-xs text-foreground-lighter">
+                Worker Payout:{' '}
+                <strong className="font-semibold text-success">{simulation.workerPct}%</strong>
+                <span className="mx-1.5 text-foreground-muted">|</span>
+                Platform Revenue:{' '}
+                <strong className="font-semibold text-brand-600">{simulation.platformPct}%</strong>
+              </span>
             </div>
-            <div
-              className="bg-brand-500 h-full transition-all duration-300 flex items-center justify-center text-[10px] text-white font-bold"
-              style={{ width: `${simulation.platformPct}%` }}
-              title={`Platform Revenue: ${money(simulation.platformRevenue)}`}
-            >
-              {simulation.platformPct > 10 && `${simulation.platformPct}%`}
+            <div className="flex h-2 w-full overflow-hidden rounded-full bg-surface-200">
+              <div
+                className="bg-success-500 h-full transition-all duration-300"
+                style={{ width: `${simulation.workerPct}%` }}
+                title={`Worker Net: ${money(simulation.workerNet)}`}
+              />
+              <div
+                className="bg-brand-500 h-full transition-all duration-300"
+                style={{ width: `${simulation.platformPct}%` }}
+                title={`Platform Revenue: ${money(simulation.platformRevenue)}`}
+              />
             </div>
           </div>
-        </div>
         </CardContent>
       </Card>
     </div>
