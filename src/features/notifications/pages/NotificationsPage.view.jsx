@@ -316,15 +316,24 @@ export function NotificationsView({ model }) {
         title="Campaign Details"
         width="max-w-xl"
         footer={
-          selectedCampaign &&
-          (selectedCampaign.status === 'Draft' || selectedCampaign.status === 'Scheduled') ? (
-            <Button
-              variant="primary"
-              onClick={() => handlePublish(selectedCampaign)}
-            >
-              <Send size={16} /> Submit Notif
-            </Button>
-          ) : null
+          selectedCampaign && (
+            <>
+              <Button
+                variant="outline-danger"
+                onClick={() => handleMoveToTrash(selectedCampaign.id, selectedCampaign.title)}
+              >
+                <Trash2 size={16} /> Move to Trash
+              </Button>
+              {selectedCampaign.status === 'Draft' || selectedCampaign.status === 'Scheduled' ? (
+                <Button
+                  variant="primary"
+                  onClick={() => handlePublish(selectedCampaign)}
+                >
+                  <Send size={16} /> Submit Notif
+                </Button>
+              ) : null}
+            </>
+          )
         }
       >
         {selectedCampaign ? (
