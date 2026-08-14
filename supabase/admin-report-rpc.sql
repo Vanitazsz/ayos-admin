@@ -202,7 +202,9 @@ begin
     order by request_count desc;
 end $$;
 
--- Review Sentiment detail (per review row).
+-- Review Sentiment detail (per booking row).
+-- The dedicated reviews table was dropped, so reviews are now the worker
+-- proof ratings/comments recorded on completed bookings.
 drop function if exists public.admin_report_reviews(timestamptz, timestamptz);
 create or replace function public.admin_report_reviews(
   p_from timestamptz default null,
@@ -221,21 +223,22 @@ begin
   if coalesce((select role::text from public.accounts where id = auth.uid()), '') <> 'ADMIN'
   then raise exception 'Not authorized'; end if;
   return query
-    select coalesce(up.display_name, 'Unknown reviewer'),
+    select coalesce(up.display_name, 'Unknown customer'),
            coalesce(wp.display_name, 'Unknown worker'),
-           c.name,
-           r.stars,
-           r.body,
-           r.created_at
-    from reviews r
-    join bookings b on b.id = r.booking_id
-    join service_requests sr on sr.id = b.service_request_id
-    join service_categories c on c.id = sr.category_id
-    left join user_profiles up on up.account_id = r.user_account_id
-    left join worker_profiles wp on wp.account_id = r.worker_account_id
-    where (p_from is null or r.created_at >= p_from)
-      and (p_to is null or r.created_at <= p_to)
-    order by r.created_at desc;
+           coalesce(c.name, 'Unknown service'),
+           b.worker_proof_rating::int,
+           b.worker_proof_comment,
+           coalesce(b.completed_at, b.created_at)
+    from bookings b
+    left join service_requests sr on sr.id = b.service_request_id
+    left join service_categories c on c.id = sr.category_id
+    left join user_profiles up on up.account_id = b.user_account_id
+    left join worker_profiles wp on wp.account_id = b.worker_account_id
+    where b.status = 'COMPLETED'
+      and (b.worker_proof_rating is not null or b.worker_proof_comment is not null)
+      and (p_from is null or coalesce(b.completed_at, b.created_at) >= p_from)
+      and (p_to is null or coalesce(b.completed_at, b.created_at) <= p_to)
+    order by coalesce(b.completed_at, b.created_at) desc;
 end $$;
 
 -- grants
