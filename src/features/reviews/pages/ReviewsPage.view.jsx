@@ -98,9 +98,9 @@ export function ReviewsView({ model }) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="mb-8 flex gap-4 overflow-x-auto custom-scrollbar">
         {stats.map((stat, index) => (
-          <StatCard key={index} title={stat.label} value={stat.value} icon={stat.icon} />
+          <StatCard key={index} title={stat.label} value={stat.value} icon={stat.icon} className="min-w-44 flex-1" />
         ))}
       </div>
 
@@ -193,6 +193,7 @@ export function ReviewsView({ model }) {
         <CustomerProofsTable
           isLoading={isLoading}
           proofs={paginatedProofs}
+          renderStars={renderStars}
           onViewDetails={handleViewDetails}
           onMoveToTrash={openTrash}
           goToTrash={goToTrash}
@@ -323,7 +324,14 @@ function EmptyState({ message, colSpan = 6 }) {
   );
 }
 
-function CustomerProofsTable({ isLoading, proofs, onViewDetails, onMoveToTrash, goToTrash }) {
+function CustomerProofsTable({
+  isLoading,
+  proofs,
+  renderStars,
+  onViewDetails,
+  onMoveToTrash,
+  goToTrash,
+}) {
   return (
     <div className="bg-card shadow-sm border border-border">
       <Table>
@@ -332,6 +340,8 @@ function CustomerProofsTable({ isLoading, proofs, onViewDetails, onMoveToTrash, 
             <TableHead scope="col">Customer</TableHead>
             <TableHead scope="col">Worker</TableHead>
             <TableHead scope="col">Service</TableHead>
+            <TableHead scope="col">Rating</TableHead>
+            <TableHead scope="col">Comment</TableHead>
             <TableHead scope="col">Photos</TableHead>
             <TableHead scope="col">Completed</TableHead>
             <TableHead scope="col" className="text-right">
@@ -341,7 +351,10 @@ function CustomerProofsTable({ isLoading, proofs, onViewDetails, onMoveToTrash, 
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableSkeleton rows={6} columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]} />
+            <TableSkeleton
+              rows={6}
+              columns={[{}, {}, {}, {}, {}, {}, {}, { className: 'text-right' }]}
+            />
           ) : proofs.length > 0 ? (
             proofs.map((proof) => {
               const row = (
@@ -365,6 +378,12 @@ function CustomerProofsTable({ isLoading, proofs, onViewDetails, onMoveToTrash, 
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-foreground">{proof.service}</span>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">{renderStars(proof.rating)}</TableCell>
+                  <TableCell>
+                    <p className="text-sm text-foreground-light italic max-w-[240px] truncate">
+                      "{proof.comment}"
+                    </p>
                   </TableCell>
                   <TableCell>
                     {proof.isTrashed ? (
@@ -404,7 +423,7 @@ function CustomerProofsTable({ isLoading, proofs, onViewDetails, onMoveToTrash, 
               );
             })
           ) : (
-            <EmptyState message="No customer proof of work found" />
+            <EmptyState message="No customer proof of work found" colSpan={8} />
           )}
         </TableBody>
       </Table>
