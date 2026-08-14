@@ -24,7 +24,7 @@ import { useServerPagination } from '../../../hooks/useServerPagination';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { useDateFilter } from '../../../hooks/useDateFilter';
 import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
-import { uploadVerificationImage } from '../../../services/adminShared';
+import { supabase, uploadVerificationImage } from '../../../services/adminShared';
 
 export function useUsersPageController() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -242,7 +242,16 @@ export function useUsersPageController() {
         onConfirm: async () => {
           setReviewing(true);
           try {
+            const documentPaths = [verificationDocs.frontPath, verificationDocs.backPath].filter(Boolean);
             await reviewCustomerVerification(verificationDocs.id, decision, reviewNotes);
+            if (decision === 'rejected' && documentPaths.length) {
+              try {
+                await supabase.storage.from('verification-documents').remove(documentPaths);
+              } catch {
+                // Non-fatal: URLs are already cleared server-side; orphaned
+                // files can be removed later if the removal fails.
+              }
+            }
             syncSelectedUser({
               verified: decision === 'approved',
               verificationStatus: decision === 'approved' ? 'verified' : 'unverified',

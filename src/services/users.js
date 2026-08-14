@@ -11,8 +11,9 @@ const asLocation = (profile) =>
 
 const normalizeVerificationStatus = (value) => {
   const normalized = String(value ?? '').trim().toLowerCase();
-  if (normalized === 'verified') return 'verified';
-  if (normalized === '' || normalized === 'unverified') return 'unverified';
+  if (normalized === 'verified' || normalized === 'approved') return 'verified';
+  if (normalized === '' || normalized === 'unverified' || normalized === 'rejected')
+    return 'unverified';
   return 'pending';
 };
 
@@ -62,7 +63,7 @@ const USER_PAGE_SELECT =
 const USER_KEY_SELECT =
   'id,email,status,created_at,updated_at,user_profiles(display_name,verification_status,locations!user_profiles_location_id_fkey(id,name))';
 
-export const loadUserKeys = cacheable('users', { ttl: 60_000 }, async () => {
+export const loadUserKeys = cacheable('users', { ttl: 60_000, key: 'user-keys' }, async () => {
   const [{ data: keys, error: keyError }, { data: trashed, error: trashError }] =
     await Promise.all([
       supabase
@@ -165,8 +166,9 @@ export async function loadUsersPageRaw({
   return {
     rows: pageIds
       .map((id) => {
-        const user = mapUser(byId.get(id));
-        if (!user) return null;
+        const row = byId.get(id);
+        if (!row) return null;
+        const user = mapUser(row);
         const trashEntryId = trashById[id] ?? null;
         return { ...user, isTrashed: Boolean(trashEntryId), trashEntryId };
       })
@@ -180,7 +182,7 @@ export const loadUsersPage = cacheable('users', { ttl: 60_000 }, loadUsersPageRa
 
 export const loadCustomerVerifications = cacheable(
   'users',
-  { ttl: 60_000 },
+  { ttl: 60_000, key: 'verifications' },
   async () => {
     const { data: rows, error } = await supabase
       .from('customer_verifications')
