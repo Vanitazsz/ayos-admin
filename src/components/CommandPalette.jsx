@@ -123,7 +123,7 @@ const CommandPalette = () => {
         <Search className="mr-3 size-4 text-foreground-muted" />
         <CommandInput
           placeholder="Type a command or search..."
-          className="h-12 flex-1 bg-transparent text-sm text-foreground placeholder:text-foreground-muted focus-ring"
+          className="h-12 flex-1 bg-transparent text-sm text-foreground placeholder:text-foreground-muted outline-none"
         />
         <kbd className="rounded border border-border-strong bg-surface-100 px-1.5 py-0.5 text-[10px] font-medium text-foreground-lighter">
           ESC
