@@ -1,4 +1,4 @@
-const CACHE_VERSION = 3;
+const CACHE_VERSION = 5;
 const STORAGE_PREFIX = `ayos:tablecache:v${CACHE_VERSION}`;
 const MAX_PERSISTED_BYTES = 256 * 1024;
 const MAX_ENTRIES_PER_SCOPE = 25;

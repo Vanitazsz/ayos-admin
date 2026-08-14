@@ -63,6 +63,7 @@ export function applyDateFilter(
 ) {
   const dateOf = getDate ?? ((row) => getRowDate(row, field));
   let out = rows;
+  if (!Array.isArray(out)) return out;
   if (range && (range.from || range.to)) {
     const from = range.from ? range.from.getTime() : -Infinity;
     const to = range.to ? range.to.getTime() : Infinity;

@@ -157,7 +157,7 @@ export function useWorkersPageController() {
     pageData: pageRows,
   } = usePagination(filteredWorkers, 10);
 
-  const [finance, setFinance] = useState(new Map());
+  const [finance, setFinance] = useState({});
 
   useEffect(() => {
     const ids = pageRows.map((worker) => worker.id);
@@ -167,7 +167,7 @@ export function useWorkersPageController() {
         if (!cancelled) setFinance(statsById);
       })
       .catch(() => {
-        if (!cancelled) setFinance(new Map());
+        if (!cancelled) setFinance({});
       });
     return () => {
       cancelled = true;
@@ -177,7 +177,7 @@ export function useWorkersPageController() {
   const paginatedWorkers = useMemo(
     () =>
       pageRows.map((worker) => {
-        const stats = finance.get(worker.id);
+        const stats = finance[worker.id];
         if (!stats) return worker;
         return {
           ...worker,

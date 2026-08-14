@@ -217,8 +217,9 @@ export async function loadBookingsPageRaw({
   return {
     rows: pageIds
       .map((id) => {
-        const booking = mapBooking(byId.get(id));
-        if (!booking) return null;
+        const row = byId.get(id);
+        if (!row) return null;
+        const booking = mapBooking(row);
         const trashEntryId = trashById[booking.id] ?? null;
         return { ...booking, isTrashed: Boolean(trashEntryId), trashEntryId };
       })

@@ -73,7 +73,7 @@ const loadTrashedPaymentIds = cacheable(
       .eq('entity_type', 'payment')
       .is('restored_at', null);
     if (error) throw error;
-    return new Set((data ?? []).map((row) => row.entity_id));
+    return (data ?? []).map((row) => row.entity_id);
   },
 );
 
@@ -115,8 +115,8 @@ const loadPaymentIdsByName = cacheable('payments', { ttl: 60_000 }, async (term)
 
 function buildPaymentIdQuery({ trashedIds, tab, dateRange, field, sort, page, pageSize }) {
   let query = supabase.from('payments').select('id', { count: 'exact' });
-  if (trashedIds.size > 0) {
-    query = query.not('id', 'in', `(${[...trashedIds].join(',')})`);
+  if (trashedIds.length > 0) {
+    query = query.not('id', 'in', `(${trashedIds.join(',')})`);
   }
   if (tab === 'cash') {
     query = query.in('method', PAYMENT_CASH_METHODS);
@@ -166,8 +166,8 @@ async function loadPaymentPageIds({
 
   for (const batch of batches) {
     let query = supabase.from('payments').select('id', { count: 'exact' });
-    if (trashedIds.size > 0) {
-      query = query.not('id', 'in', `(${[...trashedIds].join(',')})`);
+    if (trashedIds.length > 0) {
+      query = query.not('id', 'in', `(${trashedIds.join(',')})`);
     }
     if (tab === 'cash') {
       query = query.in('method', PAYMENT_CASH_METHODS);
@@ -213,7 +213,13 @@ export async function loadPaymentsPageRaw({
   const data = await loadPaymentPageRows(pageResult.ids);
   const byId = new Map(data.map((row) => [row.id, row]));
   return {
-    rows: pageResult.ids.map((id) => mapPayment(byId.get(id))).filter(Boolean),
+    rows: pageResult.ids
+      .map((id) => {
+        const row = byId.get(id);
+        if (!row) return null;
+        return mapPayment(row);
+      })
+      .filter(Boolean),
     count: pageResult.count,
     stats,
   };
