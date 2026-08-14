@@ -27,15 +27,7 @@ export async function resolveBookingMedia(booking) {
     return cached.result;
   }
 
-  const { data, error } = await supabase.storage
-    .from('request-media')
-    .createSignedUrls(paths, 3600);
-  if (error) throw error;
-
-  const urlByPath = new Map();
-  (data ?? []).forEach((item) => {
-    if (item?.path && item.signedUrl && !item.error) urlByPath.set(item.path, item.signedUrl);
-  });
+  const urlByPath = await getSignedUrls('request-media', paths);
 
   const result = (booking.media ?? []).reduce(
     (acc, item) => {
