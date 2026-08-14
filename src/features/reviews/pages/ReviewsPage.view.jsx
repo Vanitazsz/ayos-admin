@@ -32,6 +32,8 @@ import { formatDateTime } from '../../../services/adminShared';
 import Skeleton from '../../../components/ui/Skeleton';
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
+import Button from '../../../components/ui/Button';
+import Textarea from '../../../components/ui/Textarea';
 import {
   Tooltip,
   TooltipTrigger,
@@ -96,9 +98,9 @@ export function ReviewsView({ model }) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="mb-8 flex gap-4 overflow-x-auto custom-scrollbar">
         {stats.map((stat, index) => (
-          <StatCard key={index} title={stat.label} value={stat.value} icon={stat.icon} />
+          <StatCard key={index} title={stat.label} value={stat.value} icon={stat.icon} className="min-w-44 flex-1" />
         ))}
       </div>
 
@@ -191,6 +193,7 @@ export function ReviewsView({ model }) {
         <CustomerProofsTable
           isLoading={isLoading}
           proofs={paginatedProofs}
+          renderStars={renderStars}
           onViewDetails={handleViewDetails}
           onMoveToTrash={openTrash}
           goToTrash={goToTrash}
@@ -231,36 +234,38 @@ export function ReviewsView({ model }) {
         title="Move Proof of Work to Trash"
       >
         {trashTarget && (
-          <div className="space-y-4">
-            <p className="text-sm text-foreground-light">
-              {trashTarget.worker} · {trashTarget.customer} · {trashTarget.service}
-            </p>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Admin reason</label>
-              <textarea
+            <div className="space-y-4">
+              <p className="text-sm text-foreground-light">
+                {trashTarget.worker} · {trashTarget.customer} · {trashTarget.service}
+              </p>
+              <Textarea
+                label="Admin reason"
                 value={trashReason}
                 onChange={(event) => setTrashReason(event.target.value)}
                 maxLength={1000}
-                className="min-h-24 w-full rounded-lg border border-border-strong p-3"
+                className="min-h-24"
               />
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="default"
+                  disabled={isTrashing}
+                  onClick={closeTrash}
+                >
+                  Close
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  disabled={isTrashing || trashReason.trim().length < 3}
+                  isLoading={isTrashing}
+                  loadingText="Moving to trash…"
+                  onClick={() => void confirmTrash()}
+                >
+                  Move to Trash
+                </Button>
+              </div>
             </div>
-            <div className="flex justify-end gap-3">
-              <button
-                disabled={isTrashing}
-                onClick={closeTrash}
-                className="rounded-lg border px-4 py-2"
-              >
-                Close
-              </button>
-              <button
-                disabled={isTrashing || trashReason.trim().length < 3}
-                onClick={() => void confirmTrash()}
-                className="rounded-lg bg-destructive px-4 py-2 font-medium text-white disabled:opacity-50"
-              >
-                {isTrashing ? 'Moving to trash…' : 'Move to Trash'}
-              </button>
-            </div>
-          </div>
         )}
       </Modal>
     </div>
@@ -319,7 +324,14 @@ function EmptyState({ message, colSpan = 6 }) {
   );
 }
 
-function CustomerProofsTable({ isLoading, proofs, onViewDetails, onMoveToTrash, goToTrash }) {
+function CustomerProofsTable({
+  isLoading,
+  proofs,
+  renderStars,
+  onViewDetails,
+  onMoveToTrash,
+  goToTrash,
+}) {
   return (
     <div className="bg-card shadow-sm border border-border">
       <Table>
@@ -328,6 +340,8 @@ function CustomerProofsTable({ isLoading, proofs, onViewDetails, onMoveToTrash, 
             <TableHead scope="col">Customer</TableHead>
             <TableHead scope="col">Worker</TableHead>
             <TableHead scope="col">Service</TableHead>
+            <TableHead scope="col">Rating</TableHead>
+            <TableHead scope="col">Comment</TableHead>
             <TableHead scope="col">Photos</TableHead>
             <TableHead scope="col">Completed</TableHead>
             <TableHead scope="col" className="text-right">
@@ -337,7 +351,10 @@ function CustomerProofsTable({ isLoading, proofs, onViewDetails, onMoveToTrash, 
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableSkeleton rows={6} columns={[{}, {}, {}, {}, {}, { className: 'text-right' }]} />
+            <TableSkeleton
+              rows={6}
+              columns={[{}, {}, {}, {}, {}, {}, {}, { className: 'text-right' }]}
+            />
           ) : proofs.length > 0 ? (
             proofs.map((proof) => {
               const row = (
@@ -361,6 +378,12 @@ function CustomerProofsTable({ isLoading, proofs, onViewDetails, onMoveToTrash, 
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-foreground">{proof.service}</span>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">{renderStars(proof.rating)}</TableCell>
+                  <TableCell>
+                    <p className="text-sm text-foreground-light italic max-w-[240px] truncate">
+                      "{proof.comment}"
+                    </p>
                   </TableCell>
                   <TableCell>
                     {proof.isTrashed ? (
@@ -400,7 +423,7 @@ function CustomerProofsTable({ isLoading, proofs, onViewDetails, onMoveToTrash, 
               );
             })
           ) : (
-            <EmptyState message="No customer proof of work found" />
+            <EmptyState message="No customer proof of work found" colSpan={8} />
           )}
         </TableBody>
       </Table>

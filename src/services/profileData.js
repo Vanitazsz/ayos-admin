@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { cacheable, invalidate } from '../lib/cacheable';
 import { getSignedUrl } from '../lib/signedUrlCache';
+import { adminRoleLabel } from './statusMeta';
 
 async function loadAdminProfileRaw() {
   const [{ data, error }, { data: sessionData }, { data: factors, error: factorError }] = await Promise.all([
@@ -20,7 +21,8 @@ async function loadAdminProfileRaw() {
     familyName: data.profile.family_name ?? '',
     email: data.account.email,
     phone: data.account.mobile ?? '',
-    role: data.account.role,
+    role: data.profile.admin_role ?? data.account.role,
+    roleLabel: adminRoleLabel(data.profile.admin_role),
     location: data.profile.location ?? '',
     bio: data.profile.bio ?? '',
     avatarPath: data.profile.avatar_path ?? null,

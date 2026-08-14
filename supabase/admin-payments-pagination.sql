@@ -22,7 +22,7 @@ begin
       select 1
       from trash_entries t
       where t.entity_type = 'payment'
-        and t.entity_id = p.id
+        and t.entity_id = p.id::text
         and t.restored_at is null
     );
 end $$;

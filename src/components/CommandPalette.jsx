@@ -116,14 +116,14 @@ const CommandPalette = () => {
     <CommandDialog
       open={isOpen}
       onOpenChange={setIsOpen}
-      overlayClassName="fixed inset-0 z-[200] bg-black/50 backdrop-blur-[2px]"
-      contentClassName="fixed left-1/2 top-[15vh] z-[200] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border border-border-strong bg-popover text-popover-foreground shadow-2xl"
+      overlayClassName="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]"
+      contentClassName="fixed left-1/2 top-[15vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-lg border border-border-strong bg-card shadow-xl"
     >
       <div className="flex items-center border-b border-border px-4">
         <Search className="mr-3 size-4 text-foreground-muted" />
         <CommandInput
           placeholder="Type a command or search..."
-          className="h-12 flex-1 bg-transparent text-sm text-foreground placeholder:text-foreground-muted focus-ring"
+          className="h-12 flex-1 bg-transparent text-sm text-foreground placeholder:text-foreground-muted outline-none"
         />
         <kbd className="rounded border border-border-strong bg-surface-100 px-1.5 py-0.5 text-[10px] font-medium text-foreground-lighter">
           ESC

@@ -111,13 +111,11 @@ export function useReviewsPageController() {
     }
     return [
       { label: 'Total Proofs', value: customerProofs.length, icon: MessageSquare },
-      { label: 'With Photos', value: customerProofs.length, icon: ImageIcon },
-      { label: 'Avg Worker Rating', value: avgOf(customerProofs), icon: Star },
+      { label: 'Average Rating', value: avgOf(customerProofs), icon: Star },
+      { label: 'With Photos', value: customerProofs.filter((proof) => proof.customerPhotos.length > 0).length, icon: ImageIcon },
       {
-        label: 'With Worker Feedback',
-        value: customerProofs.filter(
-          (proof) => proof.rating || (proof.comment ?? '').trim() !== '',
-        ).length,
+        label: 'With Comments',
+        value: customerProofs.filter((proof) => (proof.comment ?? '').trim() !== '').length,
         icon: MessageSquare,
       },
     ];

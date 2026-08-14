@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, Search, UserCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../hooks/useTheme';
+import { adminRoleLabel } from '../services/statusMeta';
 import { Avatar, AvatarFallback } from './ui/Avatar';
 import {
   DropdownMenu,
@@ -70,14 +71,18 @@ const Navbar = ({ onOpenSidebar }) => {
             </BreadcrumbItem>
             {pathnames.map((name, index) => {
               const isLast = index === pathnames.length - 1;
+              const label =
+                index === 0 && name === 'admin'
+                  ? adminRoleLabel(user?.adminRole) || 'admin'
+                  : name;
               return (
                 <React.Fragment key={`${name}-${index}`}>
                   <BreadcrumbSeparator />
                   <BreadcrumbItem className="min-w-0">
                     {isLast ? (
-                      <BreadcrumbPage className="truncate">{name}</BreadcrumbPage>
+                      <BreadcrumbPage className="truncate">{label}</BreadcrumbPage>
                     ) : (
-                      <span className="truncate capitalize text-foreground-lighter">{name}</span>
+                      <span className="truncate capitalize text-foreground-lighter">{label}</span>
                     )}
                   </BreadcrumbItem>
                 </React.Fragment>
@@ -123,28 +128,40 @@ const Navbar = ({ onOpenSidebar }) => {
               </Avatar>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
-            <div className="flex flex-col gap-0 px-2 py-1 text-sm">
-              <span
-                title={user?.name}
-                className="w-full truncate text-left text-foreground"
-              >
-                {user?.name || 'Admin'}
-              </span>
-              {user?.email && (
+          <DropdownMenuContent align="end" className="w-72">
+            <div className="flex items-center gap-3 px-2 py-2">
+              <Avatar className="size-9 shrink-0 border border-border-strong bg-brand-500/10">
+                <AvatarFallback className="text-xs">
+                  {user?.name?.charAt(0) || 'A'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
                 <span
-                  title={user.email}
-                  className="w-full truncate text-left text-xs text-foreground-light"
+                  title={user?.name}
+                  className="block w-full truncate text-left text-sm text-foreground"
                 >
-                  {user.email}
+                  {user?.name || 'Admin'}
                 </span>
-              )}
+                {user?.email && (
+                  <span
+                    title={user.email}
+                    className="block w-full truncate text-left text-xs text-foreground-light"
+                  >
+                    {user.email}
+                  </span>
+                )}
+              </div>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="flex cursor-pointer gap-2 [&_svg]:size-3.5">
               <Link to="/admin/profile">
                 <UserCircle size={14} strokeWidth={1.5} className="text-foreground-lighter" />
                 Account
+                {user?.adminRole && (
+                  <span className="ml-auto shrink-0 inline-flex items-center rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-foreground-light">
+                    {adminRoleLabel(user.adminRole)}
+                  </span>
+                )}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

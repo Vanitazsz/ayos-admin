@@ -1,5 +1,4 @@
 import {
-  bulkSetWorkerStatus,
   bulkSetWorkerVerification,
   loadWorkerFinance,
   loadWorkerVerificationDocs,
@@ -45,8 +44,6 @@ export function useWorkersPageController() {
   const [skills, setSkills] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [selectedIds, setSelectedIds] = useState(() => new Set());
-  const [bulkAction, setBulkAction] = useState(null);
   const [verificationDocs, setVerificationDocs] = useState(null);
   const [isEditingVerification, setIsEditingVerification] = useState(false);
   const [workerVerificationDraft, setWorkerVerificationDraft] = useState(null);
@@ -57,7 +54,6 @@ export function useWorkersPageController() {
     message: '',
     onConfirm: () => {},
   });
-  const isBulkLoading = bulkAction !== null;
   const { schedule, mark } = useDebouncedRefresh({
     debounceMs: 5000,
     cooldownMs: 6000,
@@ -157,7 +153,7 @@ export function useWorkersPageController() {
     pageData: pageRows,
   } = usePagination(filteredWorkers, 10);
 
-  const [finance, setFinance] = useState(new Map());
+  const [finance, setFinance] = useState({});
 
   useEffect(() => {
     const ids = pageRows.map((worker) => worker.id);
@@ -167,7 +163,7 @@ export function useWorkersPageController() {
         if (!cancelled) setFinance(statsById);
       })
       .catch(() => {
-        if (!cancelled) setFinance(new Map());
+        if (!cancelled) setFinance({});
       });
     return () => {
       cancelled = true;
@@ -177,7 +173,7 @@ export function useWorkersPageController() {
   const paginatedWorkers = useMemo(
     () =>
       pageRows.map((worker) => {
-        const stats = finance.get(worker.id);
+        const stats = finance[worker.id];
         if (!stats) return worker;
         return {
           ...worker,
@@ -222,108 +218,6 @@ export function useWorkersPageController() {
   const closeConfirm = useCallback(
     () => setConfirm((s) => ({ ...s, isOpen: false })),
     [],
-  );
-
-  const toggleSelectWorker = useCallback((id) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const selectWorker = useCallback((id) => {
-    setActionMenuOpenId(null);
-    setSelectedIds((current) => {
-      if (current.has(id)) return current;
-      const next = new Set(current);
-      next.add(id);
-      return next;
-    });
-  }, []);
-
-  const toggleSelectAll = useCallback((workers) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      const allSelected = workers.length > 0 && workers.every((worker) => next.has(worker.id));
-      workers.forEach((worker) => {
-        if (allSelected) next.delete(worker.id);
-        else next.add(worker.id);
-      });
-      return next;
-    });
-  }, []);
-
-  const clearSelection = useCallback(() => {
-    setSelectedIds(new Set());
-  }, []);
-
-  useEffect(() => {
-    setSelectedIds(new Set());
-  }, [
-    searchTerm,
-    filterStatus,
-    filterVerified,
-    activeTab,
-    dateFilter.sort,
-    dateFilter.field,
-    dateFilter.preset,
-    dateFilter.customRange,
-  ]);
-
-  const handleBulkStatus = useCallback(
-    async (nextStatus) => {
-      if (!selectedIds.size) return;
-      const ids = [...selectedIds];
-      setBulkAction(nextStatus);
-      try {
-        await bulkSetWorkerStatus(ids, nextStatus);
-        clearSelection();
-        await refresh();
-        toast.success(
-          nextStatus === 'SUSPENDED' ? 'Workers suspended' : 'Workers reactivated',
-          `${ids.length} worker${ids.length === 1 ? '' : 's'} ${
-            nextStatus === 'SUSPENDED' ? 'suspended' : 'reactivated'
-          }.`,
-        );
-      } catch (error) {
-        toast.error(
-          'Bulk status update failed',
-          error instanceof Error ? error.message : 'Unable to update statuses.',
-        );
-      } finally {
-        setBulkAction(null);
-      }
-    },
-    [selectedIds, refresh, clearSelection, toast],
-  );
-
-  const handleBulkVerification = useCallback(
-    async (nextStatus) => {
-      if (!selectedIds.size) return;
-      const ids = [...selectedIds];
-      setBulkAction(nextStatus);
-      try {
-        await bulkSetWorkerVerification(ids, nextStatus);
-        clearSelection();
-        await refresh();
-        toast.success(
-          nextStatus === 'verified' ? 'Workers verified' : 'Verification removed',
-          `${ids.length} worker${ids.length === 1 ? '' : 's'} now ${
-            nextStatus === 'verified' ? 'verified' : 'unverified'
-          }.`,
-        );
-      } catch (error) {
-        toast.error(
-          'Bulk verification update failed',
-          error instanceof Error ? error.message : 'Unable to update verification.',
-        );
-      } finally {
-        setBulkAction(null);
-      }
-    },
-    [selectedIds, refresh, clearSelection, toast],
   );
 
   const handleViewDetails = useCallback(async (worker) => {
@@ -555,6 +449,14 @@ export function useWorkersPageController() {
           verified: nextStatus === 'verified',
           verificationStatus: nextStatus === 'verified' ? 'APPROVED' : 'PENDING',
         });
+        try {
+          const docs = await loadWorkerVerificationDocs(worker.id);
+          setVerificationDocs(
+            docs ?? { status: 'NOT_SUBMITTED', idType: '', documents: [] },
+          );
+        } catch {
+          // keep the currently displayed docs
+        }
         await refresh();
         toast.success(
           nextStatus === 'verified' ? 'Worker verified' : 'Verification removed',
@@ -570,7 +472,7 @@ export function useWorkersPageController() {
         setActionMenuOpenId(null);
       }
     },
-    [refresh, syncSelectedWorker, toast],
+    [refresh, syncSelectedWorker, toast, loadWorkerVerificationDocs],
   );
 
   const approveWorker = useCallback(
@@ -763,17 +665,6 @@ export function useWorkersPageController() {
       handleApproveDocs,
       openRemarksModal,
       submitRemarks,
-      selectedIds,
-      selectedCount: selectedIds.size,
-      isSelectionActive: selectedIds.size > 0,
-      bulkAction,
-      isBulkLoading,
-      toggleSelectWorker,
-      selectWorker,
-      toggleSelectAll,
-      clearSelection,
-      handleBulkStatus,
-      handleBulkVerification,
       verificationDocs,
       isEditingVerification,
       workerVerificationDraft,
@@ -829,17 +720,8 @@ export function useWorkersPageController() {
       handleApproveDocs,
       openRemarksModal,
       submitRemarks,
-      toggleSelectWorker,
-      selectWorker,
-      toggleSelectAll,
-      clearSelection,
-      handleBulkStatus,
-      handleBulkVerification,
       setEditWorker,
       setIsEditDrawerOpen,
-      selectedIds,
-      bulkAction,
-      isBulkLoading,
       verificationDocs,
       isEditingVerification,
       workerVerificationDraft,

@@ -124,6 +124,16 @@ begin
   select array_agg(account_id) into affected from updated;
 
   if affected is not null then
+    update public.worker_verifications verification
+    set status = case
+          when normalized_status = 'verified' then 'APPROVED'
+          else 'PENDING'
+        end,
+        reviewed_by = auth.uid(),
+        reviewed_at = now(),
+        updated_at = now()
+    where verification.worker_id = any(affected);
+
     foreach target_id in array affected
     loop
       insert into public.audit_logs(actor_id, action, entity_type, entity_id, metadata)

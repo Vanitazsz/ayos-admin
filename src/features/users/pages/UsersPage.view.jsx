@@ -17,6 +17,7 @@ import {
   ArchiveRestore,
   MapPinned,
   Upload,
+  Info,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { formatDateTime, money } from '../../../services/adminShared';
@@ -54,6 +55,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '../../../components/ui/DropdownMenu';
+import VerificationDocumentView from '../components/VerificationDocumentView';
 
 export function UsersView({ model }) {
   const {
@@ -75,6 +77,10 @@ export function UsersView({ model }) {
     isVerificationsLoading,
     selectedVerification,
     setSelectedVerification,
+    selectedVerificationDetails,
+    isVerificationDrawerOpen,
+    openVerificationDetails,
+    closeVerificationDetails,
     reviewNotes,
     setReviewNotes,
     reviewing,
@@ -455,15 +461,24 @@ export function UsersView({ model }) {
                       <TableCell>{verification.id_type.replaceAll('_', ' ')}</TableCell>
                       <TableCell>{formatDateTime(verification.created_at)}</TableCell>
                       <TableCell>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setSelectedVerification(verification);
-                            setReviewNotes('');
-                          }}
-                        >
-                          <Eye size={15} className="mr-1" /> Review
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => openVerificationDetails(verification)}
+                          >
+                            <Info size={15} className="mr-1" /> More Details
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedVerification(verification);
+                              setReviewNotes('');
+                            }}
+                          >
+                            <Eye size={15} className="mr-1" /> Review
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -490,19 +505,21 @@ export function UsersView({ model }) {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <p className="mb-2 text-sm font-medium">Front</p>
-                <img
+                <VerificationDocumentView
                   src={selectedVerification.frontUrl}
                   alt="Government ID front"
-                  className="max-h-80 w-full rounded-lg border object-contain"
+                  path={selectedVerification.id_front_url}
+                  linkable={false}
                 />
               </div>
               <div>
                 <p className="mb-2 text-sm font-medium">Back</p>
                 {selectedVerification.backUrl ? (
-                  <img
+                  <VerificationDocumentView
                     src={selectedVerification.backUrl}
                     alt="Government ID back"
-                    className="max-h-80 w-full rounded-lg border object-contain"
+                    path={selectedVerification.id_back_url}
+                    linkable={false}
                   />
                 ) : (
                   <p className="text-sm text-foreground-lighter">No back image</p>
@@ -529,6 +546,118 @@ export function UsersView({ model }) {
           </div>
         ) : null}
       </Modal>
+      <Drawer
+        isOpen={isVerificationDrawerOpen}
+        onClose={closeVerificationDetails}
+        title="Verification Details"
+        width="w-[520px]"
+      >
+        {selectedVerificationDetails ? (
+          <div className="space-y-6">
+            <div className="flex items-center">
+              <div className="h-12 w-12 shrink-0 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-600 font-bold text-lg">
+                {selectedVerificationDetails.customerName.charAt(0)}
+              </div>
+              <div className="ml-3 min-w-0">
+                <h3 className="text-lg font-bold text-foreground truncate">
+                  {selectedVerificationDetails.customerName}
+                </h3>
+                <p className="text-xs text-foreground-lighter truncate">
+                  {selectedVerificationDetails.email}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">
+                {selectedVerificationDetails.id_type.replaceAll('_', ' ')}
+              </Badge>
+              <Badge variant="warning">Pending</Badge>
+              {selectedVerificationDetails.accountStatus && (
+                <Badge variant="success">
+                  {selectedVerificationDetails.accountStatus}
+                </Badge>
+              )}
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                Identity Verification
+              </h4>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between gap-4">
+                  <span className="text-foreground-lighter">Submitted</span>
+                  <span className="font-medium text-foreground">
+                    {formatDateTime(selectedVerificationDetails.created_at)}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-foreground-lighter">Status</span>
+                  <span className="font-medium text-foreground">Pending review</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                Documents
+              </h4>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="mb-2 text-sm font-medium text-foreground">Front</p>
+                  <VerificationDocumentView
+                    src={selectedVerificationDetails.frontUrl}
+                    alt="Government ID front"
+                    path={selectedVerificationDetails.id_front_url}
+                    className="aspect-[4/3] w-full rounded-lg border border-border bg-surface-200 object-cover"
+                  />
+                </div>
+                <div>
+                  <p className="mb-2 text-sm font-medium text-foreground">Back</p>
+                  <VerificationDocumentView
+                    src={selectedVerificationDetails.backUrl}
+                    alt="Government ID back"
+                    path={selectedVerificationDetails.id_back_url}
+                    className="aspect-[4/3] w-full rounded-lg border border-border bg-surface-200 object-cover"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {selectedVerificationDetails.phone ||
+            selectedVerificationDetails.addressDisplay ||
+            selectedVerificationDetails.registeredAt ? (
+              <div className="border-t border-border pt-6">
+                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">
+                  Customer Details
+                </h4>
+                <div className="space-y-3 text-sm">
+                  {selectedVerificationDetails.phone && (
+                    <div className="flex items-center text-foreground-light">
+                      <Phone size={16} className="mr-3 text-foreground-muted" />{' '}
+                      {selectedVerificationDetails.phone}
+                    </div>
+                  )}
+                  {selectedVerificationDetails.addressDisplay && (
+                    <div className="flex items-start text-foreground-light">
+                      <MapPin size={16} className="mr-3 shrink-0 text-foreground-muted" />
+                      <span className="truncate">
+                        {selectedVerificationDetails.addressDisplay}
+                      </span>
+                    </div>
+                  )}
+                  {selectedVerificationDetails.registeredAt && (
+                    <div className="flex items-center text-foreground-light">
+                      <Calendar size={16} className="mr-3 text-foreground-muted" /> Member
+                      since {selectedVerificationDetails.registeredAt}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </Drawer>
       <Drawer
         isOpen={isDrawerOpen}
         onClose={() => {
@@ -899,9 +1028,11 @@ export function UsersView({ model }) {
                     <div>
                       <p className="mb-2 text-sm font-medium text-foreground">Front</p>
                       {verificationDraft.frontPreview ? (
-                        <img
+                        <VerificationDocumentView
                           src={verificationDraft.frontPreview}
                           alt="Government ID front"
+                          path={verificationDraft.frontFile?.name}
+                          linkable={false}
                           className="mb-2 aspect-[4/3] w-full rounded-lg border border-border bg-surface-200 object-cover"
                         />
                       ) : (
@@ -933,9 +1064,11 @@ export function UsersView({ model }) {
                     <div>
                       <p className="mb-2 text-sm font-medium text-foreground">Back</p>
                       {verificationDraft.backPreview ? (
-                        <img
+                        <VerificationDocumentView
                           src={verificationDraft.backPreview}
                           alt="Government ID back"
+                          path={verificationDraft.backFile?.name}
+                          linkable={false}
                           className="mb-2 aspect-[4/3] w-full rounded-lg border border-border bg-surface-200 object-cover"
                         />
                       ) : (
@@ -1006,41 +1139,21 @@ export function UsersView({ model }) {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <p className="mb-2 text-sm font-medium text-foreground">Front</p>
-                      {verificationDocs.frontUrl ? (
-                        <a
-                          href={verificationDocs.frontUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block aspect-[4/3] overflow-hidden rounded-lg border border-border bg-surface-200"
-                        >
-                          <img
-                            src={verificationDocs.frontUrl}
-                            alt="Government ID front"
-                            className="h-full w-full object-cover"
-                          />
-                        </a>
-                      ) : (
-                        <p className="text-sm text-foreground-lighter">No front image</p>
-                      )}
+                      <VerificationDocumentView
+                        src={verificationDocs.frontUrl}
+                        alt="Government ID front"
+                        path={verificationDocs.frontPath}
+                        className="aspect-[4/3] w-full rounded-lg border border-border bg-surface-200 object-cover"
+                      />
                     </div>
                     <div>
                       <p className="mb-2 text-sm font-medium text-foreground">Back</p>
-                      {verificationDocs.backUrl ? (
-                        <a
-                          href={verificationDocs.backUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block aspect-[4/3] overflow-hidden rounded-lg border border-border bg-surface-200"
-                        >
-                          <img
-                            src={verificationDocs.backUrl}
-                            alt="Government ID back"
-                            className="h-full w-full object-cover"
-                          />
-                        </a>
-                      ) : (
-                        <p className="text-sm text-foreground-lighter">No back image</p>
-                      )}
+                      <VerificationDocumentView
+                        src={verificationDocs.backUrl}
+                        alt="Government ID back"
+                        path={verificationDocs.backPath}
+                        className="aspect-[4/3] w-full rounded-lg border border-border bg-surface-200 object-cover"
+                      />
                     </div>
                   </div>
                   {verificationDocs.status !== 'approved' && (

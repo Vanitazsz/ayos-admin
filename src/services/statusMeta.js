@@ -41,3 +41,13 @@ export const REVIEW_STATUS_BADGE = {
 export const DEFAULT_BADGE = 'bg-surface-200 text-foreground';
 
 export const badgeFor = (map, status) => map[status] ?? DEFAULT_BADGE;
+
+export const ADMIN_ROLE_LABELS = {
+  SUPER_ADMIN: 'Super Admin',
+  ADMIN: 'Administrator',
+  MODERATOR: 'Moderator',
+  ANALYST: 'Analyst',
+  VIEWER: 'Viewer',
+};
+
+export const adminRoleLabel = (code) => ADMIN_ROLE_LABELS[code] ?? code;

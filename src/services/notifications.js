@@ -7,23 +7,8 @@ async function fetchCampaignStats(campaignIds) {
     'admin_get_notification_campaign_stats',
     { p_campaign_ids: campaignIds },
   );
-  if (!error) {
-    return new Map((data ?? []).map((row) => [row.notification_id, row]));
-  }
-  if (error.code !== 'PGRST202' && error.code !== '404') throw error;
-  const { data: deliveries, error: fallbackError } = await supabase
-    .from('notification_deliveries')
-    .select('notification_id,read_at')
-    .in('notification_id', campaignIds);
-  if (fallbackError) throw fallbackError;
-  const totals = new Map();
-  for (const delivery of deliveries ?? []) {
-    const entry = totals.get(delivery.notification_id) ?? { total: 0, read: 0 };
-    entry.total += 1;
-    if (delivery.read_at) entry.read += 1;
-    totals.set(delivery.notification_id, entry);
-  }
-  return totals;
+  if (error) throw error;
+  return new Map((data ?? []).map((row) => [row.campaign_id, row]));
 }
 
 export const loadNotifications = cacheable('notifications', { ttl: 60_000 }, async () => {

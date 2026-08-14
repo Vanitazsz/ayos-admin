@@ -39,7 +39,10 @@ export const mapProofOfWork = (row) => {
 export const hasWorkerProof = (record) =>
   record.workerPhotos.length > 0 || Boolean(record.rating) || (record.comment ?? '').trim() !== '';
 
-export const hasCustomerProof = (record) => record.customerPhotos.length > 0;
+export const hasCustomerProof = (record) =>
+  record.customerPhotos.length > 0 ||
+  Boolean(record.rating) ||
+  (record.comment ?? '').trim() !== '';
 
 export async function loadProofOfWorkRaw() {
   const { data: rows, error } = await supabase.rpc('admin_list_proof_of_work');

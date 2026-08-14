@@ -5,7 +5,7 @@ import { getSignedUrls } from '../lib/signedUrlCache';
 const WORKER_KEY_SELECT =
   'account_id,display_name,bio,experience,service_area,service_origin,service_radius_meters,approval_status,is_available,created_at,updated_at,accounts!worker_profiles_account_id_fkey!inner(email,mobile,status,role,deleted_at),locations!worker_profiles_location_id_fkey(name),worker_skills!worker_skills_worker_id_fkey(years,rate_minor,category_id,service_categories!worker_skills_category_id_fkey(id,name)),worker_verifications!worker_verifications_worker_id_fkey(id,status),bookings!bookings_worker_account_id_fkey(count)';
 
-export const loadWorkerKeys = cacheable('workers', { ttl: 60_000 }, async () => {
+export const loadWorkerKeys = cacheable('workers', { ttl: 60_000, key: 'worker-keys' }, async () => {
   const [{ data, error }, { data: trashed, error: trashError }] = await Promise.all([
     supabase
       .from('worker_profiles')
@@ -92,7 +92,7 @@ export async function loadWorkersRaw() {
 export const loadWorkers = cacheable('workers', { ttl: 60_000 }, loadWorkersRaw);
 
 export const loadWorkerFinance = cacheable('workers', { ttl: 60_000 }, async (workerIds) => {
-  if (!workerIds.length) return new Map();
+  if (!workerIds.length) return {};
   const [
     { data: walletBalances, error: walletBalancesError },
     { data: ratings, error: ratingsError },
@@ -102,18 +102,18 @@ export const loadWorkerFinance = cacheable('workers', { ttl: 60_000 }, async (wo
   ]);
   if (walletBalancesError) throw walletBalancesError;
   if (ratingsError) throw ratingsError;
-  const result = new Map();
+  const result = {};
   for (const wallet of walletBalances ?? []) {
-    result.set(wallet.worker_id, {
+    result[wallet.worker_id] = {
       earnings: Number(wallet.available_amount ?? 0),
-    });
+    };
   }
   for (const rating of ratings ?? []) {
-    const entry = result.get(rating.worker_id) ?? {};
-    result.set(rating.worker_id, {
+    const entry = result[rating.worker_id] ?? {};
+    result[rating.worker_id] = {
       ...entry,
       rating: Number(rating.avg_rating ?? 0),
-    });
+    };
   }
   return result;
 });
@@ -149,7 +149,7 @@ export async function loadReassignWorkersRaw() {
 
 export const loadReassignWorkers = cacheable(
   'workers',
-  { ttl: 60_000 },
+  { ttl: 60_000, key: 'reassign' },
   loadReassignWorkersRaw,
 );
 

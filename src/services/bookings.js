@@ -27,15 +27,7 @@ export async function resolveBookingMedia(booking) {
     return cached.result;
   }
 
-  const { data, error } = await supabase.storage
-    .from('request-media')
-    .createSignedUrls(paths, 3600);
-  if (error) throw error;
-
-  const urlByPath = new Map();
-  (data ?? []).forEach((item) => {
-    if (item?.path && item.signedUrl && !item.error) urlByPath.set(item.path, item.signedUrl);
-  });
+  const urlByPath = await getSignedUrls('request-media', paths);
 
   const result = (booking.media ?? []).reduce(
     (acc, item) => {
@@ -217,8 +209,9 @@ export async function loadBookingsPageRaw({
   return {
     rows: pageIds
       .map((id) => {
-        const booking = mapBooking(byId.get(id));
-        if (!booking) return null;
+        const row = byId.get(id);
+        if (!row) return null;
+        const booking = mapBooking(row);
         const trashEntryId = trashById[booking.id] ?? null;
         return { ...booking, isTrashed: Boolean(trashEntryId), trashEntryId };
       })

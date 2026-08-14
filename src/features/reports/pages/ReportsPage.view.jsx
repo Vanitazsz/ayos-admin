@@ -136,7 +136,7 @@ export function ReportsView({ model }) {
               key={type.code}
               type="button"
               onClick={() => openGenerator(type.code)}
-              className="group flex flex-col rounded-xl border border-border bg-surface p-4 text-left transition-colors hover:border-brand-500/40 hover:bg-surface-100"
+              className="group flex flex-col rounded-xl border border-border bg-surface-75 p-4 text-left transition-colors hover:border-brand-500/40 hover:bg-surface-100"
             >
               <div className="mb-2 flex items-center justify-between">
                 <span className="flex size-8 items-center justify-center rounded-lg bg-brand-500/10 text-brand-700 dark:text-brand-300">
@@ -168,7 +168,7 @@ export function ReportsView({ model }) {
         </TabsList>
       </Tabs>
 
-      <div className="flex flex-col justify-between items-center gap-4 rounded-t-xl border-x border-t border-border bg-surface p-4 sm:flex-row">
+      <div className="flex flex-col justify-between items-center gap-4 rounded-t-xl border-x border-t border-border bg-surface-100 p-4 sm:flex-row">
         <div className="relative w-full sm:w-96">
           <Input
             icon={Search}
@@ -181,7 +181,7 @@ export function ReportsView({ model }) {
         <DateFilter model={dateFilter} />
       </div>
 
-      <div className="overflow-hidden rounded-b-xl border border-border bg-surface">
+      <div className="overflow-hidden rounded-b-xl border border-border bg-surface-100">
         <Table>
           <TableHeader>
             <TableRow>
@@ -356,7 +356,7 @@ export function ReportsView({ model }) {
                   className={cn(
                     'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                     generatorFormat === format
-                      ? 'bg-surface text-foreground shadow-sm'
+                      ? 'bg-surface-100 text-foreground shadow-sm'
                       : 'text-foreground-lighter hover:text-foreground',
                   )}
                 >
@@ -379,7 +379,7 @@ export function ReportsView({ model }) {
                   className={cn(
                     'flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
                     generatorPreset === preset.key
-                      ? 'bg-surface text-foreground shadow-sm'
+                      ? 'bg-surface-100 text-foreground shadow-sm'
                       : 'text-foreground-lighter hover:text-foreground',
                   )}
                 >

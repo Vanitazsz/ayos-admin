@@ -4,7 +4,6 @@ import {
   MoreVertical,
   CheckCircle,
   ShieldCheck,
-  ShieldOff,
   Eye,
   Edit,
   Trash2,
@@ -17,9 +16,6 @@ import {
   Mail,
   Calendar,
   Ban,
-  CheckSquare,
-  CheckCheck,
-  X,
   Coins,
   ArchiveRestore,
   MapPinned,
@@ -105,17 +101,6 @@ export function WorkersView({ model }) {
     handleApproveDocs,
     openRemarksModal,
     submitRemarks,
-    selectedIds,
-    selectedCount,
-    isSelectionActive,
-    bulkAction,
-    isBulkLoading,
-    toggleSelectWorker,
-    selectWorker,
-    toggleSelectAll,
-    clearSelection,
-    handleBulkStatus,
-    handleBulkVerification,
     verificationDocs,
     isEditingVerification,
     workerVerificationDraft,
@@ -234,83 +219,11 @@ export function WorkersView({ model }) {
         </div>
       </div>
 
-      {isSelectionActive ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-xl border-x border-t border-border bg-brand-500/5 px-4 py-2.5">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-foreground">
-              {selectedCount} selected
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearSelection}
-              disabled={isBulkLoading}
-            >
-              <X size={14} className="mr-1.5" /> Clear
-            </Button>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => void handleBulkStatus('SUSPENDED')}
-              isLoading={isBulkLoading && bulkAction === 'SUSPENDED'}
-              disabled={isBulkLoading && bulkAction !== 'SUSPENDED'}
-            >
-              <Ban size={14} /> Suspend
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => void handleBulkStatus('ACTIVE')}
-              isLoading={isBulkLoading && bulkAction === 'ACTIVE'}
-              disabled={isBulkLoading && bulkAction !== 'ACTIVE'}
-            >
-              <UserCheck size={14} /> Reactivate
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => void handleBulkVerification('verified')}
-              isLoading={isBulkLoading && bulkAction === 'verified'}
-              disabled={isBulkLoading && bulkAction !== 'verified'}
-            >
-              <ShieldCheck size={14} /> Verify
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void handleBulkVerification('unverified')}
-              isLoading={isBulkLoading && bulkAction === 'unverified'}
-              disabled={isBulkLoading && bulkAction !== 'unverified'}
-            >
-              <ShieldOff size={14} /> Unverify
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
       {/* Table */}
-      <div className={`bg-card shadow-sm border border-border ${isSelectionActive ? 'rounded-b-xl' : 'rounded-none'}`}>
+      <div className="bg-card shadow-sm border border-border">
         <Table>
           <TableHeader>
             <TableRow>
-              {isSelectionActive ? (
-                <TableHead scope="col" className="w-12 text-center">
-                  <div className="flex justify-center">
-                    <Checkbox
-                      aria-label="Select all workers"
-                      checked={
-                        paginatedWorkers.length > 0 &&
-                        paginatedWorkers.every((worker) => selectedIds.has(worker.id))
-                          ? true
-                          : selectedCount > 0
-                            ? 'indeterminate'
-                            : false
-                      }
-                      onCheckedChange={() => toggleSelectAll(paginatedWorkers)}
-                    />
-                  </div>
-                </TableHead>
-              ) : null}
               <TableHead scope="col">
                 Worker
               </TableHead>
@@ -341,7 +254,6 @@ export function WorkersView({ model }) {
             {isLoading ? (
               <TableSkeleton
                 rows={6}
-                withSelect={isSelectionActive}
                 columns={[
                   {
                     children: (
@@ -386,17 +298,6 @@ export function WorkersView({ model }) {
                   onClick={() => handleViewDetails(worker)}
                   className={`cursor-pointer ${worker.isTrashed ? 'opacity-55 grayscale' : ''}`}
                 >
-                  {isSelectionActive ? (
-                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-center">
-                        <Checkbox
-                          aria-label={`Select ${worker.name}`}
-                          checked={selectedIds.has(worker.id)}
-                          onCheckedChange={() => toggleSelectWorker(worker.id)}
-                        />
-                      </div>
-                    </TableCell>
-                  ) : null}
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 flex-shrink-0">
@@ -497,18 +398,6 @@ export function WorkersView({ model }) {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-52">
                         <DropdownMenuItem
-                          onSelect={() => selectWorker(worker.id)}
-                          className="cursor-pointer"
-                        >
-                          <CheckSquare className="mr-2" /> Select
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => toggleSelectAll(paginatedWorkers)}
-                          className="cursor-pointer"
-                        >
-                          <CheckCheck className="mr-2" /> Select All
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
                           onSelect={() => handleViewDetails(worker)}
                           className="cursor-pointer"
                         >
@@ -573,7 +462,7 @@ export function WorkersView({ model }) {
               ))
             ) : (
               <TableRow hover={false}>
-                <TableCell colSpan={isSelectionActive ? 8 : 7} className="text-center">
+                <TableCell colSpan={7} className="text-center">
                   <div className="flex flex-col items-center justify-center">
                     <UserX size={48} className="text-foreground-muted mb-4" />
                     <h3 className="text-lg font-medium text-foreground">No workers found</h3>

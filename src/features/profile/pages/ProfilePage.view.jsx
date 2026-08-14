@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, Shield, Camera, CheckCircle, Clock, Monitor, ChevronDown, FileText, ShieldCheck } from 'lucide-react';
 import Modal from '../../../components/ui/Modal';
+import Input from '../../../components/ui/Input';
+import Button from '../../../components/ui/Button';
 import Select, { SelectItem } from '../../../components/ui/Select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import { formatDate, formatDateTime } from '../../../services/adminShared';
@@ -150,7 +152,7 @@ export function ProfileView({ model }) {
             <h2 className="text-xl font-bold text-foreground">
               {profile.firstName} {profile.lastName}
             </h2>
-            <p className="text-brand-600 font-medium text-sm mt-1">{profile.role}</p>
+            <p className="text-brand-600 font-medium text-sm mt-1">{profile.roleLabel || profile.role}</p>
 
             <div className="mt-6 pt-6 border-t border-border space-y-3 text-sm text-left">
               <div className="flex items-center text-foreground-light">
@@ -453,54 +455,47 @@ export function ProfileView({ model }) {
           <p className="text-foreground-light">
             Enter your current password and a new password with at least 8 characters:
           </p>
-          <input
+          <Input
             type="password"
+            label="Current password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus-ring"
             placeholder="Current password"
             autoComplete="current-password"
           />
-          <input
+          <Input
             type="password"
+            label="New password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus-ring"
             placeholder="New password"
             autoComplete="new-password"
           />
-          <div>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className={`w-full rounded-lg border bg-card px-3 py-2 text-sm text-foreground focus-ring ${
-                confirmPassword && confirmPassword !== newPassword
-                  ? 'border-destructive'
-                  : 'border-border'
-              }`}
-              placeholder="Confirm new password"
-              autoComplete="new-password"
-            />
-            {confirmPassword && confirmPassword !== newPassword && (
-              <p className="mt-1.5 text-sm text-destructive">Passwords do not match.</p>
-            )}
-          </div>
+          <Input
+            type="password"
+            label="Confirm new password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Confirm new password"
+            autoComplete="new-password"
+            error={confirmPassword && confirmPassword !== newPassword ? 'Passwords do not match.' : undefined}
+          />
           <div className="flex justify-end gap-3">
-            <button
+            <Button
               type="button"
+              variant="default"
               onClick={() => {
                 setPasswordModal(false);
                 setCurrentPassword('');
                 setNewPassword('');
                 setConfirmPassword('');
               }}
-              className="rounded-lg border px-4 py-2 text-sm"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="primary"
               onClick={() => void handlePassword()}
               disabled={
                 !currentPassword ||
@@ -508,10 +503,9 @@ export function ProfileView({ model }) {
                 !confirmPassword ||
                 confirmPassword !== newPassword
               }
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white disabled:opacity-50"
             >
               Update Password
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
