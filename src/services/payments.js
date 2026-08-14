@@ -59,7 +59,8 @@ export const loadPaymentStats = cacheable(
   async () => {
     const { data, error } = await supabase.rpc('get_payment_stats');
     if (error) throw error;
-    return data ?? { revenue: 0, commission: 0, pending: 0, failed: 0 };
+    const [row] = data ?? [];
+    return row ?? { revenue: 0, commission: 0, pending: 0, failed: 0 };
   },
 );
 
