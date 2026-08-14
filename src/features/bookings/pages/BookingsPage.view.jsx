@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
+import Button from '../../../components/ui/Button';
+import Textarea from '../../../components/ui/Textarea';
 import Pagination from '../../../components/ui/Pagination';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import StatCard from '../../../components/ui/StatCard';
@@ -722,34 +724,36 @@ export function BookingsView({ model }) {
                 )}
               </div>
             )}
-            <div>
-              <label className="mb-1 block text-sm font-medium">Admin reason</label>
-              <textarea
-                value={actionReason}
-                onChange={(event) => setActionReason(event.target.value)}
-                maxLength={1000}
-                className="min-h-24 w-full rounded-lg border border-border-strong p-3"
-              />
-            </div>
+            <Textarea
+              label="Admin reason"
+              value={actionReason}
+              onChange={(event) => setActionReason(event.target.value)}
+              maxLength={1000}
+              className="min-h-24"
+            />
             <div className="flex justify-end gap-3">
-              <button
+              <Button
+                type="button"
+                variant="default"
                 disabled={savingAction}
                 onClick={() => setAction(null)}
-                className="rounded-lg border px-4 py-2"
               >
                 Close
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
                 disabled={
                   savingAction ||
                   actionReason.trim().length < 3 ||
                   (action.type === 'reassign' && !replacementWorker)
                 }
+                isLoading={savingAction}
+                loadingText="Saving…"
                 onClick={() => void submitAction()}
-                className="rounded-lg bg-brand-600 px-4 py-2 font-medium text-white disabled:opacity-50"
               >
-                {savingAction ? 'Saving…' : 'Confirm'}
-              </button>
+                Confirm
+              </Button>
             </div>
           </div>
         )}

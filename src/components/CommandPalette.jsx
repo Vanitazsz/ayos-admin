@@ -116,8 +116,8 @@ const CommandPalette = () => {
     <CommandDialog
       open={isOpen}
       onOpenChange={setIsOpen}
-      overlayClassName="fixed inset-0 z-[200] bg-black/50 backdrop-blur-[2px]"
-      contentClassName="fixed left-1/2 top-[15vh] z-[200] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border border-border-strong bg-popover text-popover-foreground shadow-2xl"
+      overlayClassName="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]"
+      contentClassName="fixed left-1/2 top-[15vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-lg border border-border-strong bg-card shadow-xl"
     >
       <div className="flex items-center border-b border-border px-4">
         <Search className="mr-3 size-4 text-foreground-muted" />

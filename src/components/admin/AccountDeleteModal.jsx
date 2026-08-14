@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 import { useAccountDeletion } from '../../hooks/useAccountDeletion';
 
 const AccountDeleteModal = ({ account, onClose, onDeleted, onDelete }) => {
@@ -65,22 +66,26 @@ const AccountDeleteModal = ({ account, onClose, onDeleted, onDelete }) => {
         {error && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
 
         <div className="flex gap-3">
-          <button
+          <Button
             type="button"
+            variant="default"
+            className="flex-1"
             onClick={onClose}
             disabled={isDeleting}
-            className="flex-1 rounded-lg border border-border-strong px-4 py-2 text-sm font-medium text-foreground-light disabled:opacity-50"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="danger"
+            className="flex-1"
             onClick={() => void confirmDelete()}
             disabled={!matches || !preview || isDeleting}
-            className="flex-1 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            isLoading={isDeleting}
+            loadingText="Deleting…"
           >
-            {isDeleting ? 'Deleting…' : 'Delete permanently'}
-          </button>
+            Delete permanently
+          </Button>
         </div>
       </div>
     </Modal>

@@ -32,6 +32,8 @@ import { formatDateTime } from '../../../services/adminShared';
 import Skeleton from '../../../components/ui/Skeleton';
 import Drawer from '../../../components/ui/Drawer';
 import Modal from '../../../components/ui/Modal';
+import Button from '../../../components/ui/Button';
+import Textarea from '../../../components/ui/Textarea';
 import {
   Tooltip,
   TooltipTrigger,
@@ -231,36 +233,38 @@ export function ReviewsView({ model }) {
         title="Move Proof of Work to Trash"
       >
         {trashTarget && (
-          <div className="space-y-4">
-            <p className="text-sm text-foreground-light">
-              {trashTarget.worker} · {trashTarget.customer} · {trashTarget.service}
-            </p>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Admin reason</label>
-              <textarea
+            <div className="space-y-4">
+              <p className="text-sm text-foreground-light">
+                {trashTarget.worker} · {trashTarget.customer} · {trashTarget.service}
+              </p>
+              <Textarea
+                label="Admin reason"
                 value={trashReason}
                 onChange={(event) => setTrashReason(event.target.value)}
                 maxLength={1000}
-                className="min-h-24 w-full rounded-lg border border-border-strong p-3"
+                className="min-h-24"
               />
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="default"
+                  disabled={isTrashing}
+                  onClick={closeTrash}
+                >
+                  Close
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  disabled={isTrashing || trashReason.trim().length < 3}
+                  isLoading={isTrashing}
+                  loadingText="Moving to trash…"
+                  onClick={() => void confirmTrash()}
+                >
+                  Move to Trash
+                </Button>
+              </div>
             </div>
-            <div className="flex justify-end gap-3">
-              <button
-                disabled={isTrashing}
-                onClick={closeTrash}
-                className="rounded-lg border px-4 py-2"
-              >
-                Close
-              </button>
-              <button
-                disabled={isTrashing || trashReason.trim().length < 3}
-                onClick={() => void confirmTrash()}
-                className="rounded-lg bg-destructive px-4 py-2 font-medium text-white disabled:opacity-50"
-              >
-                {isTrashing ? 'Moving to trash…' : 'Move to Trash'}
-              </button>
-            </div>
-          </div>
         )}
       </Modal>
     </div>
