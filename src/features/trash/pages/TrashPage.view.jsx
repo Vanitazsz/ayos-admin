@@ -258,15 +258,7 @@ export function TrashView({ model }) {
         )}
       </ConfirmModal>
       <AccountDeleteModal
-        account={
-          accountToDelete
-            ? {
-                id: accountToDelete.id,
-                email: accountToDelete.email,
-                name: accountToDelete.name,
-              }
-            : null
-        }
+        account={accountToDelete}
         onDelete={handleDeleteAccountFromTrash}
         onDeleted={() => setAccountToDelete(null)}
         onClose={() => setAccountToDelete(null)}

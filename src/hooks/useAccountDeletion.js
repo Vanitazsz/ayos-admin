@@ -8,6 +8,9 @@ const errorMessage = (error) =>
     : [error?.message, error?.details, error?.hint, error?.code].filter(Boolean).join(' | ') ||
       'Unable to permanently delete account.';
 
+const isAccountGone = (error) =>
+  error?.code === 'P0002' && /ACCOUNT_NOT_FOUND/.test(error?.message ?? '');
+
 export function useAccountDeletion({ account, onClose, onDeleted, onDelete }) {
   const [preview, setPreview] = useState(null);
   const [confirmation, setConfirmation] = useState('');
@@ -19,19 +22,26 @@ export function useAccountDeletion({ account, onClose, onDeleted, onDelete }) {
     [account?.email, confirmation],
   );
 
+  const accountId = account?.id;
+
   useEffect(() => {
-    if (!account) return;
+    if (!accountId) return;
     let cancelled = false;
     setPreview(null);
     setConfirmation('');
     setError('');
     setIsLoading(true);
-    void previewAccountPurge(account.id)
+    void previewAccountPurge(accountId)
       .then((value) => {
         if (!cancelled) setPreview(value);
       })
       .catch((loadError) => {
-        if (!cancelled) setError(errorMessage(loadError));
+        if (cancelled) return;
+        if (isAccountGone(loadError)) {
+          setError('This account no longer exists and may have already been deleted.');
+        } else {
+          setError(errorMessage(loadError));
+        }
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -39,7 +49,7 @@ export function useAccountDeletion({ account, onClose, onDeleted, onDelete }) {
     return () => {
       cancelled = true;
     };
-  }, [account]);
+  }, [accountId]);
 
   const confirmDelete = async () => {
     if (!account || !matches || !preview) return;

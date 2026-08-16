@@ -4,7 +4,6 @@ export {
   softDeleteAccount,
   restoreAccountFromTrash,
 } from '../../../services/accounts';
-export { subscribe } from '../../../services/realtime';
 export {
   bulkSetCustomerVerification,
   loadCustomerVerifications,

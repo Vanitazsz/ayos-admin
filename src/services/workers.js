@@ -91,6 +91,112 @@ export async function loadWorkersRaw() {
 
 export const loadWorkers = cacheable('workers', { ttl: 60_000 }, loadWorkersRaw);
 
+export const loadWorkerStats = cacheable(
+  'workers',
+  { ttl: 60_000, key: 'stats' },
+  async () => {
+    const { data, error } = await supabase.rpc('get_worker_stats');
+    if (error) throw error;
+    const [row] = data ?? [];
+    return {
+      total: Number(row?.total ?? 0),
+      active: Number(row?.active ?? 0),
+      pendingReview: Number(row?.pending_review ?? 0),
+      suspended: Number(row?.suspended ?? 0),
+    };
+  },
+);
+
+const loadTrashedWorkerIds = cacheable(
+  'workers',
+  { ttl: 60_000, key: 'trashed' },
+  async () => {
+    const { data, error } = await supabase
+      .from('trash_entries')
+      .select('entity_id, id')
+      .eq('entity_type', 'worker')
+      .is('restored_at', null);
+    if (error) throw error;
+    return (data ?? []).map((row) => ({ entityId: row.entity_id, entryId: row.id }));
+  },
+);
+
+export const loadWorkerPageRows = cacheable('workers', { ttl: 60_000 }, async (ids) => {
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from('worker_profiles')
+    .select(WORKER_KEY_SELECT)
+    .in('account_id', ids);
+  if (error) throw error;
+  return data ?? [];
+});
+
+async function loadWorkerPageIds({
+  search = '',
+  status: filterStatus = 'All',
+  verified = 'All',
+  reviewOnly = false,
+  sort = 'newest',
+  field = 'created',
+  dateRange = null,
+  page = 1,
+  pageSize = 10,
+} = {}) {
+  const { data, error } = await supabase.rpc('admin_list_worker_page', {
+    p_search: search?.trim() || null,
+    p_status: filterStatus,
+    p_verified: verified,
+    p_review_only: reviewOnly,
+    p_field: field,
+    p_from: dateRange?.from ? dateRange.from.toISOString() : null,
+    p_to: dateRange?.to ? dateRange.to.toISOString() : null,
+    p_sort: sort,
+    p_page: page,
+    p_page_size: pageSize,
+  });
+  if (error) throw error;
+  const [row] = data ?? [];
+  return { ids: row?.ids ?? [], count: Number(row?.total_count ?? 0) };
+}
+
+export async function loadWorkersPageRaw({
+  search = '',
+  status: filterStatus = 'All',
+  verified = 'All',
+  reviewOnly = false,
+  sort = 'newest',
+  field = 'created',
+  dateRange = null,
+  page = 1,
+  pageSize = 10,
+} = {}) {
+  const [stats, pageResult, trashed] = await Promise.all([
+    loadWorkerStats(),
+    loadWorkerPageIds({ search, status: filterStatus, verified, reviewOnly, sort, field, dateRange, page, pageSize }),
+    loadTrashedWorkerIds(),
+  ]);
+
+  if (!pageResult.ids.length) return { rows: [], count: pageResult.count, stats };
+
+  const data = await loadWorkerPageRows(pageResult.ids);
+
+  const trashById = Object.fromEntries(trashed.map((entry) => [entry.entityId, entry.entryId]));
+  const byId = new Map(data.map((row) => [row.account_id, row]));
+  return {
+    rows: pageResult.ids
+      .map((id) => {
+        const row = byId.get(id);
+        if (!row) return null;
+        return mapWorker(row, trashById);
+      })
+      .filter(Boolean),
+    count: pageResult.count,
+    stats,
+  };
+}
+
+export const loadWorkersPage = cacheable('workers', { ttl: 60_000 }, loadWorkersPageRaw);
+
 export const loadWorkerFinance = cacheable('workers', { ttl: 60_000 }, async (workerIds) => {
   if (!workerIds.length) return {};
   const [
@@ -158,6 +264,16 @@ export async function reviewWorker(verificationId, decision, notes) {
     verification_id: verificationId,
     decision,
     notes,
+  });
+  if (error) throw error;
+  invalidate('workers');
+  return data;
+}
+
+export async function rejectWorkerVerification(verificationId, notes) {
+  const { data, error } = await supabase.rpc('admin_reject_worker_verification', {
+    p_verification_id: verificationId,
+    p_notes: notes || null,
   });
   if (error) throw error;
   invalidate('workers');

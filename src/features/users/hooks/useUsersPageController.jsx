@@ -10,13 +10,12 @@ import {
   setCustomerVerification,
   softDeleteAccount,
   restoreAccountFromTrash,
-  subscribe,
   updateUser,
   updateUserEmail,
   updateCustomerVerification,
   loadLocations,
 } from '../logic/UsersPageLogic';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Badge from '../../../components/ui/Badge';
 import { Users, UserCheck, UserX, AlertCircle } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
@@ -184,25 +183,6 @@ export function useUsersPageController() {
     ],
     [meta, verifications],
   );
-
-  const refreshUsersRef = useRef(refreshUsers);
-  refreshUsersRef.current = refreshUsers;
-  const loadVerificationsRef = useRef(loadVerifications);
-  loadVerificationsRef.current = loadVerifications;
-
-  useEffect(() => {
-    const stops = [
-      subscribe('accounts', () => {
-        void refreshUsersRef.current();
-      }, { debounceMs: 5000 }),
-      subscribe('customer_verifications', () => {
-        void loadVerificationsRef.current();
-      }, { filter: 'status=eq.pending' }),
-    ];
-    return () => {
-      stops.forEach((stop) => stop());
-    };
-  }, []);
 
   const decide = useCallback(
     (decision) => {

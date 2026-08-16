@@ -1,6 +1,5 @@
 import { supabase, status, identity } from './adminShared';
 import { cacheable, invalidate } from '../lib/cacheable';
-import { applyDateFilter, getRowDate } from '../lib/dateFilter';
 import { getSignedUrls } from '../lib/signedUrlCache';
 
 const dedupeByPath = (items) => {
@@ -95,42 +94,62 @@ export const mapBooking = (row) => ({
 const BOOKING_PAGE_SELECT =
   'id,service_request_id,status,version,created_at,agreed_service_amount,worker_proof_rating,worker_proof_comment,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),service_requests(description,scheduled_at,addresses(line1,barangay,city),service_categories(name),match_candidates(worker_id,score,eligible,worker_profiles:worker_id(display_name)),request_media(storage_path,content_type)),payments(method,status,service_amount,homeowner_platform_charge,refunds(status,reason)),cancellations(reason,fee_amount,refund_amount,resolution_status),booking_status_events(from_status,to_status,reason,created_at)';
 
-const BOOKING_KEY_SELECT =
-  'id,status,created_at,updated_at,user_profiles:user_account_id(display_name),worker_profiles:worker_account_id(display_name),service_requests(description,scheduled_at,request_media(storage_path,content_type))';
+export const loadBookingStats = cacheable(
+  'bookings',
+  { ttl: 60_000, key: 'stats' },
+  async () => {
+    const { data, error } = await supabase.rpc('get_booking_stats');
+    if (error) throw error;
+    const [row] = data ?? [];
+    return {
+      total: Number(row?.total ?? 0),
+      today: Number(row?.today ?? 0),
+      pending: Number(row?.pending ?? 0),
+      ongoing: Number(row?.ongoing ?? 0),
+      completedToday: Number(row?.completed_today ?? 0),
+    };
+  },
+);
 
-const bookingStats = (keys, todayStr) => ({
-  today: keys.filter(
-    (row) =>
-      new Date(row.service_requests?.scheduled_at ?? row.created_at).toLocaleDateString() ===
-      todayStr,
-  ).length,
-  pending: keys.filter((row) => status(row.status) === 'Pending').length,
-  ongoing: keys.filter((row) => status(row.status) === 'Ongoing').length,
-  completedToday: keys.filter(
-    (row) =>
-      status(row.status) === 'Completed' &&
-      new Date(row.service_requests?.scheduled_at ?? row.created_at).toLocaleDateString() ===
-        todayStr,
-  ).length,
-});
+const loadTrashedBookingIds = cacheable(
+  'bookings',
+  { ttl: 60_000, key: 'trashed' },
+  async () => {
+    const { data, error } = await supabase
+      .from('trash_entries')
+      .select('entity_id, id')
+      .eq('entity_type', 'booking')
+      .is('restored_at', null);
+    if (error) throw error;
+    return (data ?? []).map((row) => ({ entityId: row.entity_id, entryId: row.id }));
+  },
+);
 
-export const loadBookingKeys = cacheable('bookings', { ttl: 60_000 }, async () => {
-  const [{ data: keys, error: keyError }, { data: trashed, error: trashError }] =
-    await Promise.all([
-      supabase.from('bookings').select(BOOKING_KEY_SELECT).order('created_at', { ascending: false }),
-      supabase
-        .from('trash_entries')
-        .select('id, entity_id')
-        .eq('entity_type', 'booking')
-        .is('restored_at', null),
-    ]);
-  if (keyError) throw keyError;
-  if (trashError) throw trashError;
-  return {
-    keys: keys ?? [],
-    trashById: Object.fromEntries((trashed ?? []).map((row) => [row.entity_id, row.id])),
-  };
-});
+async function loadBookingPageIds({
+  search = '',
+  status: filterStatus = 'All',
+  media = [],
+  sort = 'newest',
+  field = 'created',
+  dateRange = null,
+  page = 1,
+  pageSize = 10,
+} = {}) {
+  const { data, error } = await supabase.rpc('admin_list_booking_page', {
+    p_search: search?.trim() || null,
+    p_status: filterStatus,
+    p_media: media.length ? media : null,
+    p_field: field,
+    p_from: dateRange?.from ? dateRange.from.toISOString() : null,
+    p_to: dateRange?.to ? dateRange.to.toISOString() : null,
+    p_sort: sort,
+    p_page: page,
+    p_page_size: pageSize,
+  });
+  if (error) throw error;
+  const [row] = data ?? [];
+  return { ids: row?.ids ?? [], count: Number(row?.total_count ?? 0) };
+}
 
 export const loadBookingPageRows = cacheable('bookings', { ttl: 60_000 }, async (ids) => {
   const { data, error } = await supabase
@@ -151,72 +170,29 @@ export async function loadBookingsPageRaw({
   page = 1,
   pageSize = 10,
 } = {}) {
-  const todayStr = new Date().toLocaleDateString();
-  const { keys, trashById } = await loadBookingKeys();
+  const [stats, pageResult, trashed] = await Promise.all([
+    loadBookingStats(),
+    loadBookingPageIds({ search, status: filterStatus, media, sort, field, dateRange, page, pageSize }),
+    loadTrashedBookingIds(),
+  ]);
 
-  const rows = keys ?? [];
-  const stats = bookingStats(rows, todayStr);
-  const term = search.trim().toLowerCase();
+  if (!pageResult.ids.length) return { rows: [], count: pageResult.count, stats };
 
-  const matched = term
-    ? rows.filter((row) => {
-        const customer = row.user_profiles?.display_name ?? '';
-        const worker = row.worker_profiles?.display_name ?? '';
-        const service = row.service_requests?.description ?? '';
-        return (
-          customer.toLowerCase().includes(term) ||
-          worker.toLowerCase().includes(term) ||
-          row.id.toLowerCase().includes(term) ||
-          service.toLowerCase().includes(term)
-        );
-      })
-    : rows;
-  const statusFiltered =
-    filterStatus === 'All'
-      ? matched
-      : filterStatus === 'Trashed'
-        ? matched.filter((row) => Boolean(trashById[row.id]))
-        : matched.filter((row) => status(row.status) === filterStatus);
-  const mediaFiltered =
-    media.length === 0
-      ? statusFiltered
-      : statusFiltered.filter((row) => {
-          const items = row.service_requests?.request_media ?? [];
-          const hasImage = items.some((item) => item.content_type?.startsWith('image/'));
-          const hasVoice = items.some(
-            (item) => item.content_type && !item.content_type.startsWith('image/'),
-          );
-          return (
-            (media.includes('image') && hasImage) || (media.includes('voice') && hasVoice)
-          );
-        });
-  const ordered = applyDateFilter(mediaFiltered, {
-    field,
-    range: dateRange,
-    sort,
-    getDate: (row) => getRowDate(row, field) ?? getRowDate(row, 'created'),
-  });
-  const count = ordered.length;
-  const pageIds = ordered
-    .slice((page - 1) * pageSize, page * pageSize)
-    .map((row) => row.id);
-
-  if (!pageIds.length) return { rows: [], count, stats };
-
-  const data = await loadBookingPageRows(pageIds);
+  const data = await loadBookingPageRows(pageResult.ids);
 
   const byId = new Map(data.map((row) => [row.id, row]));
+  const trashEntryIdByEntity = new Map(trashed.map((entry) => [entry.entityId, entry.entryId]));
   return {
-    rows: pageIds
+    rows: pageResult.ids
       .map((id) => {
         const row = byId.get(id);
         if (!row) return null;
         const booking = mapBooking(row);
-        const trashEntryId = trashById[booking.id] ?? null;
+        const trashEntryId = trashEntryIdByEntity.get(booking.id) ?? null;
         return { ...booking, isTrashed: Boolean(trashEntryId), trashEntryId };
       })
       .filter(Boolean),
-    count,
+    count: pageResult.count,
     stats,
   };
 }

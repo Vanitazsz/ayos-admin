@@ -1,1 +1,1 @@
-export { loadAuditLogs } from '../../../services/auditLogs';
+export { loadAuditLogPage, loadAuditStats } from '../../../services/auditLogs';

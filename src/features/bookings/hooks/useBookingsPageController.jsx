@@ -4,10 +4,9 @@ import {
   reassignBookingAsAdmin,
   resolveBookingMedia,
   resolveBookingProofs,
-  subscribe,
 } from '../logic/BookingsPageLogic';
 import { loadReassignWorkers } from '../../../services/workers';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, CheckCircle, PlayCircle } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
@@ -70,16 +69,6 @@ export function useBookingsPageController() {
     setCurrentPage,
     totalPages,
   } = useServerPagination({ fetchPage: fetchBookings });
-
-  const refreshRef = useRef(refresh);
-  refreshRef.current = refresh;
-
-  useEffect(() => {
-    const stop = subscribe('bookings', () => {
-      void refreshRef.current();
-    });
-    return stop;
-  }, []);
 
   const stats = useMemo(() => {
     const s = meta?.stats;

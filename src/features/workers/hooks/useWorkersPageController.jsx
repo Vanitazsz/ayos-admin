@@ -2,7 +2,8 @@ import {
   bulkSetWorkerVerification,
   loadWorkerFinance,
   loadWorkerVerificationDocs,
-  loadWorkers,
+  loadWorkersPage,
+  rejectWorkerVerification,
   reviewWorker,
   setAccountStatus,
   softDeleteAccount,
@@ -14,18 +15,15 @@ import {
 } from '../logic/WorkersPageLogic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { UserCheck, UserX, AlertCircle, Briefcase } from 'lucide-react';
-import { uploadVerificationImage } from '../../../services/adminShared';
-import { useRealtime } from '../../../hooks/useRealtime';
+import { uploadVerificationImage, supabase } from '../../../services/adminShared';
 import { useToast } from '../../../context/ToastContext';
-import { usePagination } from '../../../hooks/usePagination';
-import { useDebouncedRefresh } from '../../../hooks/useDebouncedRefresh';
+import { useServerPagination } from '../../../hooks/useServerPagination';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { useDateFilter } from '../../../hooks/useDateFilter';
-import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
 
 export function useWorkersPageController() {
   const toast = useToast();
   const dateFilter = useDateFilter({ canModify: true });
-  const [workers, setWorkers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterVerified, setFilterVerified] = useState('All');
@@ -33,17 +31,15 @@ export function useWorkersPageController() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
-  const [isRemarksModalOpen, setIsRemarksModalOpen] = useState(false);
-  const [remarks, setRemarks] = useState('');
-  const [workerToReview, setWorkerToReview] = useState(null);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectNotes, setRejectNotes] = useState('');
+  const [workerToReject, setWorkerToReject] = useState(null);
   const [editWorker, setEditWorker] = useState(null);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [isSavingWorker, setIsSavingWorker] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [industries, setIndustries] = useState([]);
   const [skills, setSkills] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
   const [verificationDocs, setVerificationDocs] = useState(null);
   const [isEditingVerification, setIsEditingVerification] = useState(false);
   const [workerVerificationDraft, setWorkerVerificationDraft] = useState(null);
@@ -54,28 +50,8 @@ export function useWorkersPageController() {
     message: '',
     onConfirm: () => {},
   });
-  const { schedule, mark } = useDebouncedRefresh({
-    debounceMs: 5000,
-    cooldownMs: 6000,
-  });
 
-  const refresh = useCallback(async () => {
-    try {
-      setLoadError('');
-      setWorkers(await loadWorkers());
-    } catch (error) {
-      setLoadError(
-        error instanceof Error ? error.message : 'Unable to load workers.',
-      );
-    } finally {
-      setIsLoading(false);
-      mark();
-    }
-  }, [mark]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const debouncedSearch = useDebouncedValue(searchTerm);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,9 +73,33 @@ export function useWorkersPageController() {
     };
   }, []);
 
-  const handleRealtime = useCallback(() => schedule(refresh), [schedule, refresh]);
+  const fetchWorkers = useCallback(
+    ({ page, pageSize }) =>
+      loadWorkersPage({
+        search: debouncedSearch,
+        status: filterStatus,
+        verified: filterVerified,
+        reviewOnly: activeTab === 'review',
+        sort: dateFilter.sort,
+        field: dateFilter.field,
+        dateRange: dateFilter.effectiveRange,
+        page,
+        pageSize,
+      }),
+    [debouncedSearch, filterStatus, filterVerified, activeTab, dateFilter],
+  );
 
-  useRealtime(['worker_profiles', 'worker_verifications'], handleRealtime);
+  const {
+    rows: filteredWorkers,
+    count,
+    meta,
+    error: loadError,
+    isLoading,
+    refresh,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+  } = useServerPagination({ fetchPage: fetchWorkers });
 
   const needsReview = useCallback(
     (worker) =>
@@ -108,55 +108,10 @@ export function useWorkersPageController() {
     [],
   );
 
-  const filteredWorkers = useMemo(() => {
-    const matched = workers.filter((w) => {
-      const matchesSearch =
-        w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        w.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        w.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (w.categories ?? []).join(' ').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        w.category.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus =
-        filterStatus === 'All' || filterStatus === 'Trashed'
-          ? filterStatus === 'Trashed'
-            ? w.isTrashed
-            : true
-          : w.status === filterStatus;
-      const matchesVerified =
-        filterVerified === 'All' ||
-        (filterVerified === 'verified' ? w.verified : !w.verified);
-      const matchesTab =
-        activeTab === 'all' ||
-        (activeTab === 'review' && needsReview(w));
-      return matchesSearch && matchesStatus && matchesVerified && matchesTab;
-    });
-    return applyDateFilter(matched, {
-      field: dateFilter.field,
-      range: dateFilter.effectiveRange,
-      sort: dateFilter.sort,
-      getDate: (row) => getRowDate(row, dateFilter.field) ?? getRowDate(row, 'created'),
-    });
-  }, [
-    workers,
-    searchTerm,
-    filterStatus,
-    filterVerified,
-    activeTab,
-    needsReview,
-    dateFilter,
-  ]);
-
-  const {
-    currentPage,
-    setCurrentPage,
-    totalPages,
-    pageData: pageRows,
-  } = usePagination(filteredWorkers, 10);
-
   const [finance, setFinance] = useState({});
 
   useEffect(() => {
-    const ids = pageRows.map((worker) => worker.id);
+    const ids = filteredWorkers.map((worker) => worker.id);
     let cancelled = false;
     void loadWorkerFinance(ids)
       .then((statsById) => {
@@ -168,11 +123,11 @@ export function useWorkersPageController() {
     return () => {
       cancelled = true;
     };
-  }, [pageRows]);
+  }, [filteredWorkers]);
 
   const paginatedWorkers = useMemo(
     () =>
-      pageRows.map((worker) => {
+      filteredWorkers.map((worker) => {
         const stats = finance[worker.id];
         if (!stats) return worker;
         return {
@@ -182,33 +137,33 @@ export function useWorkersPageController() {
           earnings: stats.earnings ?? worker.earnings,
         };
       }),
-    [pageRows, finance],
+    [filteredWorkers, finance],
   );
 
   const stats = useMemo(
     () => [
       {
         label: 'Total Workers',
-        value: workers.length,
+        value: meta?.stats?.total ?? 0,
         icon: Briefcase,
       },
       {
         label: 'Active Workers',
-        value: workers.filter((w) => w.status === 'Active').length,
+        value: meta?.stats?.active ?? 0,
         icon: UserCheck,
       },
       {
         label: 'Pending Verification',
-        value: workers.filter(needsReview).length,
+        value: meta?.stats?.pendingReview ?? 0,
         icon: AlertCircle,
       },
       {
         label: 'Suspended',
-        value: workers.filter((w) => w.status === 'Suspended').length,
+        value: meta?.stats?.suspended ?? 0,
         icon: UserX,
       },
     ],
-    [workers, needsReview],
+    [meta],
   );
 
   const toggleActionMenu = useCallback((id) => {
@@ -491,28 +446,43 @@ export function useWorkersPageController() {
     [refresh, toast],
   );
 
-  const openRemarksModal = useCallback((worker) => {
-    setWorkerToReview(worker);
-    setRemarks('');
-    setIsRemarksModalOpen(true);
+  const openRejectModal = useCallback((worker) => {
+    setWorkerToReject(worker);
+    setRejectNotes('');
+    setIsRejectModalOpen(true);
     setActionMenuOpenId(null);
   }, []);
 
-  const submitRemarks = useCallback(async () => {
+  const submitReject = useCallback(async () => {
     try {
-      if (!workerToReview?.verificationId)
+      if (!workerToReject?.verificationId)
         throw new Error('No pending verification');
-      await reviewWorker(
-        workerToReview.verificationId,
-        'NEEDS_DOCUMENTS',
-        remarks,
+      const result = await rejectWorkerVerification(
+        workerToReject.verificationId,
+        rejectNotes,
       );
+      const removedPaths = Array.isArray(result?.removed_document_paths)
+        ? result.removed_document_paths
+        : [];
+      if (removedPaths.length > 0) {
+        try {
+          await supabase
+            .storage
+            .from('verification-documents')
+            .remove(removedPaths);
+        } catch {
+          // Non-fatal: documents are already unlinked server-side; orphaned
+          // files can be cleaned up later.
+        }
+      }
       await refresh();
-      setIsRemarksModalOpen(false);
+      setIsRejectModalOpen(false);
+      setWorkerToReject(null);
+      setRejectNotes('');
     } catch (error) {
-      toast.error('Document request failed', error.message);
+      toast.error('Rejection failed', error.message);
     }
-  }, [workerToReview, remarks, refresh, toast]);
+  }, [workerToReject, rejectNotes, refresh, toast]);
 
   const handleApproveDocs = useCallback(async () => {
     if (!selectedWorker) return;
@@ -612,7 +582,9 @@ export function useWorkersPageController() {
 
   return useMemo(
     () => ({
-      workers,
+      workers: filteredWorkers,
+      count,
+      pendingReviewCount: meta?.stats?.pendingReview ?? 0,
       searchTerm,
       setSearchTerm,
       filterStatus,
@@ -628,11 +600,11 @@ export function useWorkersPageController() {
       actionMenuOpenId,
       activeTab,
       setActiveTab,
-      isRemarksModalOpen,
-      setIsRemarksModalOpen,
-      remarks,
-      setRemarks,
-      workerToReview,
+      isRejectModalOpen,
+      setIsRejectModalOpen,
+      rejectNotes,
+      setRejectNotes,
+      workerToReject,
       editWorker,
       setEditWorker,
       isEditDrawerOpen,
@@ -663,8 +635,8 @@ export function useWorkersPageController() {
       toggleWorkerVerification,
       approveWorker,
       handleApproveDocs,
-      openRemarksModal,
-      submitRemarks,
+      openRejectModal,
+      submitReject,
       verificationDocs,
       isEditingVerification,
       workerVerificationDraft,
@@ -677,7 +649,8 @@ export function useWorkersPageController() {
       closeConfirm,
     }),
     [
-      workers,
+      count,
+      meta,
       searchTerm,
       filterStatus,
       filterVerified,
@@ -687,9 +660,9 @@ export function useWorkersPageController() {
       isDrawerOpen,
       actionMenuOpenId,
       activeTab,
-      isRemarksModalOpen,
-      remarks,
-      workerToReview,
+      isRejectModalOpen,
+      rejectNotes,
+      workerToReject,
       editWorker,
       isEditDrawerOpen,
       isSavingWorker,
@@ -718,8 +691,8 @@ export function useWorkersPageController() {
       toggleWorkerVerification,
       approveWorker,
       handleApproveDocs,
-      openRemarksModal,
-      submitRemarks,
+      openRejectModal,
+      submitReject,
       setEditWorker,
       setIsEditDrawerOpen,
       verificationDocs,
@@ -736,8 +709,8 @@ export function useWorkersPageController() {
       setCurrentPage,
       setIsDrawerOpen,
       setActiveTab,
-      setIsRemarksModalOpen,
-      setRemarks,
+      setIsRejectModalOpen,
+      setRejectNotes,
       toast,
     ],
   );
