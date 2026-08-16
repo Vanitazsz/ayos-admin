@@ -80,14 +80,14 @@ const loadTrashedPaymentIds = cacheable(
 
 const loadPaymentIdsByName = cacheable('payments', { ttl: 60_000 }, async (term) => {
   const [userData, workerData] = await Promise.all([
-    supabase.from('user_profiles').select('id').ilike('display_name', `%${term}%`),
-    supabase.from('worker_profiles').select('id').ilike('display_name', `%${term}%`),
+    supabase.from('user_profiles').select('account_id').ilike('display_name', `%${term}%`),
+    supabase.from('worker_profiles').select('account_id').ilike('display_name', `%${term}%`),
   ]);
   if (userData.error) throw userData.error;
   if (workerData.error) throw workerData.error;
   const profileIds = [
-    ...(userData.data ?? []).map((row) => row.id),
-    ...(workerData.data ?? []).map((row) => row.id),
+    ...(userData.data ?? []).map((row) => row.account_id),
+    ...(workerData.data ?? []).map((row) => row.account_id),
   ];
   if (!profileIds.length) return [];
 

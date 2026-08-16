@@ -1,13 +1,9 @@
 import { supabase, status, identity } from './adminShared';
 import { cacheable, invalidate } from '../lib/cacheable';
-import { applyDateFilter, getRowDate } from '../lib/dateFilter';
 import { getSignedUrl, getSignedUrls } from '../lib/signedUrlCache';
 
 const asProfile = (row) =>
   Array.isArray(row.user_profiles) ? row.user_profiles[0] : row.user_profiles;
-
-const asLocation = (profile) =>
-  Array.isArray(profile?.locations) ? profile.locations[0] : profile?.locations;
 
 const normalizeVerificationStatus = (value) => {
   const normalized = String(value ?? '').trim().toLowerCase();
@@ -60,31 +56,62 @@ export const mapUser = (row) => {
 const USER_PAGE_SELECT =
   'id,email,mobile,status,created_at,updated_at,user_profiles(display_name,verification_status,avatar_path,locations!user_profiles_location_id_fkey(id,name),bookings!bookings_user_account_id_fkey(count)),addresses(id,label,line1,line2,barangay,city,province,postal_code,latitude,longitude,is_default)';
 
-const USER_KEY_SELECT =
-  'id,email,status,created_at,updated_at,user_profiles(display_name,verification_status,locations!user_profiles_location_id_fkey(id,name))';
+export const loadUserStats = cacheable(
+  'users',
+  { ttl: 60_000, key: 'stats' },
+  async () => {
+    const { data, error } = await supabase.rpc('get_user_stats');
+    if (error) throw error;
+    const [row] = data ?? [];
+    return {
+      total: Number(row?.total ?? 0),
+      active: Number(row?.active ?? 0),
+      suspended: Number(row?.suspended ?? 0),
+    };
+  },
+);
 
-export const loadUserKeys = cacheable('users', { ttl: 60_000, key: 'user-keys' }, async () => {
-  const [{ data: keys, error: keyError }, { data: trashed, error: trashError }] =
-    await Promise.all([
-      supabase
-        .from('accounts')
-        .select(USER_KEY_SELECT)
-        .eq('role', 'USER')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('trash_entries')
-        .select('id, entity_type, entity_id')
-        .eq('entity_type', 'user')
-        .is('restored_at', null),
-    ]);
-  if (keyError) throw keyError;
-  if (trashError) throw trashError;
-  return {
-    keys: keys ?? [],
-    trashById: Object.fromEntries((trashed ?? []).map((row) => [row.entity_id, row.id])),
-  };
-});
+const loadTrashedUserIds = cacheable(
+  'users',
+  { ttl: 60_000, key: 'trashed' },
+  async () => {
+    const { data, error } = await supabase
+      .from('trash_entries')
+      .select('entity_id, id')
+      .eq('entity_type', 'user')
+      .is('restored_at', null);
+    if (error) throw error;
+    return (data ?? []).map((row) => ({ entityId: row.entity_id, entryId: row.id }));
+  },
+);
+
+async function loadUserPageIds({
+  search = '',
+  status: filterStatus = 'All',
+  verified = 'All',
+  location = 'All',
+  sort = 'newest',
+  field = 'created',
+  dateRange = null,
+  page = 1,
+  pageSize = 10,
+} = {}) {
+  const { data, error } = await supabase.rpc('admin_list_user_page', {
+    p_search: search?.trim() || null,
+    p_status: filterStatus,
+    p_verified: verified,
+    p_location: location,
+    p_field: field,
+    p_from: dateRange?.from ? dateRange.from.toISOString() : null,
+    p_to: dateRange?.to ? dateRange.to.toISOString() : null,
+    p_sort: sort,
+    p_page: page,
+    p_page_size: pageSize,
+  });
+  if (error) throw error;
+  const [row] = data ?? [];
+  return { ids: row?.ids ?? [], count: Number(row?.total_count ?? 0) };
+}
 
 export const loadUserPageRows = cacheable('users', { ttl: 60_000 }, async (ids) => {
   const { data, error } = await supabase
@@ -108,72 +135,29 @@ export async function loadUsersPageRaw({
   page = 1,
   pageSize = 10,
 } = {}) {
-  const { keys: allKeys, trashById } = await loadUserKeys();
+  const [stats, pageResult, trashed] = await Promise.all([
+    loadUserStats(),
+    loadUserPageIds({ search, status, verified, location, sort, field, dateRange, page, pageSize }),
+    loadTrashedUserIds(),
+  ]);
 
-  const stats = {
-    total: allKeys.length,
-    active: allKeys.filter((row) => row.status === 'ACTIVE').length,
-    suspended: allKeys.filter((row) => row.status === 'SUSPENDED').length,
-  };
+  if (!pageResult.ids.length) return { rows: [], count: pageResult.count, stats };
 
-  const term = search.trim().toLowerCase();
-  const matchesSearch = (row) => {
-    const name = asProfile(row)?.display_name ?? '';
-    return (
-      name.toLowerCase().includes(term) ||
-      row.email.toLowerCase().includes(term) ||
-      row.id.toLowerCase().includes(term)
-    );
-  };
-  const isTrashed = (row) => Boolean(trashById[row.id]);
-  const matchesStatus = (row) =>
-    status === 'All' ||
-    (status === 'Trashed' ? isTrashed(row) : row.status === status);
-  const matchesVerified = (row) => {
-    const profile = asProfile(row);
-    const verificationStatus = normalizeVerificationStatus(profile?.verification_status);
-    if (verified === 'All') return verificationStatus !== 'pending';
-    return verificationStatus === verified;
-  };
-  const matchesLocation = (row) => {
-    if (location === 'All') return true;
-    const profile = asProfile(row);
-    return (asLocation(profile)?.name ?? '') === location;
-  };
-  const matched = allKeys.filter(
-    (row) =>
-      (!term || matchesSearch(row)) &&
-      matchesStatus(row) &&
-      matchesVerified(row) &&
-      matchesLocation(row),
-  );
-  const ordered = applyDateFilter(matched, {
-    field,
-    range: dateRange,
-    sort,
-    getDate: (row) => getRowDate(row, field) ?? getRowDate(row, 'created'),
-  });
-  const count = ordered.length;
-  const pageIds = ordered
-    .slice((page - 1) * pageSize, page * pageSize)
-    .map((row) => row.id);
-
-  if (!pageIds.length) return { rows: [], count, stats };
-
-  const data = await loadUserPageRows(pageIds);
+  const data = await loadUserPageRows(pageResult.ids);
 
   const byId = new Map(data.map((row) => [row.id, row]));
+  const trashEntryIdByEntity = new Map(trashed.map((entry) => [entry.entityId, entry.entryId]));
   return {
-    rows: pageIds
+    rows: pageResult.ids
       .map((id) => {
         const row = byId.get(id);
         if (!row) return null;
         const user = mapUser(row);
-        const trashEntryId = trashById[id] ?? null;
+        const trashEntryId = trashEntryIdByEntity.get(id) ?? null;
         return { ...user, isTrashed: Boolean(trashEntryId), trashEntryId };
       })
       .filter(Boolean),
-    count,
+    count: pageResult.count,
     stats,
   };
 }

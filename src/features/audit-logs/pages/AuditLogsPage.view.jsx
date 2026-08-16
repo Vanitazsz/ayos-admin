@@ -27,6 +27,26 @@ import {
   TableCell,
 } from '../../../components/ui/Table';
 
+const StatusBadge = ({ status }) => {
+  if (status === 'Success')
+    return (
+      <Badge variant="success">
+        <CheckCircle size={12} /> Success
+      </Badge>
+    );
+  if (status === 'Failed')
+    return (
+      <Badge variant="danger">
+        <XCircle size={12} /> Failed
+      </Badge>
+    );
+  if (status)
+    return (
+      <Badge variant="default">{status}</Badge>
+    );
+  return <span className="text-foreground-lighter">—</span>;
+};
+
 export function AuditLogsView({ model }) {
   const {
     isLoading,
@@ -43,19 +63,22 @@ export function AuditLogsView({ model }) {
     paginatedLogs,
     stats,
   } = model;
+
   return (
     <div className="p-4 sm:p-6">
-      <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Security Audit Logs</h1>
           <p className="text-foreground-lighter mt-1">Track and monitor all administrator activities</p>
         </div>
       </div>
+
       {error && (
         <Alert variant="danger" className="mb-4">
           {error}
         </Alert>
       )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat, index) => (
           <StatCard key={index} title={stat.label} value={stat.value} icon={stat.icon} />
@@ -163,19 +186,7 @@ export function AuditLogsView({ model }) {
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-right">
-                    {log.status === 'Success' ? (
-                      <Badge variant="success">
-                        <CheckCircle size={12} /> Success
-                      </Badge>
-                    ) : log.status === 'Failed' ? (
-                      <Badge variant="danger">
-                        <XCircle size={12} /> Failed
-                      </Badge>
-                    ) : log.status ? (
-                      <Badge variant="default">{log.status}</Badge>
-                    ) : (
-                      <span className="text-foreground-lighter">—</span>
-                    )}
+                    <StatusBadge status={log.status} />
                   </TableCell>
                 </TableRow>
               ))

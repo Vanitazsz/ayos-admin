@@ -53,7 +53,8 @@ import {
 
 export function WorkersView({ model }) {
   const {
-    workers,
+    count,
+    pendingReviewCount,
     searchTerm,
     setSearchTerm,
     filterStatus,
@@ -68,11 +69,11 @@ export function WorkersView({ model }) {
     setIsDrawerOpen,
     activeTab,
     setActiveTab,
-    isRemarksModalOpen,
-    setIsRemarksModalOpen,
-    remarks,
-    setRemarks,
-    workerToReview,
+    isRejectModalOpen,
+    setIsRejectModalOpen,
+    rejectNotes,
+    setRejectNotes,
+    workerToReject,
     editWorker,
     setEditWorker,
     isEditDrawerOpen,
@@ -99,8 +100,8 @@ export function WorkersView({ model }) {
     toggleWorkerVerification,
     approveWorker,
     handleApproveDocs,
-    openRemarksModal,
-    submitRemarks,
+    openRejectModal,
+    submitReject,
     verificationDocs,
     isEditingVerification,
     workerVerificationDraft,
@@ -157,11 +158,11 @@ export function WorkersView({ model }) {
           </TabsTrigger>
           <TabsTrigger value="review" onClick={() => setCurrentPage(1)}>
             Review Queue
-            {workers.filter(needsReview).length > 0 && (
+            {pendingReviewCount > 0 && (
               <span
                 className={`ml-2 py-0.5 px-2 rounded-full text-xs ${activeTab === 'review' ? 'bg-brand-500/10 text-brand-700 dark:text-brand-300' : 'bg-surface-200 text-foreground'}`}
               >
-                {workers.filter(needsReview).length}
+                {pendingReviewCount}
               </span>
             )}
           </TabsTrigger>
@@ -420,10 +421,10 @@ export function WorkersView({ model }) {
                               <CheckCircle className="mr-2" /> Approve Worker
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onSelect={() => openRemarksModal(worker)}
-                              className="cursor-pointer text-warning-600 dark:text-warning-400 focus:text-warning-600 dark:focus:text-warning-400 focus:bg-warning/10 [&_svg]:text-warning"
+                              onSelect={() => openRejectModal(worker)}
+                              className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 [&_svg]:text-destructive"
                             >
-                              <AlertCircle className="mr-2" /> Request Docs
+                              <XCircle className="mr-2" /> Reject Worker
                             </DropdownMenuItem>
                           </>
                         )}
@@ -480,7 +481,7 @@ export function WorkersView({ model }) {
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
-          totalCount={filteredWorkers.length}
+          totalCount={count}
         />
       )}
 
@@ -846,10 +847,11 @@ export function WorkersView({ model }) {
                     <div className="flex justify-end gap-2">
                       <Button
                         size="sm"
-                        variant="warning"
-                        onClick={() => openRemarksModal(selectedWorker)}
+                        variant="outline-danger"
+                        disabled={!selectedWorker.verificationId}
+                        onClick={() => openRejectModal(selectedWorker)}
                       >
-                        <AlertCircle size={15} /> Request Docs
+                        <XCircle size={15} /> Reject
                       </Button>
                       <Button
                         size="sm"
@@ -1034,22 +1036,23 @@ export function WorkersView({ model }) {
         variant="danger"
       />
 
-      {/* Request Docs Remarks Modal */}
+      {/* Reject Worker Verification Modal */}
       <Modal
-        isOpen={isRemarksModalOpen}
-        onClose={() => setIsRemarksModalOpen(false)}
-        title="Request Additional Documents"
+        isOpen={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        title="Reject Worker Verification"
       >
         <div className="pb-4">
           <p className="text-sm text-foreground-light mb-4">
-            Provide remarks on what documents{' '}
-            <span className="font-semibold text-foreground">{workerToReview?.name}</span> needs to
-            submit for verification.
+            Rejecting{' '}
+            <span className="font-semibold text-foreground">{workerToReject?.name}</span>
+            &apos;s verification will delete their submitted documents so they can
+            resubmit with new ones. This cannot be undone.
           </p>
           <Textarea
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-            placeholder="e.g. Please upload a clearer copy of your Valid ID..."
+            value={rejectNotes}
+            onChange={(e) => setRejectNotes(e.target.value)}
+            placeholder="Optional note to the worker, e.g. Invalid or expired ID submitted..."
             className="min-h-[120px]"
           />
           <div className="flex w-full space-x-3 mt-6">
@@ -1057,16 +1060,16 @@ export function WorkersView({ model }) {
               type="button"
               variant="secondary"
               className="flex-1"
-              onClick={() => setIsRemarksModalOpen(false)}
+              onClick={() => setIsRejectModalOpen(false)}
             >
               Cancel
             </Button>
             <Button
+              variant="danger"
               className="flex-1"
-              onClick={submitRemarks}
-              disabled={!remarks.trim()}
+              onClick={() => void submitReject()}
             >
-              Send Request
+              Reject
             </Button>
           </div>
         </div>

@@ -1,57 +1,64 @@
-import { loadAuditLogs } from '../logic/AuditLogsPageLogic';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ShieldAlert, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import {
+  loadAuditLogPage,
+  loadAuditStats,
+} from '../logic/AuditLogsPageLogic';
+import { useServerPagination } from '../../../hooks/useServerPagination';
 import { useDataFetch } from '../../../hooks/useDataFetch';
-import { useRealtime } from '../../../hooks/useRealtime';
 import { useActiveSessionCount } from '../../../hooks/useActiveSessionCount';
-import { usePagination } from '../../../hooks/usePagination';
 import { useDateFilter } from '../../../hooks/useDateFilter';
-import { applyDateFilter } from '../../../lib/dateFilter';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 
 export function useAuditLogsPageController() {
-  const dateFilter = useDateFilter({ canModify: false });
-  const { data: logs, isLoading, error, refresh } = useDataFetch(loadAuditLogs, []);
-  useRealtime('audit_logs', refresh);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [filterModule, setFilterModule] = useState('All');
+  const dateFilter = useDateFilter({ canModify: false });
   const activeSessions = useActiveSessionCount();
 
-  const safeLogs = logs ?? [];
-  const matchedLogs = safeLogs.filter((l) => {
-    const matchesSearch =
-      l.admin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.ip.includes(searchTerm);
-    const matchesModule = filterModule === 'All' || l.module === filterModule;
-    return matchesSearch && matchesModule;
-  });
-  const filteredLogs = applyDateFilter(matchedLogs, {
-    field: 'created',
-    range: dateFilter.effectiveRange,
-    sort: dateFilter.sort,
-  });
+  const range = dateFilter.effectiveRange;
+
+  const fetchLogs = useCallback(
+    ({ page, pageSize }) =>
+      loadAuditLogPage({
+        page,
+        pageSize,
+        from: range?.from ?? null,
+        to: range?.to ?? null,
+        search: debouncedSearch,
+        module: filterModule === 'All' ? null : filterModule,
+      }),
+    [debouncedSearch, filterModule, range],
+  );
+
   const {
+    rows: filteredLogs,
+    error,
+    isLoading,
     currentPage,
     setCurrentPage,
     totalPages,
-    pageData: paginatedLogs,
-  } = usePagination(filteredLogs, 12);
+  } = useServerPagination({ fetchPage: fetchLogs, pageSize: 12 });
+
+  const paginatedLogs = filteredLogs;
+
+  const { data: auditStats } = useDataFetch(loadAuditStats, []);
+
   const stats = [
     {
       label: 'Recent Activities',
-      value: safeLogs.length,
+      value: auditStats?.recentActivities ?? 0,
       icon: ShieldAlert,
     },
     {
       label: 'Failed Actions',
-      value: safeLogs.filter((log) => log.status === 'Failed').length,
+      value: auditStats?.failed ?? 0,
       icon: XCircle,
     },
     {
       label: 'Critical Actions',
-      value: safeLogs.filter(
-        (log) => String(log.metadata?.severity ?? '').toUpperCase() === 'CRITICAL',
-      ).length,
+      value: auditStats?.critical ?? 0,
       icon: AlertTriangle,
     },
     {
@@ -60,6 +67,7 @@ export function useAuditLogsPageController() {
       icon: CheckCircle,
     },
   ];
+
   return {
     isLoading,
     error,
