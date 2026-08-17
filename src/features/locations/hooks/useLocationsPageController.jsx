@@ -22,7 +22,7 @@ import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
 import { useToast } from '../../../context/ToastContext';
 
 export function useLocationsPageController() {
-  const { toast } = useToast();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('users');
   const userDateFilter = useDateFilter({ canModify: true });
   const workerDateFilter = useDateFilter({ canModify: true });
