@@ -557,7 +557,7 @@ export function WorkersView({ model }) {
                   <Phone size={16} className="mr-3 text-foreground-muted" /> {selectedWorker.phone}
                 </div>
                 <div className="flex items-center text-sm text-foreground-light">
-                  <MapPin size={16} className="mr-3 text-foreground-muted" /> {selectedWorker.location}
+                  <MapPin size={16} className="mr-3 text-foreground-muted" /> {selectedWorker.location || '—'}
                 </div>
                 <div className="flex items-center text-sm text-foreground-light">
                   <Calendar size={16} className="mr-3 text-foreground-muted" /> Registered{' '}

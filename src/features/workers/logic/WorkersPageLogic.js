@@ -15,6 +15,7 @@ export {
   updateWorker,
   updateWorkerEmail,
   updateWorkerVerification,
+  clearWorkerLocation,
 } from '../../../services/workers';
 export { loadCatalog } from '../../../services/catalog';
 export { loadLocations } from '../../../services/locations';

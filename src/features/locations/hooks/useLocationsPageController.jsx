@@ -1,4 +1,5 @@
 import {
+  deleteUserAddress,
   loadBookingsForUser,
   loadBookingsForWorker,
   loadLocations,
@@ -7,6 +8,7 @@ import {
   loadWorkers,
   resolveBookingMedia,
   resolveUserAvatar,
+  clearWorkerLocation,
 } from '../logic/LocationsPageLogic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Badge from '../../../components/ui/Badge';
@@ -17,8 +19,10 @@ import { useDebouncedRefresh } from '../../../hooks/useDebouncedRefresh';
 import { useRealtime } from '../../../hooks/useRealtime';
 import { useDateFilter } from '../../../hooks/useDateFilter';
 import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
+import { useToast } from '../../../context/ToastContext';
 
 export function useLocationsPageController() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('users');
   const userDateFilter = useDateFilter({ canModify: true });
   const workerDateFilter = useDateFilter({ canModify: true });
@@ -263,6 +267,67 @@ export function useLocationsPageController() {
     await loadWorkersData();
   }, [refreshUsers, loadWorkersData]);
 
+  const [confirm, setConfirm] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmLabel: '',
+    onConfirm: null,
+  });
+
+  const handleDeleteAddress = useCallback(
+    (user, address) => {
+      setConfirm({
+        isOpen: true,
+        title: 'Delete Address',
+        message: `Permanently delete "${address.label || 'this address'}" for ${user.name}? Associated service requests will be deleted.`,
+        confirmLabel: 'Delete Address',
+        onConfirm: async () => {
+          try {
+            await deleteUserAddress(address.id);
+            setSelectedUser((prev) => ({
+              ...prev,
+              addresses: prev.addresses.filter((a) => a.id !== address.id),
+            }));
+            await refresh();
+            toast.success('Address deleted', `${address.label || 'Address'} has been permanently removed.`);
+          } catch (error) {
+            toast.error(
+              'Delete failed',
+              error instanceof Error ? error.message : 'Unable to delete address.',
+            );
+          }
+        },
+      });
+    },
+    [refresh, toast],
+  );
+
+  const handleClearWorkerLocation = useCallback(
+    (worker) => {
+      setConfirm({
+        isOpen: true,
+        title: 'Clear Worker Location',
+        message: `Clear the service area and location for "${worker.name}"? They will no longer appear in location-based matching until they re-enter their location.`,
+        confirmLabel: 'Clear Location',
+        onConfirm: async () => {
+          try {
+            await clearWorkerLocation(worker.id);
+            setSelectedWorker((prev) => prev ? { ...prev, location: '' } : prev);
+            await refresh();
+            toast.success('Location cleared', `${worker.name}'s service area has been removed.`);
+          } catch (error) {
+            toast.error(
+              'Clear failed',
+              error instanceof Error ? error.message : 'Unable to clear location.',
+            );
+          }
+        },
+      });
+    },
+    [refresh, toast],
+  );
+
   return useMemo(
     () => ({
       activeTab,
@@ -319,6 +384,10 @@ export function useLocationsPageController() {
       handleViewWorkerDetails,
       getStatusBadge,
       refresh,
+      confirm,
+      setConfirm,
+      handleDeleteAddress,
+      handleClearWorkerLocation,
     }),
     [
       activeTab,
@@ -363,6 +432,9 @@ export function useLocationsPageController() {
       handleViewWorkerDetails,
       getStatusBadge,
       refresh,
+      confirm,
+      handleDeleteAddress,
+      handleClearWorkerLocation,
     ],
   );
 }

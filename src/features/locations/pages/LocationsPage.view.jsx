@@ -14,6 +14,7 @@ import {
   MapPinned,
   CheckCircle,
   UserX,
+  Trash2,
 } from 'lucide-react';
 import { Card, CardHeader } from '../../../components/ui/Card';
 import { formatDateTime, money } from '../../../services/adminShared';
@@ -47,6 +48,7 @@ import {
   DropdownMenuItem,
 } from '../../../components/ui/DropdownMenu';
 import LocationMapPicker from '../../../components/LocationMapPicker';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
 
 function LocationSection({ person, locationFor }) {
   const location = locationFor(person);
@@ -149,6 +151,10 @@ export function LocationsView({ model }) {
     isWorkerBookingsLoading,
     handleViewWorkerDetails,
     getStatusBadge,
+    confirm,
+    setConfirm,
+    handleDeleteAddress,
+    handleClearWorkerLocation,
   } = model;
 
   const groupBookingsByDate = (bookings) =>
@@ -624,6 +630,15 @@ export function LocationsView({ model }) {
                 Location
               </h4>
               <LocationSection person={selectedWorker} locationFor={locationFor} />
+              {selectedWorker.location && (
+                <button
+                  onClick={() => handleClearWorkerLocation(selectedWorker)}
+                  className="mt-3 text-foreground-muted hover:text-destructive transition-colors p-1 rounded text-sm inline-flex items-center gap-1.5"
+                  title="Clear location"
+                >
+                  <Trash2 size={14} /> Clear location
+                </button>
+              )}
             </div>
 
             <div className="border-t border-border pt-6">
@@ -926,6 +941,13 @@ export function LocationsView({ model }) {
                           {address.label || 'Address'}
                         </span>
                         {address.isDefault && <Badge variant="success">Default</Badge>}
+                        <button
+                          onClick={() => handleDeleteAddress(selectedUser, address)}
+                          className="ml-auto shrink-0 text-foreground-muted hover:text-destructive transition-colors p-1 rounded"
+                          title="Delete address"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                       <p className="mt-1.5 text-sm text-foreground-light">{address.display}</p>
                       <p className="mt-1 text-xs text-foreground-lighter">
@@ -1068,6 +1090,20 @@ export function LocationsView({ model }) {
           </div>
         ) : null}
       </Drawer>
+
+      <ConfirmModal
+        isOpen={confirm.isOpen}
+        onClose={() => setConfirm((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={() => {
+          const fn = confirm.onConfirm;
+          setConfirm((prev) => ({ ...prev, isOpen: false }));
+          if (fn) void fn();
+        }}
+        title={confirm.title}
+        message={confirm.message}
+        confirmLabel={confirm.confirmLabel}
+        variant="danger"
+      />
     </div>
   );
 }

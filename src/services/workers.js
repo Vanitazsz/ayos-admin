@@ -332,6 +332,14 @@ export async function updateWorkerEmail(id, email) {
   return data;
 }
 
+export async function clearWorkerLocation(workerId) {
+  const { error } = await supabase.rpc('admin_clear_worker_location', {
+    p_worker_id: workerId,
+  });
+  if (error) throw error;
+  invalidate('workers');
+}
+
 export const loadWorkerVerificationDocs = cacheable(
   'workers',
   { ttl: 30_000 },
