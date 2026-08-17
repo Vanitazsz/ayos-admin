@@ -1,6 +1,6 @@
 # A-yos Admin Web App
 
-The **A-yos Admin Web App** is a premium, high-performance SaaS dashboard designed to manage the A-yos platform ecosystem. It provides administrators with a centralized hub for monitoring revenue, managing users and workers, and reviewing system analytics.
+The **A-yos Admin Web App** is a high-performance SaaS dashboard designed to manage the A-yos platform ecosystem. It provides administrators with a centralized hub for monitoring revenue, managing users and workers, and reviewing system analytics.
 
 ## Tech Stack
 - **Framework:** React 19 + Vite 8
@@ -53,5 +53,3 @@ This is a standalone app and does not depend on any workspace or monorepo.
 | `pnpm preview`           | Preview the production build locally        |
 | `pnpm lint`              | Run oxlint checks                           |
 | `pnpm check:no-mocks`    | Verify no production mock data has regressed |
-
-*Designed and engineered as a state-of-the-art enterprise administrative tool.*
