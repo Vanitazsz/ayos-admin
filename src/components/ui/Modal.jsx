@@ -20,7 +20,7 @@ const Modal = ({
 }) => (
   <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose?.(); }}>
     {isOpen && (
-      <DialogContent className={cn(maxWidth)} showCloseButton={!hideClose}>
+      <DialogContent className={cn(maxWidth)} showCloseButton={!hideClose} onClose={onClose}>
         {(title || description) && (
           <DialogHeader>
             {title && <DialogTitle>{title}</DialogTitle>}

@@ -290,6 +290,7 @@ export function useLocationsPageController() {
 
   const handleDeleteAddress = useCallback(
     (user, address) => {
+      setIsDrawerOpen(false);
       setAddressDelete({
         isOpen: true,
         step: 'checking',
@@ -335,7 +336,7 @@ export function useLocationsPageController() {
           );
         });
     },
-    [toast],
+    [toast, setIsDrawerOpen],
   );
 
   const handleCancelBookingFromDelete = useCallback(
