@@ -88,6 +88,6 @@ grant execute on function public.admin_review_customer_verification(uuid, text, 
 drop policy if exists customer_verification_documents_admin_delete on storage.objects;
 create policy customer_verification_documents_admin_delete
 on storage.objects for delete to authenticated
-using (public.is_admin(true));
+using (public.is_admin(true) and bucket_id = 'verification-documents');
 
 notify pgrst, 'reload schema';
