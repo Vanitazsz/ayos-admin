@@ -13,12 +13,15 @@ export {
   resolveUserAvatar,
   updateUser,
   updateUserEmail,
+  deleteUserAddress,
+  checkAddressDeletable,
 } from '../../../services/users';
 export {
   bulkSetWorkerVerification,
   loadWorkers,
   updateWorker,
   updateWorkerEmail,
+  clearWorkerLocation,
 } from '../../../services/workers';
 export {
   loadBookingsForUser,

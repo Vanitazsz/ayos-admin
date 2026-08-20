@@ -453,15 +453,16 @@ export function BookingsView({ model }) {
             )}
           </TableBody>
         </Table>
-      </div>
 
-      {count > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
-      )}
+        {count > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalCount={count}
+          />
+        )}
+      </div>
 
       {/* Booking Details Drawer with Timeline */}
       <Drawer

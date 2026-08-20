@@ -361,15 +361,17 @@ export function ServicesView({ model }) {
                 )}
               </TableBody>
             </Table>
-          </div>
 
-          {filteredSkills.length > 0 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          )}
+            {filteredSkills.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalCount={filteredSkills.length}
+                pageSize={8}
+              />
+            )}
+          </div>
         </>
       ) : (
         <>

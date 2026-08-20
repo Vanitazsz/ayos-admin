@@ -229,13 +229,12 @@ export function TrashView({ model }) {
         </Table>
 
         {filteredItems.length > 0 && (
-          <div className="border-t border-border">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalCount={filteredItems.length}
+          />
         )}
       </div>
       <ConfirmModal

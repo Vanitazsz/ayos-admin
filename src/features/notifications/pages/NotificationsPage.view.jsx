@@ -238,15 +238,16 @@ export function NotificationsView({ model }) {
             )}
           </TableBody>
         </Table>
-      </div>
 
-      {filteredNotifs.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
-      )}
+        {filteredNotifs.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalCount={filteredNotifs.length}
+          />
+        )}
+      </div>
 
       <Modal
         isOpen={isModalOpen}

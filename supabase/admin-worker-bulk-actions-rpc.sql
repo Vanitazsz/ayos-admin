@@ -16,9 +16,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  updated_count integer := 0;
   affected uuid[];
-  target_id uuid;
 begin
   if not public.is_admin(true) then
     raise exception using errcode = '42501', message = 'AAL2_ADMIN_REQUIRED';
@@ -45,21 +43,12 @@ begin
   select array_agg(id) into affected from updated;
 
   if affected is not null then
-    foreach target_id in array affected
-    loop
-      insert into public.audit_logs(actor_id, action, entity_type, entity_id, metadata)
-      values (
-        auth.uid(),
-        'ACCOUNT_STATUS_CHANGED',
-        'account',
-        target_id::text,
-        jsonb_build_object('status', p_next_status)
-      );
-      updated_count := updated_count + 1;
-    end loop;
+    insert into public.audit_logs(actor_id, action, entity_type, entity_id, metadata)
+    select auth.uid(), 'ACCOUNT_STATUS_CHANGED', 'account',
+           unnest(affected)::text, jsonb_build_object('status', p_next_status);
   end if;
 
-  return updated_count;
+  return coalesce(array_length(affected, 1), 0);
 end
 $$;
 
@@ -76,9 +65,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  updated_count integer := 0;
   affected uuid[];
-  target_id uuid;
   normalized_status text := lower(btrim(coalesce(p_status, '')));
 begin
   if not public.is_admin(true) then
@@ -134,21 +121,13 @@ begin
         updated_at = now()
     where verification.worker_id = any(affected);
 
-    foreach target_id in array affected
-    loop
-      insert into public.audit_logs(actor_id, action, entity_type, entity_id, metadata)
-      values (
-        auth.uid(),
-        'WORKER_VERIFICATION_STATUS_UPDATED',
-        'account',
-        target_id::text,
-        jsonb_build_object('verification_status', normalized_status)
-      );
-      updated_count := updated_count + 1;
-    end loop;
+    insert into public.audit_logs(actor_id, action, entity_type, entity_id, metadata)
+    select auth.uid(), 'WORKER_VERIFICATION_STATUS_UPDATED', 'account',
+           unnest(affected)::text,
+           jsonb_build_object('verification_status', normalized_status);
   end if;
 
-  return updated_count;
+  return coalesce(array_length(affected, 1), 0);
 end
 $$;
 

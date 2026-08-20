@@ -189,33 +189,36 @@ export function ReviewsView({ model }) {
         </div>
       </div>
 
-      {activeTab === 'customer' ? (
-        <CustomerProofsTable
-          isLoading={isLoading}
-          proofs={paginatedProofs}
-          renderStars={renderStars}
-          onViewDetails={handleViewDetails}
-          onMoveToTrash={openTrash}
-          goToTrash={goToTrash}
-        />
-      ) : (
-        <WorkerProofsTable
-          isLoading={isLoading}
-          proofs={paginatedProofs}
-          renderStars={renderStars}
-          onViewDetails={handleViewDetails}
-          onMoveToTrash={openTrash}
-          goToTrash={goToTrash}
-        />
-      )}
+      <div className="bg-card shadow-sm border border-border">
+        {activeTab === 'customer' ? (
+          <CustomerProofsTable
+            isLoading={isLoading}
+            proofs={paginatedProofs}
+            renderStars={renderStars}
+            onViewDetails={handleViewDetails}
+            onMoveToTrash={openTrash}
+            goToTrash={goToTrash}
+          />
+        ) : (
+          <WorkerProofsTable
+            isLoading={isLoading}
+            proofs={paginatedProofs}
+            renderStars={renderStars}
+            onViewDetails={handleViewDetails}
+            onMoveToTrash={openTrash}
+            goToTrash={goToTrash}
+          />
+        )}
 
-      {filteredProofs.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
-      )}
+        {filteredProofs.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalCount={filteredProofs.length}
+          />
+        )}
+      </div>
 
       <ProofDetailsDrawer
         proof={selectedProof}
@@ -333,7 +336,6 @@ function CustomerProofsTable({
   goToTrash,
 }) {
   return (
-    <div className="bg-card shadow-sm border border-border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -427,13 +429,11 @@ function CustomerProofsTable({
           )}
         </TableBody>
       </Table>
-    </div>
   );
 }
 
 function WorkerProofsTable({ isLoading, proofs, renderStars, onViewDetails, onMoveToTrash, goToTrash }) {
   return (
-    <div className="bg-card shadow-sm border border-border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -527,7 +527,6 @@ function WorkerProofsTable({ isLoading, proofs, renderStars, onViewDetails, onMo
           )}
         </TableBody>
       </Table>
-    </div>
   );
 }
 

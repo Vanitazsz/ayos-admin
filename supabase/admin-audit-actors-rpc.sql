@@ -4,7 +4,7 @@
 -- (Users / Workers). Returns one row per actor who has audit activity, grouped
 -- by accounts.role, so the admin can drill into a single actor's log list.
 --
--- Requires admin_list_audit_logs(integer, uuid) (admin-audit-rpc.sql) for the
+-- Requires admin_list_audit_logs_page (admin-audit-rpc.sql) for the
 -- per-actor detail view.
 
 create or replace function public.admin_list_audit_actors(p_role text)

@@ -474,16 +474,16 @@ export function WorkersView({ model }) {
             )}
           </TableBody>
         </Table>
-      </div>
 
-      {filteredWorkers.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          totalCount={count}
-        />
-      )}
+        {filteredWorkers.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalCount={count}
+          />
+        )}
+      </div>
 
       {/* Worker Details Drawer */}
       <Drawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} title="Worker Details">
@@ -557,7 +557,7 @@ export function WorkersView({ model }) {
                   <Phone size={16} className="mr-3 text-foreground-muted" /> {selectedWorker.phone}
                 </div>
                 <div className="flex items-center text-sm text-foreground-light">
-                  <MapPin size={16} className="mr-3 text-foreground-muted" /> {selectedWorker.location}
+                  <MapPin size={16} className="mr-3 text-foreground-muted" /> {selectedWorker.location || '—'}
                 </div>
                 <div className="flex items-center text-sm text-foreground-light">
                   <Calendar size={16} className="mr-3 text-foreground-muted" /> Registered{' '}

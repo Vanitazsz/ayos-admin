@@ -1,4 +1,6 @@
 import {
+  deleteUserAddress,
+  checkAddressDeletable,
   loadBookingsForUser,
   loadBookingsForWorker,
   loadLocations,
@@ -7,7 +9,9 @@ import {
   loadWorkers,
   resolveBookingMedia,
   resolveUserAvatar,
+  clearWorkerLocation,
 } from '../logic/LocationsPageLogic';
+import { cancelBookingAsAdmin } from '../../../services/bookings';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Badge from '../../../components/ui/Badge';
 import { useServerPagination } from '../../../hooks/useServerPagination';
@@ -17,8 +21,10 @@ import { useDebouncedRefresh } from '../../../hooks/useDebouncedRefresh';
 import { useRealtime } from '../../../hooks/useRealtime';
 import { useDateFilter } from '../../../hooks/useDateFilter';
 import { applyDateFilter, getRowDate } from '../../../lib/dateFilter';
+import { useToast } from '../../../context/ToastContext';
 
 export function useLocationsPageController() {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('users');
   const userDateFilter = useDateFilter({ canModify: true });
   const workerDateFilter = useDateFilter({ canModify: true });
@@ -263,6 +269,153 @@ export function useLocationsPageController() {
     await loadWorkersData();
   }, [refreshUsers, loadWorkersData]);
 
+  const [confirm, setConfirm] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmLabel: '',
+    onConfirm: null,
+  });
+
+  const [addressDelete, setAddressDelete] = useState({
+    isOpen: false,
+    step: 'idle',
+    address: null,
+    user: null,
+    activeBookings: [],
+    summary: null,
+    confirmText: '',
+    error: null,
+  });
+
+  const handleDeleteAddress = useCallback(
+    (user, address) => {
+      setIsDrawerOpen(false);
+      setAddressDelete({
+        isOpen: true,
+        step: 'checking',
+        address,
+        user,
+        activeBookings: [],
+        summary: null,
+        confirmText: '',
+        error: null,
+      });
+
+      checkAddressDeletable(address.id)
+        .then((result) => {
+          if (result.active_bookings?.length > 0) {
+            setAddressDelete((prev) => ({
+              ...prev,
+              step: 'cancelling',
+              activeBookings: result.active_bookings,
+              summary: result.summary,
+            }));
+          } else {
+            setAddressDelete((prev) => ({
+              ...prev,
+              step: 'warning',
+              summary: result.summary,
+            }));
+          }
+        })
+        .catch((err) => {
+          setAddressDelete({
+            isOpen: false,
+            step: 'idle',
+            address: null,
+            user: null,
+            activeBookings: [],
+            summary: null,
+            confirmText: '',
+            error: null,
+          });
+          toast.error(
+            'Check failed',
+            err instanceof Error ? err.message : 'Unable to check address.',
+          );
+        });
+    },
+    [toast, setIsDrawerOpen],
+  );
+
+  const handleCancelBookingFromDelete = useCallback(
+    async (bookingId) => {
+      try {
+        await cancelBookingAsAdmin(bookingId, 'Cancelled by administrator — address being deleted');
+        setAddressDelete((prev) => ({
+          ...prev,
+          activeBookings: prev.activeBookings.filter((b) => b.id !== bookingId),
+        }));
+        toast.success('Booking cancelled');
+      } catch (err) {
+        toast.error(
+          'Cancel failed',
+          err instanceof Error ? err.message : 'Unable to cancel booking.',
+        );
+      }
+    },
+    [toast],
+  );
+
+  const handleConfirmDeleteAddress = useCallback(async () => {
+    setAddressDelete((prev) => ({ ...prev, step: 'deleting' }));
+    try {
+      const result = await deleteUserAddress(addressDelete.address.id);
+      setSelectedUser((prev) =>
+        prev
+          ? { ...prev, addresses: prev.addresses.filter((a) => a.id !== addressDelete.address.id) }
+          : prev,
+      );
+      setAddressDelete({
+        isOpen: false,
+        step: 'idle',
+        address: null,
+        user: null,
+        activeBookings: [],
+        summary: null,
+        confirmText: '',
+        error: null,
+      });
+      await refresh();
+      toast.success(
+        'Address deleted',
+        `${addressDelete.address.label || 'Address'} permanently removed. ${result.bookings_deleted || 0} bookings and ${result.service_requests_deleted || 0} service requests deleted.`,
+      );
+    } catch (err) {
+      setAddressDelete((prev) => ({ ...prev, step: 'warning' }));
+      toast.error(
+        'Delete failed',
+        err instanceof Error ? err.message : 'Unable to delete address.',
+      );
+    }
+  }, [addressDelete.address, refresh, toast]);
+
+  const handleClearWorkerLocation = useCallback(
+    (worker) => {
+      setConfirm({
+        isOpen: true,
+        title: 'Clear Worker Location',
+        message: `Clear the service area and location for "${worker.name}"? They will no longer appear in location-based matching until they re-enter their location.`,
+        confirmLabel: 'Clear Location',
+        onConfirm: async () => {
+          try {
+            await clearWorkerLocation(worker.id);
+            setSelectedWorker((prev) => prev ? { ...prev, location: '' } : prev);
+            await refresh();
+            toast.success('Location cleared', `${worker.name}'s service area has been removed.`);
+          } catch (error) {
+            toast.error(
+              'Clear failed',
+              error instanceof Error ? error.message : 'Unable to clear location.',
+            );
+          }
+        },
+      });
+    },
+    [refresh, toast],
+  );
+
   return useMemo(
     () => ({
       activeTab,
@@ -319,6 +472,14 @@ export function useLocationsPageController() {
       handleViewWorkerDetails,
       getStatusBadge,
       refresh,
+      confirm,
+      setConfirm,
+      addressDelete,
+      setAddressDelete,
+      handleDeleteAddress,
+      handleCancelBookingFromDelete,
+      handleConfirmDeleteAddress,
+      handleClearWorkerLocation,
     }),
     [
       activeTab,
@@ -363,6 +524,11 @@ export function useLocationsPageController() {
       handleViewWorkerDetails,
       getStatusBadge,
       refresh,
+      confirm,
+      handleDeleteAddress,
+      handleCancelBookingFromDelete,
+      handleConfirmDeleteAddress,
+      handleClearWorkerLocation,
     ],
   );
 }
