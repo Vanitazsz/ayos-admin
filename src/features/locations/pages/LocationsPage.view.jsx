@@ -15,8 +15,6 @@ import {
   CheckCircle,
   UserX,
   Trash2,
-  AlertTriangle,
-  Loader2,
 } from 'lucide-react';
 import { Card, CardHeader } from '../../../components/ui/Card';
 import { formatDateTime, money } from '../../../services/adminShared';
@@ -51,8 +49,7 @@ import {
 } from '../../../components/ui/DropdownMenu';
 import LocationMapPicker from '../../../components/LocationMapPicker';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
-import Modal from '../../../components/ui/Modal';
-import Button from '../../../components/ui/Button';
+import { Alert } from '../../../components/ui/Alert';
 
 function LocationSection({ person, locationFor }) {
   const location = locationFor(person);
@@ -157,11 +154,6 @@ export function LocationsView({ model }) {
     getStatusBadge,
     confirm,
     setConfirm,
-    addressDelete,
-    setAddressDelete,
-    handleDeleteAddress,
-    handleCancelBookingFromDelete,
-    handleConfirmDeleteAddress,
     handleClearWorkerLocation,
   } = model;
 
@@ -186,6 +178,11 @@ export function LocationsView({ model }) {
           </p>
         </div>
       </div>
+
+      <Alert variant="info" className="mb-6">
+        This Locations page is currently under development as of{' '}
+        <strong>August 20, 2026</strong>.
+      </Alert>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
@@ -949,13 +946,6 @@ export function LocationsView({ model }) {
                           {address.label || 'Address'}
                         </span>
                         {address.isDefault && <Badge variant="success">Default</Badge>}
-                        <button
-                          onClick={() => handleDeleteAddress(selectedUser, address)}
-                          className="ml-auto shrink-0 text-foreground-muted hover:text-destructive transition-colors p-1 rounded"
-                          title="Delete address"
-                        >
-                          <Trash2 size={14} />
-                        </button>
                       </div>
                       <p className="mt-1.5 text-sm text-foreground-light">{address.display}</p>
                       <p className="mt-1 text-xs text-foreground-lighter">
@@ -1112,167 +1102,6 @@ export function LocationsView({ model }) {
         confirmLabel={confirm.confirmLabel}
         variant="danger"
       />
-
-      <Modal
-        isOpen={addressDelete.isOpen && addressDelete.step !== 'idle' && addressDelete.step !== 'deleting'}
-        onClose={() => setAddressDelete((prev) => ({ ...prev, isOpen: false, step: 'idle' }))}
-        title={
-          addressDelete.step === 'checking'
-            ? 'Checking Address...'
-            : addressDelete.step === 'cancelling'
-              ? 'Cancel Active Bookings'
-              : 'Confirm Address Deletion'
-        }
-      >
-        {addressDelete.step === 'checking' && (
-          <div className="flex flex-col items-center gap-4 py-4">
-            <Loader2 className="size-6 animate-spin text-brand-600" />
-            <p className="text-sm text-foreground-lighter">Checking for active bookings...</p>
-          </div>
-        )}
-
-        {addressDelete.step === 'cancelling' && (
-          <div className="flex flex-col gap-4">
-            <p className="text-sm text-foreground-lighter">
-              The following bookings are still active and must be cancelled before the address can be
-              deleted:
-            </p>
-            <div className="max-h-[300px] overflow-y-auto space-y-2">
-              {addressDelete.activeBookings.map((booking) => (
-                <div
-                  key={booking.id}
-                  className="flex items-center justify-between rounded-lg border border-border bg-card p-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground truncate">{booking.service}</p>
-                    <p className="text-xs text-foreground-lighter">
-                      {booking.date} — {booking.worker}
-                    </p>
-                  </div>
-                  <span
-                    className={`shrink-0 inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${badgeFor(BOOKING_STATUS_BADGE, booking.status)}`}
-                  >
-                    {booking.status}
-                  </span>
-                  <button
-                    onClick={() => void handleCancelBookingFromDelete(booking.id)}
-                    className="ml-3 shrink-0 text-xs text-destructive hover:text-destructive/80 font-medium"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ))}
-            </div>
-            {addressDelete.activeBookings.length === 0 && (
-              <div className="flex flex-col items-center gap-3 py-2">
-                <CheckCircle className="size-5 text-green-500" />
-                <p className="text-sm text-foreground-light">All active bookings cancelled.</p>
-                <Button
-                  variant="primary"
-                  onClick={() => setAddressDelete((prev) => ({ ...prev, step: 'warning' }))}
-                >
-                  Continue to Deletion
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {(addressDelete.step === 'warning' || addressDelete.step === 'deleting') && (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-              <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
-              <div className="text-sm text-foreground-light">
-                <p className="font-semibold text-destructive">
-                  This action is permanent and cannot be undone.
-                </p>
-                <p className="mt-2">The following will be permanently deleted:</p>
-                <ul className="mt-2 space-y-1 list-disc list-inside text-foreground-lighter">
-                  <li>
-                    <span className="font-medium text-foreground">
-                      {addressDelete.summary?.service_requests || 0}
-                    </span>{' '}
-                    service requests
-                  </li>
-                  <li>
-                    <span className="font-medium text-foreground">
-                      {addressDelete.summary?.bookings || 0}
-                    </span>{' '}
-                    bookings
-                  </li>
-                  <li>
-                    <span className="font-medium text-foreground">
-                      {addressDelete.summary?.payments || 0}
-                    </span>{' '}
-                    payments
-                  </li>
-                  <li>
-                    <span className="font-medium text-foreground">
-                      {addressDelete.summary?.wallet_transactions || 0}
-                    </span>{' '}
-                    wallet transactions
-                  </li>
-                  <li>
-                    <span className="font-medium text-foreground">
-                      {addressDelete.summary?.conversations || 0}
-                    </span>{' '}
-                    conversations
-                  </li>
-                </ul>
-                <p className="mt-2">
-                  The user will be{' '}
-                  <span className="font-medium text-foreground">logged out</span> of the mobile app and
-                  their verification status will be reset to{' '}
-                  <span className="font-medium text-foreground">unverified</span>.
-                </p>
-              </div>
-            </div>
-            <label className="block text-sm font-medium text-foreground-light">
-              Type{' '}
-              <span className="font-semibold text-foreground">
-                {addressDelete.address?.label || 'this address'}
-              </span>{' '}
-              to confirm
-              <input
-                type="text"
-                value={addressDelete.confirmText}
-                onChange={(e) =>
-                  setAddressDelete((prev) => ({ ...prev, confirmText: e.target.value }))
-                }
-                autoComplete="off"
-                className="mt-2 w-full rounded-lg border border-border-strong px-3 py-2 outline-none focus:border-destructive focus:ring-2 focus:ring-destructive/25"
-              />
-            </label>
-            <div className="flex gap-3">
-              <Button
-                variant="default"
-                className="flex-1"
-                onClick={() =>
-                  setAddressDelete((prev) => ({
-                    ...prev,
-                    isOpen: false,
-                    step: 'idle',
-                    confirmText: '',
-                  }))
-                }
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                className="flex-1"
-                disabled={
-                  addressDelete.confirmText.trim().toLowerCase() !==
-                  (addressDelete.address?.label || '').trim().toLowerCase()
-                }
-                onClick={() => void handleConfirmDeleteAddress()}
-              >
-                {addressDelete.step === 'deleting' ? 'Deleting...' : 'Permanently Delete'}
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 }
