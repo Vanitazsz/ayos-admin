@@ -23,25 +23,7 @@ begin
     order by x.month;
 end $$;
 
--- 2. Daily booking buckets (completed / cancelled / other) for the dashboard chart
-create or replace function public.admin_booking_series(p_days int default 7)
-returns table (day text, status text, booking_count bigint)
-language plpgsql security definer set search_path = public as $$
-begin
-  if coalesce((select role::text from public.accounts where id = auth.uid()), '') <> 'ADMIN'
-  then raise exception 'Not authorized'; end if;
-  return query
-    select to_char(b.created_at, 'Dy'),
-           case when b.status = 'COMPLETED' then 'completed'
-                when b.status = 'CANCELLED' then 'cancelled'
-                else 'pending' end,
-           count(*)
-    from bookings b
-    where b.created_at >= now() - (p_days || ' days')::interval
-    group by 1, 2;
-end $$;
-
--- 3. Analytics KPIs as a single row (replaces full pulls of payments/bookings/accounts)
+-- 2. Analytics KPIs as a single row (replaces full pulls of payments/bookings/accounts)
 create or replace function public.admin_analytics_summary()
 returns table (
   total_revenue         numeric,
@@ -108,7 +90,7 @@ begin
     from p, b, u, cu, e;
 end $$;
 
--- 4. Service requests grouped by category (replaces full service_requests pull)
+-- 3. Service requests grouped by category (replaces full service_requests pull)
 create or replace function public.admin_top_services()
 returns table (name text, request_count bigint)
 language plpgsql security definer set search_path = public as $$
@@ -122,7 +104,7 @@ begin
     group by c.name;
 end $$;
 
--- 5. Most-booked category name (replaces full bookings pull)
+-- 4. Most-booked category name (replaces full bookings pull)
 create or replace function public.admin_most_booked_service()
 returns text
 language plpgsql security definer set search_path = public as $$
@@ -140,7 +122,7 @@ begin
   );
 end $$;
 
--- 6. Batched worker ratings (customer reviews were removed; rating is 0).
+-- 5. Batched worker ratings (customer reviews were removed; rating is 0).
 create or replace function public.get_worker_rating_stats(p_worker_ids uuid[])
 returns table (worker_id uuid, avg_rating numeric, review_count bigint)
 language plpgsql security definer set search_path = public as $$
@@ -150,16 +132,14 @@ begin
   return;
 end $$;
 
--- 7. RBAC: restrict EXECUTE of the admin RPCs to authenticated users only.
+-- 6. RBAC: restrict EXECUTE of the admin RPCs to authenticated users only.
 --    The in-function role check still enforces that only ADMIN accounts get data.
 revoke execute on function public.admin_revenue_series() from public;
-revoke execute on function public.admin_booking_series(int) from public;
 revoke execute on function public.admin_analytics_summary() from public;
 revoke execute on function public.admin_top_services() from public;
 revoke execute on function public.admin_most_booked_service() from public;
 revoke execute on function public.get_worker_rating_stats(uuid[]) from public;
 grant execute on function public.admin_revenue_series() to authenticated;
-grant execute on function public.admin_booking_series(int) to authenticated;
 grant execute on function public.admin_analytics_summary() to authenticated;
 grant execute on function public.admin_top_services() to authenticated;
 grant execute on function public.admin_most_booked_service() to authenticated;

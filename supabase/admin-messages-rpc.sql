@@ -178,45 +178,6 @@ begin
   return coalesce(p_disabled, false);
 end $$;
 
--- 5) RPC: permanently delete a conversation and everything under it (cascade).
---    Mirrors the trash guard: conversations tied to an active booking cannot be
---    deleted (the booking must be COMPLETED or CANCELLED first).
-create or replace function public.admin_delete_conversation(p_conversation_id uuid)
-returns boolean
-language plpgsql security definer set search_path = '' as $$
-declare
-  v_exists boolean;
-  v_booking_status text;
-begin
-  if not public.is_admin(true) then
-    raise exception using errcode = '42501', message = 'AAL2_ADMIN_REQUIRED';
-  end if;
-
-  select exists(
-    select 1 from public.conversations c where c.id = p_conversation_id
-  ) into v_exists;
-
-  if not v_exists then
-    raise exception using errcode = 'P0002', message = 'CONVERSATION_NOT_FOUND';
-  end if;
-
-  select b.status::text into v_booking_status
-  from public.conversations c
-  left join public.bookings b on b.id = c.booking_id
-  where c.id = p_conversation_id;
-
-  if v_booking_status is not null
-     and v_booking_status not in ('COMPLETED', 'CANCELLED') then
-    raise exception using errcode = '45001', message = 'BOOKING_ACTIVE_CANNOT_DELETE';
-  end if;
-
-  delete from public.conversations where id = p_conversation_id;
-  if not found then
-    raise exception using errcode = 'P0002', message = 'CONVERSATION_NOT_FOUND';
-  end if;
-  return true;
-end $$;
-
 -- 6) RPC: move a conversation to trash. Guards against conversations tied to an
 --    active booking (must be COMPLETED or CANCELLED first), mirroring the
 --    consumer-side chat_can_send rule. Adds a trash_entries row and soft-deletes
@@ -403,9 +364,6 @@ grant execute on function public.admin_get_conversation_messages(uuid) to authen
 
 revoke all on function public.admin_toggle_conversation_moderation(uuid, boolean) from public, anon;
 grant execute on function public.admin_toggle_conversation_moderation(uuid, boolean) to authenticated;
-
-revoke all on function public.admin_delete_conversation(uuid) from public, anon;
-grant execute on function public.admin_delete_conversation(uuid) to authenticated;
 
 revoke all on function public.admin_move_conversation_to_trash(uuid) from public, anon;
 grant execute on function public.admin_move_conversation_to_trash(uuid) to authenticated;
