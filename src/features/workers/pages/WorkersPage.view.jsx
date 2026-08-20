@@ -474,16 +474,16 @@ export function WorkersView({ model }) {
             )}
           </TableBody>
         </Table>
-      </div>
 
-      {filteredWorkers.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          totalCount={count}
-        />
-      )}
+        {filteredWorkers.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalCount={count}
+          />
+        )}
+      </div>
 
       {/* Worker Details Drawer */}
       <Drawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} title="Worker Details">

@@ -7,6 +7,7 @@ import {
   CheckCircle,
   XCircle,
   ShieldAlert,
+  AlertTriangle,
 } from 'lucide-react';
 import Pagination from '../../../components/ui/Pagination';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
@@ -27,24 +28,30 @@ import {
   TableCell,
 } from '../../../components/ui/Table';
 
-const StatusBadge = ({ status }) => {
-  if (status === 'Success')
-    return (
-      <Badge variant="success">
-        <CheckCircle size={12} /> Success
-      </Badge>
-    );
-  if (status === 'Failed')
+const RETENTION_DAYS = 7;
+const MS_PER_DAY = 86_400_000;
+
+const RetentionBadge = ({ createdAt }) => {
+  if (!createdAt) return <span className="text-foreground-lighter">—</span>;
+  const elapsed = Math.floor((Date.now() - new Date(createdAt).getTime()) / MS_PER_DAY);
+  const remaining = Math.max(0, RETENTION_DAYS - elapsed);
+  if (remaining === 0)
     return (
       <Badge variant="danger">
-        <XCircle size={12} /> Failed
+        <XCircle size={12} /> Expires today
       </Badge>
     );
-  if (status)
+  if (remaining <= 2)
     return (
-      <Badge variant="default">{status}</Badge>
+      <Badge variant="warning">
+        <AlertTriangle size={12} /> {remaining} {remaining === 1 ? 'day' : 'days'}
+      </Badge>
     );
-  return <span className="text-foreground-lighter">—</span>;
+  return (
+    <Badge variant="success">
+      <CheckCircle size={12} /> {remaining} days
+    </Badge>
+  );
 };
 
 export function AuditLogsView({ model }) {
@@ -59,6 +66,7 @@ export function AuditLogsView({ model }) {
     currentPage,
     setCurrentPage,
     filteredLogs,
+    count,
     totalPages,
     paginatedLogs,
     stats,
@@ -186,7 +194,7 @@ export function AuditLogsView({ model }) {
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-right">
-                    <StatusBadge status={log.status} />
+                    <RetentionBadge createdAt={log.created_at} />
                   </TableCell>
                 </TableRow>
               ))
@@ -203,15 +211,16 @@ export function AuditLogsView({ model }) {
             )}
           </TableBody>
         </Table>
-      </div>
 
-      {filteredLogs.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
-      )}
+        {filteredLogs.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalCount={count}
+          />
+        )}
+      </div>
     </div>
   );
 }

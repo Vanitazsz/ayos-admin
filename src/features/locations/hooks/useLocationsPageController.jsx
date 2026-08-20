@@ -1,5 +1,6 @@
 import {
   deleteUserAddress,
+  checkAddressDeletable,
   loadBookingsForUser,
   loadBookingsForWorker,
   loadLocations,
@@ -10,6 +11,7 @@ import {
   resolveUserAvatar,
   clearWorkerLocation,
 } from '../logic/LocationsPageLogic';
+import { cancelBookingAsAdmin } from '../../../services/bookings';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Badge from '../../../components/ui/Badge';
 import { useServerPagination } from '../../../hooks/useServerPagination';
@@ -275,33 +277,118 @@ export function useLocationsPageController() {
     onConfirm: null,
   });
 
+  const [addressDelete, setAddressDelete] = useState({
+    isOpen: false,
+    step: 'idle',
+    address: null,
+    user: null,
+    activeBookings: [],
+    summary: null,
+    confirmText: '',
+    error: null,
+  });
+
   const handleDeleteAddress = useCallback(
     (user, address) => {
-      setConfirm({
+      setAddressDelete({
         isOpen: true,
-        title: 'Delete Address',
-        message: `Permanently delete "${address.label || 'this address'}" for ${user.name}? Associated service requests will be deleted.`,
-        confirmLabel: 'Delete Address',
-        onConfirm: async () => {
-          try {
-            await deleteUserAddress(address.id);
-            setSelectedUser((prev) => ({
-              ...prev,
-              addresses: prev.addresses.filter((a) => a.id !== address.id),
-            }));
-            await refresh();
-            toast.success('Address deleted', `${address.label || 'Address'} has been permanently removed.`);
-          } catch (error) {
-            toast.error(
-              'Delete failed',
-              error instanceof Error ? error.message : 'Unable to delete address.',
-            );
-          }
-        },
+        step: 'checking',
+        address,
+        user,
+        activeBookings: [],
+        summary: null,
+        confirmText: '',
+        error: null,
       });
+
+      checkAddressDeletable(address.id)
+        .then((result) => {
+          if (result.active_bookings?.length > 0) {
+            setAddressDelete((prev) => ({
+              ...prev,
+              step: 'cancelling',
+              activeBookings: result.active_bookings,
+              summary: result.summary,
+            }));
+          } else {
+            setAddressDelete((prev) => ({
+              ...prev,
+              step: 'warning',
+              summary: result.summary,
+            }));
+          }
+        })
+        .catch((err) => {
+          setAddressDelete({
+            isOpen: false,
+            step: 'idle',
+            address: null,
+            user: null,
+            activeBookings: [],
+            summary: null,
+            confirmText: '',
+            error: null,
+          });
+          toast.error(
+            'Check failed',
+            err instanceof Error ? err.message : 'Unable to check address.',
+          );
+        });
     },
-    [refresh, toast],
+    [toast],
   );
+
+  const handleCancelBookingFromDelete = useCallback(
+    async (bookingId) => {
+      try {
+        await cancelBookingAsAdmin(bookingId, 'Cancelled by administrator — address being deleted');
+        setAddressDelete((prev) => ({
+          ...prev,
+          activeBookings: prev.activeBookings.filter((b) => b.id !== bookingId),
+        }));
+        toast.success('Booking cancelled');
+      } catch (err) {
+        toast.error(
+          'Cancel failed',
+          err instanceof Error ? err.message : 'Unable to cancel booking.',
+        );
+      }
+    },
+    [toast],
+  );
+
+  const handleConfirmDeleteAddress = useCallback(async () => {
+    setAddressDelete((prev) => ({ ...prev, step: 'deleting' }));
+    try {
+      const result = await deleteUserAddress(addressDelete.address.id);
+      setSelectedUser((prev) =>
+        prev
+          ? { ...prev, addresses: prev.addresses.filter((a) => a.id !== addressDelete.address.id) }
+          : prev,
+      );
+      setAddressDelete({
+        isOpen: false,
+        step: 'idle',
+        address: null,
+        user: null,
+        activeBookings: [],
+        summary: null,
+        confirmText: '',
+        error: null,
+      });
+      await refresh();
+      toast.success(
+        'Address deleted',
+        `${addressDelete.address.label || 'Address'} permanently removed. ${result.bookings_deleted || 0} bookings and ${result.service_requests_deleted || 0} service requests deleted.`,
+      );
+    } catch (err) {
+      setAddressDelete((prev) => ({ ...prev, step: 'warning' }));
+      toast.error(
+        'Delete failed',
+        err instanceof Error ? err.message : 'Unable to delete address.',
+      );
+    }
+  }, [addressDelete.address, refresh, toast]);
 
   const handleClearWorkerLocation = useCallback(
     (worker) => {
@@ -386,7 +473,11 @@ export function useLocationsPageController() {
       refresh,
       confirm,
       setConfirm,
+      addressDelete,
+      setAddressDelete,
       handleDeleteAddress,
+      handleCancelBookingFromDelete,
+      handleConfirmDeleteAddress,
       handleClearWorkerLocation,
     }),
     [
@@ -434,6 +525,8 @@ export function useLocationsPageController() {
       refresh,
       confirm,
       handleDeleteAddress,
+      handleCancelBookingFromDelete,
+      handleConfirmDeleteAddress,
       handleClearWorkerLocation,
     ],
   );

@@ -238,15 +238,16 @@ export function SupportView({ model }) {
             )}
           </TableBody>
         </Table>
-      </div>
 
-      {filteredTickets.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
-      )}
+        {filteredTickets.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalCount={filteredTickets.length}
+          />
+        )}
+      </div>
 
       {/* Ticket Detail & Chat Drawer */}
       <Drawer

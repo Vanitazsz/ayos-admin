@@ -300,12 +300,25 @@ export async function resolveUserAvatar(path) {
 }
 
 export async function deleteUserAddress(addressId) {
-  const { error } = await supabase.rpc('admin_delete_user_address', {
+  const { data, error } = await supabase.rpc('admin_delete_user_address', {
     p_address_id: addressId,
   });
   if (error) throw error;
   invalidate('users');
+  return data;
 }
+
+export const checkAddressDeletable = cacheable(
+  'users',
+  { ttl: 30_000, key: 'address-deletability' },
+  async (addressId) => {
+    const { data, error } = await supabase.rpc('admin_check_address_deletable', {
+      p_address_id: addressId,
+    });
+    if (error) throw error;
+    return data;
+  },
+);
 
 export const loadUserVerificationDocs = cacheable(
   'users',

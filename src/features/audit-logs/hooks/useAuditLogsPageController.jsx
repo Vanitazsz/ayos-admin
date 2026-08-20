@@ -34,6 +34,7 @@ export function useAuditLogsPageController() {
 
   const {
     rows: filteredLogs,
+    count,
     error,
     isLoading,
     currentPage,
@@ -79,6 +80,7 @@ export function useAuditLogsPageController() {
     currentPage,
     setCurrentPage,
     filteredLogs,
+    count,
     totalPages,
     paginatedLogs,
     stats,

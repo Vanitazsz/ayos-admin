@@ -14,6 +14,7 @@ export {
   updateUser,
   updateUserEmail,
   deleteUserAddress,
+  checkAddressDeletable,
 } from '../../../services/users';
 export {
   bulkSetWorkerVerification,

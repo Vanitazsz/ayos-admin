@@ -251,15 +251,16 @@ const TransactionsTab = ({ model, onOpenAction, onViewDetails }) => (
           )}
         </TableBody>
       </Table>
-    </div>
 
-    {model.count > 0 && (
-      <Pagination
-        currentPage={model.currentPage}
-        totalPages={model.totalPages}
-        onPageChange={model.setCurrentPage}
-      />
-    )}
+      {model.count > 0 && (
+        <Pagination
+          currentPage={model.currentPage}
+          totalPages={model.totalPages}
+          onPageChange={model.setCurrentPage}
+          totalCount={model.count}
+        />
+      )}
+    </div>
   </>
 );
 
